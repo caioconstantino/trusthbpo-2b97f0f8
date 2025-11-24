@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./ui/accordion";
 
 interface CategoryData {
   name: string;
   totalSold: number;
 }
 
-interface BranchData {
+export interface BranchData {
   name: string;
   sales: number;
   products: number;
@@ -18,15 +21,15 @@ interface BranchData {
 
 interface OperationalSectionProps {
   branch: BranchData;
+  value: string;
 }
 
-export const OperationalSection = ({ branch }: OperationalSectionProps) => {
+export const OperationalSection = ({ branch, value }: OperationalSectionProps) => {
   const [activeSubTab, setActiveSubTab] = useState("categoria");
 
   return (
-    <div className="space-y-4">
-      {/* Branch Summary Header */}
-      <div className="bg-dataSection text-dataSection-foreground px-6 py-4 rounded-t-lg">
+    <AccordionItem value={value} className="border border-border rounded-lg overflow-hidden">
+      <AccordionTrigger className="bg-dataSection text-dataSection-foreground px-6 py-4 hover:no-underline hover:bg-dataSection/90">
         <div className="flex items-center gap-2 text-sm font-medium">
           <span className="uppercase font-bold">{branch.name}</span>
           <span className="opacity-80">- VENDAS:</span>
@@ -37,10 +40,9 @@ export const OperationalSection = ({ branch }: OperationalSectionProps) => {
           <span className="opacity-80">| CUSTO:</span>
           <span className="font-bold">R$ {branch.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
-      </div>
-
-      {/* Content Card */}
-      <div className="bg-card border border-border rounded-b-lg">
+      </AccordionTrigger>
+      
+      <AccordionContent className="bg-card pb-0">
         {/* Sub Tabs */}
         <div className="border-b border-border px-6 py-3">
           <div className="flex gap-6">
@@ -131,7 +133,7 @@ export const OperationalSection = ({ branch }: OperationalSectionProps) => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </AccordionContent>
+    </AccordionItem>
   );
 };
