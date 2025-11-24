@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/MetricCard";
 import { OperationalSection } from "@/components/OperationalSection";
+import { StockSection } from "@/components/StockSection";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, FileText } from "lucide-react";
 
@@ -39,6 +40,27 @@ const Index = () => {
       categories: [
         { name: "Desconhecida", totalSold: 31817.00 }
       ]
+    }
+  ];
+
+  const stockData = [
+    {
+      name: "TREZE",
+      pieces: 3746,
+      stockValue: 27077.50,
+      stockCost: 23020.92,
+      units: 3746,
+      expectedProfit: 4056.58,
+      hasAlert: false
+    },
+    {
+      name: "MATRIZ",
+      pieces: 4267,
+      stockValue: 38302.50,
+      stockCost: 32561.65,
+      units: 4267,
+      expectedProfit: 5740.85,
+      hasAlert: true
     }
   ];
 
@@ -117,9 +139,15 @@ const Index = () => {
         )}
 
         {activeTab === "estoque" && (
-          <div className="bg-card border border-border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">Conteúdo de Estoque será implementado aqui</p>
-          </div>
+          <Accordion type="single" collapsible className="space-y-4">
+            {stockData.map((stock, index) => (
+              <StockSection 
+                key={stock.name} 
+                stock={stock} 
+                value={`stock-${index}`}
+              />
+            ))}
+          </Accordion>
         )}
 
         {activeTab === "fiscal" && (
