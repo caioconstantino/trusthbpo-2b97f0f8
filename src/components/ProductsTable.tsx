@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import { EditProductSheet } from "./EditProductSheet";
 
 interface Product {
   id: string;
@@ -47,8 +48,12 @@ export const ProductsTable = () => {
     }
   ]);
 
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+
   const handleEdit = (id: string) => {
-    console.log("Editar produto:", id);
+    setEditingProductId(id);
+    setIsEditSheetOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -56,8 +61,9 @@ export const ProductsTable = () => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <Table>
+    <>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-20"></TableHead>
@@ -109,5 +115,12 @@ export const ProductsTable = () => {
         </TableBody>
       </Table>
     </div>
+
+    <EditProductSheet
+      productId={editingProductId}
+      open={isEditSheetOpen}
+      onOpenChange={setIsEditSheetOpen}
+    />
+    </>
   );
 };
