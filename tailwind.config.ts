@@ -57,6 +57,22 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        sales: {
+          DEFAULT: "hsl(var(--sales))",
+          foreground: "hsl(var(--sales-foreground))",
+        },
+        receivable: {
+          DEFAULT: "hsl(var(--receivable))",
+          foreground: "hsl(var(--receivable-foreground))",
+        },
+        expenses: {
+          DEFAULT: "hsl(var(--expenses))",
+          foreground: "hsl(var(--expenses-foreground))",
+        },
+        dataSection: {
+          DEFAULT: "hsl(var(--data-section))",
+          foreground: "hsl(var(--data-section-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
