@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/MetricCard";
 import { OperationalSection } from "@/components/OperationalSection";
-import { Button } from "@/components/ui/button";
+import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, FileText } from "lucide-react";
 
 const Index = () => {
@@ -105,11 +105,15 @@ const Index = () => {
 
         {/* Tab Content */}
         {activeTab === "operacional" && (
-          <div className="space-y-4">
-            {branchesData.map((branch) => (
-              <OperationalSection key={branch.name} branch={branch} />
+          <Accordion type="single" collapsible className="space-y-4">
+            {branchesData.map((branch, index) => (
+              <OperationalSection 
+                key={branch.name} 
+                branch={branch} 
+                value={`branch-${index}`}
+              />
             ))}
-          </div>
+          </Accordion>
         )}
 
         {activeTab === "estoque" && (
