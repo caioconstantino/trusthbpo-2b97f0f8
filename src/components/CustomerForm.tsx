@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
-import { Search, Plus, MapPin } from "lucide-react";
+import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void }) => {
@@ -16,9 +16,7 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
     responsible: "",
     email: "",
     phone: "",
-    observations: "",
-    route: "",
-    sequence: ""
+    observations: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,9 +43,7 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
       responsible: "",
       email: "",
       phone: "",
-      observations: "",
-      route: "",
-      sequence: ""
+      observations: ""
     });
 
     onCustomerAdded();
@@ -146,47 +142,17 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4">
-        {/* Observações */}
-        <div>
-          <Label htmlFor="observations">Observações</Label>
-          <Textarea
-            id="observations"
-            value={formData.observations}
-            onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-            placeholder="Observações sobre o cliente"
-            className="mt-1 resize-none"
-            rows={3}
-          />
-        </div>
-
-        {/* Rota */}
-        <div>
-          <Label htmlFor="route">Rota</Label>
-          <div className="flex gap-2 mt-1">
-            <Input
-              id="route"
-              value={formData.route}
-              onChange={(e) => setFormData({ ...formData, route: e.target.value })}
-              placeholder="Rota"
-            />
-            <Button type="button" variant="outline" size="icon">
-              <MapPin className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Sequencia */}
-        <div>
-          <Label htmlFor="sequence">Sequencia</Label>
-          <Input
-            id="sequence"
-            value={formData.sequence}
-            onChange={(e) => setFormData({ ...formData, sequence: e.target.value })}
-            placeholder="Sequência"
-            className="mt-1"
-          />
-        </div>
+      {/* Observações */}
+      <div>
+        <Label htmlFor="observations">Observações</Label>
+        <Textarea
+          id="observations"
+          value={formData.observations}
+          onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+          placeholder="Observações sobre o cliente"
+          className="mt-1 resize-none"
+          rows={3}
+        />
       </div>
     </form>
   );
