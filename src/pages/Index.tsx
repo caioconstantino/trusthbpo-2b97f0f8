@@ -100,42 +100,42 @@ const Index = () => {
         </div>
 
         {/* Action Tabs */}
-        <div className="flex gap-4 border-b border-border">
+        <div className="flex gap-2 md:gap-4 border-b border-border overflow-x-auto">
           <button
             id="operacional-tab"
             onClick={() => setActiveTab("operacional")}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
               activeTab === "operacional"
                 ? "border-primary text-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Package className="w-4 h-4" />
-            Operacional
+            <span className="text-sm md:text-base">Operacional</span>
           </button>
           <button
             id="estoque-tab"
             onClick={() => setActiveTab("estoque")}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
               activeTab === "estoque"
                 ? "border-primary text-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Archive className="w-4 h-4" />
-            Estoque
+            <span className="text-sm md:text-base">Estoque</span>
           </button>
           <button
             id="fiscal-tab"
             onClick={() => setActiveTab("fiscal")}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
               activeTab === "fiscal"
                 ? "border-primary text-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <FileText className="w-4 h-4" />
-            Fiscal
+            <span className="text-sm md:text-base">Fiscal</span>
           </button>
         </div>
 

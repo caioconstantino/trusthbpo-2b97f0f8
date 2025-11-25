@@ -76,13 +76,13 @@ const ContasPagar = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Form */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-6">Nova despesa</h2>
+        <div className="bg-card border border-border rounded-lg p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Nova despesa</h2>
           
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               {/* Categoria */}
               <div>
                 <Label>Categoria</Label>
@@ -192,7 +192,7 @@ const ContasPagar = () => {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Data Início */}
           <div>
             <Label>Data Início</Label>
@@ -282,30 +282,30 @@ const ContasPagar = () => {
                 </AccordionTrigger>
                 
                 <AccordionContent className="bg-card pb-0">
-                  <div className="overflow-hidden">
-                    <table className="w-full">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px]">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="text-left py-3 px-4 font-semibold text-sm">#</th>
-                          <th className="text-left py-3 px-4 font-semibold text-sm">Descrição</th>
-                          <th className="text-left py-3 px-4 font-semibold text-sm">Valor</th>
-                          <th className="text-left py-3 px-4 font-semibold text-sm">Vencimento</th>
-                          <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
-                          <th className="text-center py-3 px-4 font-semibold text-sm w-32">Ações</th>
+                          <th className="text-left py-3 px-2 md:px-4 font-semibold text-xs md:text-sm">#</th>
+                          <th className="text-left py-3 px-2 md:px-4 font-semibold text-xs md:text-sm">Descrição</th>
+                          <th className="text-left py-3 px-2 md:px-4 font-semibold text-xs md:text-sm">Valor</th>
+                          <th className="text-left py-3 px-2 md:px-4 font-semibold text-xs md:text-sm">Vencimento</th>
+                          <th className="text-left py-3 px-2 md:px-4 font-semibold text-xs md:text-sm">Status</th>
+                          <th className="text-center py-3 px-2 md:px-4 font-semibold text-xs md:text-sm w-24 md:w-32">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {categoryExpenses.map((expense) => (
                           <tr key={expense.id} className="border-t">
-                            <td className="py-3 px-4 text-sm">{expense.id}</td>
-                            <td className="py-3 px-4 text-sm">{expense.description}</td>
-                            <td className="py-3 px-4 text-sm">
+                            <td className="py-3 px-2 md:px-4 text-xs md:text-sm">{expense.id}</td>
+                            <td className="py-3 px-2 md:px-4 text-xs md:text-sm">{expense.description}</td>
+                            <td className="py-3 px-2 md:px-4 text-xs md:text-sm">
                               R$ {expense.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-4 text-sm">{expense.dueDate}</td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-2 md:px-4 text-xs md:text-sm">{expense.dueDate}</td>
+                            <td className="py-3 px-2 md:px-4">
                               <span className={cn(
-                                "px-3 py-1 rounded-full text-xs font-medium",
+                                "px-2 md:px-3 py-1 rounded-full text-xs font-medium",
                                 expense.status === "Pago" 
                                   ? "bg-secondary text-secondary-foreground"
                                   : "bg-destructive/10 text-destructive"
@@ -313,21 +313,21 @@ const ContasPagar = () => {
                                 {expense.status}
                               </span>
                             </td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center justify-center gap-2">
+                            <td className="py-3 px-2 md:px-4">
+                              <div className="flex items-center justify-center gap-1 md:gap-2">
                                 <Button
                                   size="icon"
                                   variant="secondary"
-                                  className="h-8 w-8 bg-slate-700 hover:bg-slate-800 text-white"
+                                  className="h-7 w-7 md:h-8 md:w-8 bg-slate-700 hover:bg-slate-800 text-white"
                                 >
-                                  <Pencil className="w-4 h-4" />
+                                  <Pencil className="w-3 h-3 md:w-4 md:h-4" />
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="secondary"
-                                  className="h-8 w-8 bg-slate-600 hover:bg-slate-700 text-white"
+                                  className="h-7 w-7 md:h-8 md:w-8 bg-slate-600 hover:bg-slate-700 text-white"
                                 >
-                                  <Lock className="w-4 h-4" />
+                                  <Lock className="w-3 h-3 md:w-4 md:h-4" />
                                 </Button>
                               </div>
                             </td>

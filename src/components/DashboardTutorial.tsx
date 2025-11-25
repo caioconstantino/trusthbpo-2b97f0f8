@@ -122,20 +122,20 @@ export const DashboardTutorial = ({ open, onOpenChange }: DashboardTutorialProps
       )}
 
       {/* Tutorial Dialog */}
-      <div className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
-        <div className="bg-card border border-border rounded-lg shadow-lg p-6">
+      <div className="fixed z-50 left-4 right-4 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 w-auto md:max-w-md">
+        <div className="bg-card border border-border rounded-lg shadow-lg p-4 md:p-6">
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 disabled:pointer-events-none"
+            className="absolute top-3 right-3 md:top-4 md:right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 disabled:pointer-events-none"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Fechar</span>
           </button>
 
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">{step.title}</h3>
-              <p className="text-sm text-muted-foreground">{step.description}</p>
+              <h3 className="text-base md:text-lg font-semibold pr-6">{step.title}</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">{step.description}</p>
             </div>
 
             {/* Progress Dots */}
@@ -168,10 +168,11 @@ export const DashboardTutorial = ({ open, onOpenChange }: DashboardTutorialProps
                 variant="outline"
                 onClick={handleBack}
                 disabled={currentStep === 0}
+                size="sm"
               >
                 Back
               </Button>
-              <Button onClick={handleNext}>
+              <Button onClick={handleNext} size="sm">
                 {isLastStep ? "Done" : "Next"}
               </Button>
             </div>
