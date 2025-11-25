@@ -4,6 +4,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { OperationalSection } from "@/components/OperationalSection";
 import { StockSection } from "@/components/StockSection";
 import { DashboardTutorial } from "@/components/DashboardTutorial";
+import { ProductCarousel } from "@/components/ProductCarousel";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, FileText } from "lucide-react";
 
@@ -138,6 +139,9 @@ const Index = () => {
             <span className="text-sm md:text-base">Fiscal</span>
           </button>
         </div>
+
+        {/* Product Carousel */}
+        <ProductCarousel />
 
         {/* Tab Content */}
         {activeTab === "operacional" && (
