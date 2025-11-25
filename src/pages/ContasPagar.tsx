@@ -12,6 +12,8 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, List, Plus, Pencil, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { CategoryListDialog } from "@/components/CategoryListDialog";
+import { ManageCategoryDialog } from "@/components/ManageCategoryDialog";
 
 interface Expense {
   id: number;
@@ -32,6 +34,9 @@ const ContasPagar = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [statusFilter, setStatusFilter] = useState("Todos");
+  const [categoryListOpen, setCategoryListOpen] = useState(false);
+  const [manageCategoryOpen, setManageCategoryOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ id: number; name: string } | null>(null);
 
   const expenses: Expense[] = [
     { id: 508, description: "SALARIO CAIO", value: 100.00, dueDate: "20/10/2025", status: "Pago", category: "SALARIO COLABORADORES" },
@@ -88,10 +93,23 @@ const ContasPagar = () => {
                     placeholder="Categoria"
                     className="flex-1"
                   />
-                  <Button type="button" variant="secondary" size="icon" className="bg-slate-700 hover:bg-slate-800 text-white">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    size="icon" 
+                    className="bg-slate-700 hover:bg-slate-800 text-white"
+                    onClick={() => setCategoryListOpen(true)}
+                  >
                     <List className="w-4 h-4" />
                   </Button>
-                  <Button type="button" size="icon">
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    onClick={() => {
+                      setEditingCategory(null);
+                      setManageCategoryOpen(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -324,6 +342,29 @@ const ContasPagar = () => {
           })}
         </Accordion>
       </div>
+
+      {/* Category Dialogs */}
+      <CategoryListDialog
+        open={categoryListOpen}
+        onOpenChange={setCategoryListOpen}
+        onSelectCategory={(cat) => setCategory(cat)}
+        onEditCategory={(cat) => {
+          setEditingCategory(cat);
+          setManageCategoryOpen(true);
+        }}
+        onDeleteCategory={(id) => {
+          toast({
+            title: "Categoria excluída!",
+            description: "A categoria foi removida com sucesso.",
+          });
+        }}
+      />
+
+      <ManageCategoryDialog
+        open={manageCategoryOpen}
+        onOpenChange={setManageCategoryOpen}
+        editingCategory={editingCategory}
+      />
     </DashboardLayout>
   );
 };
