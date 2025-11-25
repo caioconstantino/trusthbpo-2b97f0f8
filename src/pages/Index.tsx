@@ -1,13 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/MetricCard";
 import { OperationalSection } from "@/components/OperationalSection";
 import { StockSection } from "@/components/StockSection";
+import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, FileText } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("operacional");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if user has seen tutorial before
+    const hasSeenTutorial = localStorage.getItem("hasSeenDashboardTutorial");
+    if (!hasSeenTutorial) {
+      setTutorialOpen(true);
+      localStorage.setItem("hasSeenDashboardTutorial", "true");
+    }
+  }, []);
 
   // Dados de exemplo baseados na imagem
   const branchesData = [
@@ -65,10 +76,10 @@ const Index = () => {
   ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
       <div className="space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div id="metric-cards" className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard
             title="Vendas"
             value="R$ 0,00"
@@ -91,6 +102,7 @@ const Index = () => {
         {/* Action Tabs */}
         <div className="flex gap-4 border-b border-border">
           <button
+            id="operacional-tab"
             onClick={() => setActiveTab("operacional")}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
               activeTab === "operacional"
@@ -102,6 +114,7 @@ const Index = () => {
             Operacional
           </button>
           <button
+            id="estoque-tab"
             onClick={() => setActiveTab("estoque")}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
               activeTab === "estoque"
@@ -113,6 +126,7 @@ const Index = () => {
             Estoque
           </button>
           <button
+            id="fiscal-tab"
             onClick={() => setActiveTab("fiscal")}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
               activeTab === "fiscal"
@@ -127,15 +141,17 @@ const Index = () => {
 
         {/* Tab Content */}
         {activeTab === "operacional" && (
-          <Accordion type="single" collapsible className="space-y-4">
-            {branchesData.map((branch, index) => (
-              <OperationalSection 
-                key={branch.name} 
-                branch={branch} 
-                value={`branch-${index}`}
-              />
-            ))}
-          </Accordion>
+          <div id="branches-section">
+            <Accordion type="single" collapsible className="space-y-4">
+              {branchesData.map((branch, index) => (
+                <OperationalSection 
+                  key={branch.name} 
+                  branch={branch} 
+                  value={`branch-${index}`}
+                />
+              ))}
+            </Accordion>
+          </div>
         )}
 
         {activeTab === "estoque" && (
@@ -156,6 +172,9 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      {/* Tutorial */}
+      <DashboardTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
     </DashboardLayout>
   );
 };

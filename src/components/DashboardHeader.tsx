@@ -2,15 +2,19 @@ import { Bell, Gift, GraduationCap, Filter } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 
-export const DashboardHeader = () => {
+interface DashboardHeaderProps {
+  onTutorialClick?: () => void;
+}
+
+export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
   return (
     <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={onTutorialClick}>
           <GraduationCap className="w-4 h-4" />
           Tutorial
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button id="date-filter" variant="outline" size="sm" className="gap-2">
           <Filter className="w-4 h-4" />
           Filtro Aplicado: Hoje
         </Button>
