@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, List, Plus, Pencil, Lock } from "lucide-react";
@@ -250,76 +251,78 @@ const ContasPagar = () => {
         </div>
 
         {/* Expenses List */}
-        {Object.entries(groupedExpenses).map(([categoryName, categoryExpenses]) => {
-          const total = categoryExpenses.reduce((sum, exp) => sum + exp.value, 0);
-          
-          return (
-            <div key={categoryName} className="space-y-2">
-              {/* Category Header */}
-              <div className="bg-dataSection text-dataSection-foreground px-4 py-3 rounded-lg flex items-center justify-between">
-                <span className="font-semibold uppercase">
-                  {categoryName} - TOTAL: R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              {/* Expenses Table */}
-              <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">#</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Descrição</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Valor</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Vencimento</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
-                      <th className="text-center py-3 px-4 font-semibold text-sm w-32">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categoryExpenses.map((expense) => (
-                      <tr key={expense.id} className="border-t">
-                        <td className="py-3 px-4 text-sm">{expense.id}</td>
-                        <td className="py-3 px-4 text-sm">{expense.description}</td>
-                        <td className="py-3 px-4 text-sm">
-                          R$ {expense.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3 px-4 text-sm">{expense.dueDate}</td>
-                        <td className="py-3 px-4">
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-xs font-medium",
-                            expense.status === "Pago" 
-                              ? "bg-secondary text-secondary-foreground"
-                              : "bg-destructive/10 text-destructive"
-                          )}>
-                            {expense.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className="h-8 w-8 bg-slate-700 hover:bg-slate-800 text-white"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className="h-8 w-8 bg-slate-600 hover:bg-slate-700 text-white"
-                            >
-                              <Lock className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })}
+        <Accordion type="single" collapsible className="space-y-4">
+          {Object.entries(groupedExpenses).map(([categoryName, categoryExpenses], index) => {
+            const total = categoryExpenses.reduce((sum, exp) => sum + exp.value, 0);
+            
+            return (
+              <AccordionItem key={categoryName} value={`category-${index}`} className="border border-border rounded-lg overflow-hidden">
+                <AccordionTrigger className="bg-dataSection text-dataSection-foreground px-4 py-3 hover:no-underline hover:bg-dataSection/90">
+                  <span className="font-semibold uppercase">
+                    {categoryName} - TOTAL: R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </AccordionTrigger>
+                
+                <AccordionContent className="bg-card pb-0">
+                  <div className="overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left py-3 px-4 font-semibold text-sm">#</th>
+                          <th className="text-left py-3 px-4 font-semibold text-sm">Descrição</th>
+                          <th className="text-left py-3 px-4 font-semibold text-sm">Valor</th>
+                          <th className="text-left py-3 px-4 font-semibold text-sm">Vencimento</th>
+                          <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
+                          <th className="text-center py-3 px-4 font-semibold text-sm w-32">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {categoryExpenses.map((expense) => (
+                          <tr key={expense.id} className="border-t">
+                            <td className="py-3 px-4 text-sm">{expense.id}</td>
+                            <td className="py-3 px-4 text-sm">{expense.description}</td>
+                            <td className="py-3 px-4 text-sm">
+                              R$ {expense.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 text-sm">{expense.dueDate}</td>
+                            <td className="py-3 px-4">
+                              <span className={cn(
+                                "px-3 py-1 rounded-full text-xs font-medium",
+                                expense.status === "Pago" 
+                                  ? "bg-secondary text-secondary-foreground"
+                                  : "bg-destructive/10 text-destructive"
+                              )}>
+                                {expense.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center justify-center gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-8 w-8 bg-slate-700 hover:bg-slate-800 text-white"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-8 w-8 bg-slate-600 hover:bg-slate-700 text-white"
+                                >
+                                  <Lock className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </div>
     </DashboardLayout>
   );
