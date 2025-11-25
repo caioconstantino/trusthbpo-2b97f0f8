@@ -14,7 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      tb_categorias: {
+        Row: {
+          created_at: string | null
+          dominio: string
+          id: number
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dominio: string
+          id?: number
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dominio?: string
+          id?: number
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tb_categorias_contas_pagar: {
+        Row: {
+          created_at: string | null
+          dominio: string
+          edit: string
+          id: number
+          nome: string | null
+          parent_id: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dominio: string
+          edit?: string
+          id?: number
+          nome?: string | null
+          parent_id?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dominio?: string
+          edit?: string
+          id?: number
+          nome?: string | null
+          parent_id?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tb_clientes: {
+        Row: {
+          cpf_cnpj: string
+          created_at: string | null
+          detalhes_cnpj: string | null
+          dominio: string
+          email: string
+          id: number
+          observacoes: string
+          razao_social: string
+          responsavel: string
+          status: string
+          telefone: string
+          unidade: number
+          updated_at: string | null
+          usuario: number
+        }
+        Insert: {
+          cpf_cnpj: string
+          created_at?: string | null
+          detalhes_cnpj?: string | null
+          dominio: string
+          email: string
+          id?: number
+          observacoes: string
+          razao_social: string
+          responsavel: string
+          status: string
+          telefone: string
+          unidade?: number
+          updated_at?: string | null
+          usuario?: number
+        }
+        Update: {
+          cpf_cnpj?: string
+          created_at?: string | null
+          detalhes_cnpj?: string | null
+          dominio?: string
+          email?: string
+          id?: number
+          observacoes?: string
+          razao_social?: string
+          responsavel?: string
+          status?: string
+          telefone?: string
+          unidade?: number
+          updated_at?: string | null
+          usuario?: number
+        }
+        Relationships: []
+      }
+      tb_escolas: {
+        Row: {
+          created_at: string | null
+          cupom: number
+          id: number
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cupom?: number
+          id?: number
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cupom?: number
+          id?: number
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tb_estq_unidades: {
+        Row: {
+          created_at: string | null
+          dominio: string
+          id: number
+          produto_id: number
+          quantidade: number
+          quantidade_minima: number
+          unidade_id: number
+          updated_at: string | null
+          variante_id: number
+        }
+        Insert: {
+          created_at?: string | null
+          dominio: string
+          id?: number
+          produto_id: number
+          quantidade?: number
+          quantidade_minima?: number
+          unidade_id: number
+          updated_at?: string | null
+          variante_id?: number
+        }
+        Update: {
+          created_at?: string | null
+          dominio?: string
+          id?: number
+          produto_id?: number
+          quantidade?: number
+          quantidade_minima?: number
+          unidade_id?: number
+          updated_at?: string | null
+          variante_id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
