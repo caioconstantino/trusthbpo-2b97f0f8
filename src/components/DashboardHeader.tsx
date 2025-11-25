@@ -2,6 +2,7 @@ import { Bell, Gift, GraduationCap, Filter } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface DashboardHeaderProps {
   onTutorialClick?: () => void;
@@ -32,6 +33,7 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           <Gift className="w-4 h-4" />
           Oferta especial para você!
         </Button>
+        <ThemeToggle />
         <div className="relative">
           <Bell className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
           <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
