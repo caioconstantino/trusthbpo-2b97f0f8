@@ -103,7 +103,7 @@ export const DashboardTutorial = ({ open, onOpenChange }: DashboardTutorialProps
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/50 z-40" onClick={handleClose} />
       
       {/* Highlight Box */}
       {highlightedElement && (
@@ -116,7 +116,7 @@ export const DashboardTutorial = ({ open, onOpenChange }: DashboardTutorialProps
             height: highlightedElement.getBoundingClientRect().height + 16,
             border: "3px solid hsl(var(--primary))",
             borderRadius: "8px",
-            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)",
+            boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.6)",
           }}
         />
       )}
