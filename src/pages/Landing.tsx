@@ -40,10 +40,10 @@ export default function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex">
+            <Button variant="ghost" onClick={() => navigate("/login")} className="hidden sm:inline-flex">
               Login
             </Button>
-            <Button onClick={() => navigate("/dashboard")} className="group">
+            <Button onClick={() => navigate("/login")} className="group">
               Teste grátis
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>

@@ -72,15 +72,21 @@ export type Database = {
         Row: {
           cpf_cnpj: string
           created_at: string | null
+          cupom: string | null
           detalhes_cnpj: string | null
           dominio: string
           email: string
           id: number
+          multiempresa: string | null
           observacoes: string
+          plano: string | null
+          proximo_pagamento: string | null
           razao_social: string
           responsavel: string
           status: string
           telefone: string
+          ultima_forma_pagamento: string | null
+          ultimo_pagamento: string | null
           unidade: number
           updated_at: string | null
           usuario: number
@@ -88,15 +94,21 @@ export type Database = {
         Insert: {
           cpf_cnpj: string
           created_at?: string | null
+          cupom?: string | null
           detalhes_cnpj?: string | null
           dominio: string
           email: string
           id?: number
+          multiempresa?: string | null
           observacoes: string
+          plano?: string | null
+          proximo_pagamento?: string | null
           razao_social: string
           responsavel: string
           status: string
           telefone: string
+          ultima_forma_pagamento?: string | null
+          ultimo_pagamento?: string | null
           unidade?: number
           updated_at?: string | null
           usuario?: number
@@ -104,15 +116,21 @@ export type Database = {
         Update: {
           cpf_cnpj?: string
           created_at?: string | null
+          cupom?: string | null
           detalhes_cnpj?: string | null
           dominio?: string
           email?: string
           id?: number
+          multiempresa?: string | null
           observacoes?: string
+          plano?: string | null
+          proximo_pagamento?: string | null
           razao_social?: string
           responsavel?: string
           status?: string
           telefone?: string
+          ultima_forma_pagamento?: string | null
+          ultimo_pagamento?: string | null
           unidade?: number
           updated_at?: string | null
           usuario?: number
@@ -179,12 +197,52 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_usuarios: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string | null
+          dominio: string
+          email: string
+          id: string
+          nome: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string | null
+          dominio: string
+          email: string
+          id?: string
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string | null
+          dominio?: string
+          email?: string
+          id?: string
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validar_dominio: {
+        Args: { p_dominio: string }
+        Returns: {
+          existe: boolean
+          nome_cliente: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
