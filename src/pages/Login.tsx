@@ -29,8 +29,6 @@ const Login = () => {
 
       if (error) throw error;
 
-      console.log("Resposta da validação:", data);
-
       if (data && Array.isArray(data) && data.length > 0) {
         const resultado = data[0];
         if (resultado.existe === true) {
