@@ -29,13 +29,24 @@ const Login = () => {
 
       if (error) throw error;
 
-      if (data && data.length > 0 && data[0].existe) {
-        setNomeCliente(data[0].nome_cliente);
-        setStep("credentials");
-        toast({
-          title: "Domínio válido",
-          description: `Bem-vindo, ${data[0].nome_cliente}`,
-        });
+      console.log("Resposta da validação:", data);
+
+      if (data && Array.isArray(data) && data.length > 0) {
+        const resultado = data[0];
+        if (resultado.existe === true) {
+          setNomeCliente(resultado.nome_cliente);
+          setStep("credentials");
+          toast({
+            title: "Domínio válido",
+            description: `Bem-vindo, ${resultado.nome_cliente}`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Domínio não encontrado",
+            description: "O domínio informado não está cadastrado ou está inativo.",
+          });
+        }
       } else {
         toast({
           variant: "destructive",
