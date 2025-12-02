@@ -88,6 +88,10 @@ const Login = () => {
         throw new Error("Usuário não pertence a este domínio");
       }
 
+      // Salvar domínio no localStorage para uso posterior
+      localStorage.setItem("user_dominio", dominio.trim().toLowerCase());
+      localStorage.setItem("user_nome", userData.nome);
+
       toast({
         title: "Login realizado",
         description: "Bem-vindo ao sistema!",
