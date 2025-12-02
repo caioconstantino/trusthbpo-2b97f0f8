@@ -197,6 +197,65 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_produtos: {
+        Row: {
+          ativo: boolean | null
+          categoria_id: number | null
+          codigo: string | null
+          codigo_barras: string | null
+          created_at: string | null
+          dominio: string
+          id: number
+          imagem_url: string | null
+          nome: string
+          observacao: string | null
+          preco_custo: number | null
+          preco_venda: number | null
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria_id?: number | null
+          codigo?: string | null
+          codigo_barras?: string | null
+          created_at?: string | null
+          dominio: string
+          id?: number
+          imagem_url?: string | null
+          nome: string
+          observacao?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria_id?: number | null
+          codigo?: string | null
+          codigo_barras?: string | null
+          created_at?: string | null
+          dominio?: string
+          id?: number
+          imagem_url?: string | null
+          nome?: string
+          observacao?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_produtos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "tb_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_usuarios: {
         Row: {
           auth_user_id: string | null
