@@ -23,6 +23,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminClientes from "./pages/admin/AdminClientes";
 import AdminUsuarios from "./pages/admin/AdminUsuarios";
 import AdminWebhooks from "./pages/admin/AdminWebhooks";
+import CriarUsuario from "./pages/CriarUsuario";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/educacao" element={<Educacao />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/criar-usuario" element={<CriarUsuario />} />
             <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
             <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
