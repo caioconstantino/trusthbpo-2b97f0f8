@@ -4,13 +4,28 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+const CNPJ_API_TOKEN = "jDdWal03g3DwdzWabVB0Qjk6ZmiOLbBUftxZMeSaKe1R";
+
+const formatCNPJ = (value: string) => {
+  const numbers = value.replace(/\D/g, "");
+  return numbers
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
+    .slice(0, 18);
+};
+
+const cleanDocument = (doc: string) => doc.replace(/\D/g, "");
 
 export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [formData, setFormData] = useState({
     document: "",
     socialName: "",
@@ -19,6 +34,55 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
     phone: "",
     observations: ""
   });
+
+  const searchCNPJ = async () => {
+    const cleanedDoc = cleanDocument(formData.document);
+    
+    if (cleanedDoc.length !== 14) {
+      toast({
+        title: "CNPJ inválido",
+        description: "Digite um CNPJ válido com 14 dígitos",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(
+        `https://comercial.cnpj.ws/cnpj/${cleanedDoc}?token=${CNPJ_API_TOKEN}`
+      );
+
+      if (!response.ok) {
+        throw new Error("CNPJ não encontrado");
+      }
+
+      const data = await response.json();
+
+      setFormData(prev => ({
+        ...prev,
+        socialName: data.razao_social || prev.socialName,
+        phone: data.estabelecimento?.ddd1 && data.estabelecimento?.telefone1 
+          ? `(${data.estabelecimento.ddd1}) ${data.estabelecimento.telefone1}`
+          : prev.phone,
+        email: data.estabelecimento?.email || prev.email
+      }));
+
+      toast({
+        title: "CNPJ encontrado",
+        description: `Razão Social: ${data.razao_social}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro na consulta",
+        description: error.message || "Não foi possível consultar o CNPJ",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,11 +168,18 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
               <Input
                 id="document"
                 value={formData.document}
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                placeholder="CPF ou CNPJ"
+                onChange={(e) => setFormData({ ...formData, document: formatCNPJ(e.target.value) })}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
               />
-              <Button type="button" variant="outline" size="icon">
-                <Search className="w-4 h-4" />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon"
+                onClick={searchCNPJ}
+                disabled={isSearching}
+              >
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               </Button>
             </div>
           </div>
