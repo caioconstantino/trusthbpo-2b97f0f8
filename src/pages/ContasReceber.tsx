@@ -14,6 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Check, Trash2, Loader2, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContasReceber, ContaReceber } from "@/hooks/useContasReceber";
+import { ClienteSearchInput } from "@/components/ClienteSearchInput";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -333,12 +334,13 @@ const ContasReceber = () => {
 
               <div>
                 <Label className="text-xs">Cliente</Label>
-                <Input
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  placeholder="Nome do cliente"
-                  className="mt-1 h-9"
-                />
+                <div className="mt-1">
+                  <ClienteSearchInput
+                    value={cliente}
+                    onChange={setCliente}
+                    placeholder="Buscar cliente..."
+                  />
+                </div>
               </div>
 
               <div>
