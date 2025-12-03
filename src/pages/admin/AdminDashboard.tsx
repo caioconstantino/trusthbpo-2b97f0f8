@@ -10,7 +10,8 @@ import {
   TrendingUp, 
   LogOut,
   UserCog,
-  LayoutDashboard
+  LayoutDashboard,
+  Webhook
 } from "lucide-react";
 
 interface Stats {
@@ -112,6 +113,14 @@ const AdminDashboard = () => {
             <UserCog className="w-4 h-4 mr-2" />
             Usuários
           </Button>
+          <Button 
+            variant="ghost" 
+            className="text-slate-400 hover:text-white hover:bg-slate-700"
+            onClick={() => navigate("/admin/webhooks")}
+          >
+            <Webhook className="w-4 h-4 mr-2" />
+            Webhooks
+          </Button>
         </div>
       </nav>
 
@@ -211,6 +220,21 @@ const AdminDashboard = () => {
               <div>
                 <h4 className="font-semibold text-white">Gerenciar Usuários</h4>
                 <p className="text-sm text-slate-400">Usuários de cada domínio</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="bg-slate-800 border-slate-700 hover:bg-slate-700/50 cursor-pointer transition-colors"
+            onClick={() => navigate("/admin/webhooks")}
+          >
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                <Webhook className="w-6 h-6 text-purple-500" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-white">Webhooks</h4>
+                <p className="text-sm text-slate-400">Eventos do Pagar.me</p>
               </div>
             </CardContent>
           </Card>

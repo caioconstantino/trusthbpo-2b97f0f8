@@ -741,6 +741,36 @@ export type Database = {
           },
         ]
       }
+      tb_webhooks: {
+        Row: {
+          created_at: string
+          event_type: string | null
+          id: string
+          payload: Json
+          processed: boolean | null
+          processed_at: string | null
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          payload: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          provider?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          provider?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
