@@ -1,25 +1,91 @@
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-interface EditCustomerSheetProps {
-  customerId: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface Customer {
+  id: number;
+  razao_social: string;
+  cpf_cnpj: string;
+  email: string;
+  telefone: string;
+  status: string;
+  observacoes: string;
 }
 
-export const EditCustomerSheet = ({ customerId, open, onOpenChange }: EditCustomerSheetProps) => {
-  const customerData = {
-    responsible: "Jorges Guedes",
-    socialName: "Jorge Varejo",
-    cpfCnpj: "12.345.678/0001-23",
-    email: "jorgeguedes@gmail.com",
-    phone: "1298817002",
+interface EditCustomerSheetProps {
+  customer: Customer | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+export const EditCustomerSheet = ({ customer, open, onOpenChange, onSuccess }: EditCustomerSheetProps) => {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    razao_social: "",
+    cpf_cnpj: "",
+    email: "",
+    telefone: "",
     status: "Ativo",
-    observations: "Sem observacoes."
+    observacoes: ""
+  });
+
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        razao_social: customer.razao_social || "",
+        cpf_cnpj: customer.cpf_cnpj || "",
+        email: customer.email || "",
+        telefone: customer.telefone || "",
+        status: customer.status || "Ativo",
+        observacoes: customer.observacoes || ""
+      });
+    }
+  }, [customer]);
+
+  const handleSave = async () => {
+    if (!customer) return;
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("tb_clientes")
+        .update({
+          razao_social: formData.razao_social,
+          cpf_cnpj: formData.cpf_cnpj,
+          email: formData.email,
+          telefone: formData.telefone,
+          status: formData.status,
+          observacoes: formData.observacoes
+        })
+        .eq("id", customer.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cliente atualizado",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      onSuccess();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,38 +97,30 @@ export const EditCustomerSheet = ({ customerId, open, onOpenChange }: EditCustom
 
         <div className="mt-6 space-y-4">
           <div>
-            <Label htmlFor="edit-responsible" className="text-xs text-muted-foreground">
-              Responsável
+            <Label htmlFor="edit-social-name" className="text-xs text-muted-foreground">
+              Razão Social / Nome
             </Label>
             <Input
-              id="edit-responsible"
-              defaultValue={customerData.responsible}
+              id="edit-social-name"
+              value={formData.razao_social}
+              onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })}
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="edit-social-name" className="text-xs text-muted-foreground">
-              Razão Social
+            <Label htmlFor="edit-cpf-cnpj" className="text-xs text-muted-foreground">
+              CPF/CNPJ
             </Label>
             <Input
-              id="edit-social-name"
-              defaultValue={customerData.socialName}
+              id="edit-cpf-cnpj"
+              value={formData.cpf_cnpj}
+              onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
               className="mt-1"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="edit-cpf-cnpj" className="text-xs text-muted-foreground">
-                CPF/CNPJ
-              </Label>
-              <Input
-                id="edit-cpf-cnpj"
-                defaultValue={customerData.cpfCnpj}
-                className="mt-1"
-              />
-            </div>
             <div>
               <Label htmlFor="edit-email" className="text-xs text-muted-foreground">
                 Email
@@ -70,37 +128,37 @@ export const EditCustomerSheet = ({ customerId, open, onOpenChange }: EditCustom
               <Input
                 id="edit-email"
                 type="email"
-                defaultValue={customerData.email}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="mt-1"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="edit-phone" className="text-xs text-muted-foreground">
                 Telefone
               </Label>
               <Input
                 id="edit-phone"
-                defaultValue={customerData.phone}
+                value={formData.telefone}
+                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                 className="mt-1"
               />
             </div>
-            <div>
-              <Label htmlFor="edit-status" className="text-xs text-muted-foreground">
-                Status
-              </Label>
-              <Select defaultValue={customerData.status}>
-                <SelectTrigger id="edit-status" className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ativo">Ativo</SelectItem>
-                  <SelectItem value="Inativo">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-status" className="text-xs text-muted-foreground">
+              Status
+            </Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <SelectTrigger id="edit-status" className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -109,14 +167,15 @@ export const EditCustomerSheet = ({ customerId, open, onOpenChange }: EditCustom
             </Label>
             <Textarea
               id="edit-observations"
-              defaultValue={customerData.observations}
+              value={formData.observacoes}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               className="mt-1 resize-none"
               rows={4}
             />
           </div>
 
-          <Button className="w-full" size="lg">
-            Salvar Alterações
+          <Button className="w-full" size="lg" onClick={handleSave} disabled={isLoading}>
+            {isLoading ? "Salvando..." : "Salvar Alterações"}
           </Button>
         </div>
       </SheetContent>
