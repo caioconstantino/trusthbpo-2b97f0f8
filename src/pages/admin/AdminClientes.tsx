@@ -68,21 +68,13 @@ const AdminClientes = () => {
   const fetchClientes = async () => {
     try {
       const { data, error } = await supabase
-        .from("tb_clientes")
+        .from("tb_clientes_saas")
         .select("*")
-        .order("dominio");
+        .order("razao_social");
 
       if (error) throw error;
 
-      // Get unique domains (first record per domain represents the SaaS customer)
-      const uniqueDomains = new Map<string, SaasCliente>();
-      data?.forEach(c => {
-        if (!uniqueDomains.has(c.dominio)) {
-          uniqueDomains.set(c.dominio, c as SaasCliente);
-        }
-      });
-
-      setClientes(Array.from(uniqueDomains.values()));
+      setClientes(data as SaasCliente[] || []);
     } catch (error: any) {
       toast({
         title: "Erro",
