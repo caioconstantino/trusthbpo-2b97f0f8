@@ -15,6 +15,8 @@ import { CalendarIcon, Check, Trash2, Loader2, List, Plus, X } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { useContasPagar, ContaPagar } from "@/hooks/useContasPagar";
 import { ManageContasPagarCategoryDialog } from "@/components/ManageContasPagarCategoryDialog";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +50,8 @@ const getInitialEndDate = () => {
 };
 
 const ContasPagar = () => {
+  const { canView, canEdit, canDelete, isLoading: permissionsLoading } = usePermissions();
+  
   // Filter state (defined first so we can pass to hook)
   const [startDate, setStartDate] = useState<Date>(getInitialStartDate);
   const [endDate, setEndDate] = useState<Date>(getInitialEndDate);
@@ -71,6 +75,15 @@ const ContasPagar = () => {
     pagarConta,
     deleteConta 
   } = useContasPagar(initialFilters);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("contas_pagar")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   // Form state
   const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");

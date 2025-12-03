@@ -3,6 +3,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -58,6 +60,7 @@ const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h to 20h
 
 const CentralContas = () => {
+  const { canView, isLoading: permissionsLoading } = usePermissions();
   const dominio = localStorage.getItem("user_dominio") || "";
   const [period, setPeriod] = useState("6");
   const [loading, setLoading] = useState(true);
@@ -71,6 +74,15 @@ const CentralContas = () => {
   const [lastMonthReceitas, setLastMonthReceitas] = useState(0);
   const [lastMonthDespesas, setLastMonthDespesas] = useState(0);
   const [forecastReceitas, setForecastReceitas] = useState(0);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("central_contas")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   useEffect(() => {
     fetchAllData();

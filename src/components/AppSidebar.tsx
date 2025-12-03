@@ -14,27 +14,32 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import logo from "@/assets/logo.webp";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Package, label: "Produtos", path: "/produtos" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: ShoppingCart, label: "PDV", path: "/pdv" },
-  { icon: ShoppingBag, label: "Compras", path: "/compras" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", modulo: "dashboard" },
+  { icon: Package, label: "Produtos", path: "/produtos", modulo: "produtos" },
+  { icon: Users, label: "Clientes", path: "/clientes", modulo: "clientes" },
+  { icon: ShoppingCart, label: "PDV", path: "/pdv", modulo: "pdv" },
+  { icon: ShoppingBag, label: "Compras", path: "/compras", modulo: "compras" },
 ];
 
 const financeItems = [
-  { icon: Wallet, label: "Contas a pagar", path: "/contas-pagar" },
-  { icon: CreditCard, label: "Contas a receber", path: "/contas-receber" },
-  { icon: FileText, label: "Central de Contas", path: "/central-contas" },
+  { icon: Wallet, label: "Contas a pagar", path: "/contas-pagar", modulo: "contas_pagar" },
+  { icon: CreditCard, label: "Contas a receber", path: "/contas-receber", modulo: "contas_receber" },
+  { icon: FileText, label: "Central de Contas", path: "/central-contas", modulo: "central_contas" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { canView, isLoading } = usePermissions();
 
   const isCollapsed = state === "collapsed";
+
+  const filteredMenuItems = menuItems.filter(item => canView(item.modulo));
+  const filteredFinanceItems = financeItems.filter(item => canView(item.modulo));
 
   return (
     <Sidebar collapsible="icon">
@@ -49,47 +54,51 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Bem vindo</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={currentPath === item.path}>
-                    <NavLink 
-                      to={item.path}
-                      className="flex items-center gap-3"
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {filteredMenuItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Bem vindo</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={currentPath === item.path}>
+                      <NavLink 
+                        to={item.path}
+                        className="flex items-center gap-3"
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {financeItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={currentPath === item.path}>
-                    <NavLink 
-                      to={item.path}
-                      className="flex items-center gap-3"
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {filteredFinanceItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredFinanceItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={currentPath === item.path}>
+                      <NavLink 
+                        to={item.path}
+                        className="flex items-center gap-3"
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

@@ -5,14 +5,26 @@ import { ProductsTable } from "@/components/ProductsTable";
 import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeftRight } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 
 const Produtos = () => {
+  const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   
   const handleProductAdded = () => {
     // Callback quando um produto é adicionado
     console.log("Produto adicionado");
   };
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("produtos")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
