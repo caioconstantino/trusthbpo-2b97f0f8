@@ -1,5 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -42,9 +40,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Criar link de pagamento no Pagar.me (Sandbox)
+    // Payload simplificado para Pagar.me (Sandbox)
     const pagarmePayload = {
-      is_building: false,
       name: `TrustHBPO - ${planName}`,
       type: 'order',
       payment_settings: {
@@ -52,40 +49,19 @@ Deno.serve(async (req) => {
         credit_card_settings: {
           operation_type: 'auth_and_capture',
           installments: [
-            {
-              number: 1,
-              total: planPrice
-            },
-            {
-              number: 2,
-              total: planPrice
-            },
-            {
-              number: 3,
-              total: planPrice
-            }
+            { number: 1, total: planPrice }
           ]
-        },
-        pix_settings: {
-          expires_in: 3600 // 1 hora em segundos
         }
       },
       cart_settings: {
         items: [
           {
             name: `Plano ${planName}`,
-            description: `Assinatura mensal TrustHBPO - Plano ${planName}`,
+            description: `Assinatura mensal TrustHBPO`,
             amount: planPrice,
-            default_quantity: 1,
-            code: planName.toLowerCase().replace(/\s/g, '-')
+            default_quantity: 1
           }
         ]
-      },
-      layout_settings: {
-        primary_color: '#0A1E3F',
-        secondary_color: '#D4AF37',
-        header_text: 'TrustHBPO',
-        sub_header_text: `Complete sua assinatura - Plano ${planName}`
       }
     }
 
