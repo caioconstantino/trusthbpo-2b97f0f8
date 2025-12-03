@@ -18,6 +18,7 @@ import {
 } from "./ui/table";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSales } from "@/hooks/useSales";
 
 interface CartItem {
   id: string;
@@ -38,6 +39,8 @@ interface FinalizeSaleDialogProps {
   onOpenChange: (open: boolean) => void;
   cartItems: CartItem[];
   total: number;
+  sessionId: string;
+  customerName: string;
   onComplete: () => void;
 }
 
@@ -46,14 +49,18 @@ export const FinalizeSaleDialog = ({
   onOpenChange,
   cartItems,
   total,
+  sessionId,
+  customerName,
   onComplete
 }: FinalizeSaleDialogProps) => {
   const { toast } = useToast();
+  const { saveSale } = useSales();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedMethod, setSelectedMethod] = useState("Dinheiro");
   const [discount, setDiscount] = useState(0);
   const [addition, setAddition] = useState(0);
   const [paymentValue, setPaymentValue] = useState("");
+  const [saving, setSaving] = useState(false);
   const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const subtotal = total;
@@ -152,7 +159,7 @@ export const FinalizeSaleDialog = ({
     setPayments(payments.filter(p => p.id !== id));
   };
 
-  const handleFinalizeSale = () => {
+  const handleFinalizeSale = async () => {
     if (remaining > 0) {
       toast({
         title: "Pagamento incompleto",
@@ -162,12 +169,29 @@ export const FinalizeSaleDialog = ({
       return;
     }
 
-    toast({
-      title: "Venda finalizada!",
-      description: `Total: R$ ${finalTotal.toFixed(2)} | Troco: R$ ${change.toFixed(2)}`,
+    setSaving(true);
+
+    const success = await saveSale({
+      sessionId,
+      customerName,
+      cartItems,
+      subtotal,
+      discountPercent: discount,
+      additionPercent: addition,
+      total: finalTotal,
+      change,
+      payments: payments.map(p => ({ method: p.method, value: p.value }))
     });
 
-    onComplete();
+    setSaving(false);
+
+    if (success) {
+      toast({
+        title: "Venda finalizada!",
+        description: `Total: R$ ${finalTotal.toFixed(2)} | Troco: R$ ${change.toFixed(2)}`,
+      });
+      onComplete();
+    }
   };
 
   const handleCancel = () => {
@@ -282,6 +306,7 @@ export const FinalizeSaleDialog = ({
                 variant="destructive"
                 onClick={handleCancel}
                 className="h-14 text-lg"
+                disabled={saving}
               >
                 Cancelar - ESC
               </Button>
@@ -289,9 +314,9 @@ export const FinalizeSaleDialog = ({
                 size="lg"
                 className="h-14 text-lg"
                 onClick={handleFinalizeSale}
-                disabled={remaining > 0}
+                disabled={remaining > 0 || saving}
               >
-                Finalizar Venda
+                {saving ? "Salvando..." : "Finalizar Venda"}
               </Button>
             </div>
           </div>

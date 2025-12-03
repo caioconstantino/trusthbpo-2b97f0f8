@@ -316,6 +316,54 @@ export type Database = {
           },
         ]
       }
+      tb_sessoes_caixa: {
+        Row: {
+          caixa_nome: string
+          created_at: string
+          data_abertura: string
+          data_fechamento: string | null
+          dominio: string
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          usuario_id: string
+          usuario_nome: string
+          valor_abertura: number
+          valor_fechamento: number | null
+        }
+        Insert: {
+          caixa_nome?: string
+          created_at?: string
+          data_abertura?: string
+          data_fechamento?: string | null
+          dominio: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          usuario_id: string
+          usuario_nome: string
+          valor_abertura?: number
+          valor_fechamento?: number | null
+        }
+        Update: {
+          caixa_nome?: string
+          created_at?: string
+          data_abertura?: string
+          data_fechamento?: string | null
+          dominio?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          usuario_id?: string
+          usuario_nome?: string
+          valor_abertura?: number
+          valor_fechamento?: number | null
+        }
+        Relationships: []
+      }
       tb_usuarios: {
         Row: {
           auth_user_id: string | null
@@ -348,6 +396,126 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      tb_vendas: {
+        Row: {
+          acrescimo_percentual: number
+          cliente_nome: string | null
+          created_at: string
+          desconto_percentual: number
+          dominio: string
+          id: string
+          sessao_id: string | null
+          subtotal: number
+          total: number
+          troco: number
+        }
+        Insert: {
+          acrescimo_percentual?: number
+          cliente_nome?: string | null
+          created_at?: string
+          desconto_percentual?: number
+          dominio: string
+          id?: string
+          sessao_id?: string | null
+          subtotal?: number
+          total?: number
+          troco?: number
+        }
+        Update: {
+          acrescimo_percentual?: number
+          cliente_nome?: string | null
+          created_at?: string
+          desconto_percentual?: number
+          dominio?: string
+          id?: string
+          sessao_id?: string | null
+          subtotal?: number
+          total?: number
+          troco?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_vendas_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "tb_sessoes_caixa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_vendas_itens: {
+        Row: {
+          created_at: string
+          id: string
+          preco_unitario: number
+          produto_id: number
+          produto_nome: string
+          quantidade: number
+          total: number
+          venda_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco_unitario?: number
+          produto_id: number
+          produto_nome: string
+          quantidade?: number
+          total?: number
+          venda_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco_unitario?: number
+          produto_id?: number
+          produto_nome?: string
+          quantidade?: number
+          total?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_vendas_itens_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "tb_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_vendas_pagamentos: {
+        Row: {
+          created_at: string
+          forma_pagamento: string
+          id: string
+          valor: number
+          venda_id: string
+        }
+        Insert: {
+          created_at?: string
+          forma_pagamento: string
+          id?: string
+          valor?: number
+          venda_id: string
+        }
+        Update: {
+          created_at?: string
+          forma_pagamento?: string
+          id?: string
+          valor?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_vendas_pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "tb_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
