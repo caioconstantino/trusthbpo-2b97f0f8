@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Check, Trash2, Loader2, List, Plus, X } from "lucide-react";
@@ -32,17 +33,44 @@ interface Parcela {
   formaPagamento: string;
 }
 
+// Get initial dates for current month
+const getInitialStartDate = () => {
+  const date = new Date();
+  date.setDate(1);
+  return date;
+};
+
+const getInitialEndDate = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1);
+  date.setDate(0);
+  return date;
+};
+
 const ContasPagar = () => {
+  // Filter state (defined first so we can pass to hook)
+  const [startDate, setStartDate] = useState<Date>(getInitialStartDate);
+  const [endDate, setEndDate] = useState<Date>(getInitialEndDate);
+  const [statusFilter, setStatusFilter] = useState("Todos");
+
+  // Initial filters for hook
+  const initialFilters = useMemo(() => ({
+    startDate: format(getInitialStartDate(), "yyyy-MM-dd"),
+    endDate: format(getInitialEndDate(), "yyyy-MM-dd"),
+    status: "Todos"
+  }), []);
+
   const { 
     groupedContas, 
     loading, 
     totalPendente, 
     totalPago,
     fetchContas, 
-    createConta, 
+    createConta,
+    createContasBatch,
     pagarConta,
     deleteConta 
-  } = useContasPagar();
+  } = useContasPagar(initialFilters);
 
   // Form state
   const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");
@@ -52,6 +80,7 @@ const ContasPagar = () => {
   const [vencimento, setVencimento] = useState<Date>();
   const [formaPagamento, setFormaPagamento] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savingProgress, setSavingProgress] = useState({ current: 0, total: 0 });
 
   // Parcelamento state
   const [numParcelas, setNumParcelas] = useState(2);
@@ -60,20 +89,6 @@ const ContasPagar = () => {
   // Recorrência state
   const [frequencia, setFrequencia] = useState<"mensal" | "semanal" | "quinzenal">("mensal");
   const [numOcorrencias, setNumOcorrencias] = useState(12);
-
-  // Filter state
-  const [startDate, setStartDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(1);
-    return date;
-  });
-  const [endDate, setEndDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 1);
-    date.setDate(0);
-    return date;
-  });
-  const [statusFilter, setStatusFilter] = useState("Todos");
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -114,35 +129,52 @@ const ContasPagar = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!categoria || !descricao) {
+    if (!descricao) {
       return;
     }
 
     setSaving(true);
+    setSavingProgress({ current: 0, total: 0 });
 
     try {
       if (tipoCadastro === "unico") {
-        if (!valor || !vencimento) return;
+        if (!valor || !vencimento) {
+          setSaving(false);
+          return;
+        }
+        setSavingProgress({ current: 0, total: 1 });
         await createConta({
-          categoria: categoria.toUpperCase(),
+          categoria: categoria ? categoria.toUpperCase() : undefined,
           descricao,
           valor: parseFloat(valor),
           vencimento: format(vencimento, "yyyy-MM-dd"),
           forma_pagamento: formaPagamento || undefined
         });
+        setSavingProgress({ current: 1, total: 1 });
       } else if (tipoCadastro === "parcelado") {
-        for (const parcela of parcelas) {
-          await createConta({
-            categoria: categoria.toUpperCase(),
-            descricao: `${descricao} (${parcela.numero}/${parcelas.length})`,
-            valor: parcela.valor,
-            vencimento: format(parcela.vencimento, "yyyy-MM-dd"),
-            forma_pagamento: parcela.formaPagamento || undefined
-          });
+        if (parcelas.length === 0) {
+          setSaving(false);
+          return;
         }
+        const contasData = parcelas.map(parcela => ({
+          categoria: categoria ? categoria.toUpperCase() : undefined,
+          descricao: `${descricao} (${parcela.numero}/${parcelas.length})`,
+          valor: parcela.valor,
+          vencimento: format(parcela.vencimento, "yyyy-MM-dd"),
+          forma_pagamento: parcela.formaPagamento || undefined
+        }));
+        
+        setSavingProgress({ current: 0, total: contasData.length });
+        await createContasBatch(contasData, (current, total) => {
+          setSavingProgress({ current, total });
+        });
       } else if (tipoCadastro === "recorrente") {
-        if (!valor || !vencimento) return;
+        if (!valor || !vencimento) {
+          setSaving(false);
+          return;
+        }
         const valorNum = parseFloat(valor);
+        const contasData = [];
         
         for (let i = 0; i < numOcorrencias; i++) {
           let dataVencimento: Date;
@@ -155,14 +187,19 @@ const ContasPagar = () => {
             dataVencimento = addWeeks(vencimento, i);
           }
 
-          await createConta({
-            categoria: categoria.toUpperCase(),
+          contasData.push({
+            categoria: categoria ? categoria.toUpperCase() : undefined,
             descricao: `${descricao} (${i + 1}/${numOcorrencias})`,
             valor: valorNum,
             vencimento: format(dataVencimento, "yyyy-MM-dd"),
             forma_pagamento: formaPagamento || undefined
           });
         }
+
+        setSavingProgress({ current: 0, total: contasData.length });
+        await createContasBatch(contasData, (current, total) => {
+          setSavingProgress({ current, total });
+        });
       }
 
       // Reset form
@@ -174,11 +211,19 @@ const ContasPagar = () => {
       setParcelas([]);
       setNumParcelas(2);
       setNumOcorrencias(12);
+      
+      // Refresh with current filters
+      await fetchContas({
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd"),
+        status: statusFilter
+      });
     } catch (error) {
       console.error("Error creating conta:", error);
     }
 
     setSaving(false);
+    setSavingProgress({ current: 0, total: 0 });
   };
 
   const handleFilter = () => {
@@ -193,6 +238,12 @@ const ContasPagar = () => {
     if (payingId) {
       await pagarConta(payingId);
       setPayingId(null);
+      // Refresh with current filters
+      await fetchContas({
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd"),
+        status: statusFilter
+      });
     }
   };
 
@@ -200,6 +251,12 @@ const ContasPagar = () => {
     if (deletingId) {
       await deleteConta(deletingId);
       setDeletingId(null);
+      // Refresh with current filters
+      await fetchContas({
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd"),
+        status: statusFilter
+      });
     }
   };
 
@@ -492,10 +549,29 @@ const ContasPagar = () => {
               </div>
             )}
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? "Salvando..." : "Cadastrar"}
-              </Button>
+            <div className="flex flex-col gap-2">
+              {saving && savingProgress.total > 1 && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Cadastrando...</span>
+                    <span>{savingProgress.current}/{savingProgress.total}</span>
+                  </div>
+                  <Progress value={(savingProgress.current / savingProgress.total) * 100} className="h-2" />
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button type="submit" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {savingProgress.total > 1 
+                        ? `Salvando ${savingProgress.current}/${savingProgress.total}...`
+                        : "Salvando..."
+                      }
+                    </>
+                  ) : "Cadastrar"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>

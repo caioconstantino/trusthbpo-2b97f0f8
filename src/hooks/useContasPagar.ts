@@ -18,14 +18,14 @@ export interface ContaPagar {
   created_at: string;
 }
 
-export const useContasPagar = () => {
+export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: string; status?: string }) => {
   const { toast } = useToast();
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
   const dominio = localStorage.getItem("user_dominio") || "";
 
   useEffect(() => {
-    fetchContas();
+    fetchContas(initialFilters);
   }, []);
 
   const fetchContas = async (filters?: { startDate?: string; endDate?: string; status?: string }) => {
@@ -59,7 +59,7 @@ export const useContasPagar = () => {
   };
 
   const createConta = async (conta: {
-    categoria: string;
+    categoria?: string;
     descricao: string;
     valor: number;
     vencimento: string;
@@ -71,7 +71,7 @@ export const useContasPagar = () => {
         .from("tb_contas_pagar")
         .insert({
           dominio,
-          categoria: conta.categoria,
+          categoria: conta.categoria || null,
           descricao: conta.descricao,
           valor: conta.valor,
           vencimento: conta.vencimento,
@@ -81,15 +81,44 @@ export const useContasPagar = () => {
         });
 
       if (error) throw error;
-
-      await fetchContas();
-      toast({ title: "Conta cadastrada com sucesso!" });
       return true;
     } catch (error) {
       console.error("Error creating conta:", error);
-      toast({ title: "Erro ao cadastrar conta", variant: "destructive" });
       return false;
     }
+  };
+
+  const createContasBatch = async (
+    contasData: Array<{
+      categoria?: string;
+      descricao: string;
+      valor: number;
+      vencimento: string;
+      forma_pagamento?: string;
+      fornecedor?: string;
+    }>,
+    onProgress?: (current: number, total: number) => void
+  ) => {
+    let successCount = 0;
+    const total = contasData.length;
+
+    for (let i = 0; i < total; i++) {
+      const conta = contasData[i];
+      const success = await createConta(conta);
+      if (success) successCount++;
+      onProgress?.(i + 1, total);
+    }
+
+    if (successCount === total) {
+      toast({ title: `${successCount} contas cadastradas com sucesso!` });
+    } else {
+      toast({ 
+        title: `${successCount} de ${total} contas cadastradas`, 
+        variant: successCount > 0 ? "default" : "destructive" 
+      });
+    }
+
+    return successCount;
   };
 
   const updateConta = async (id: string, updates: Partial<ContaPagar>) => {
@@ -152,8 +181,8 @@ export const useContasPagar = () => {
     }
   };
 
-  // Group by category
-  const groupedContas = contas.reduce((acc, conta) => {
+  // Group by category with "SEM CATEGORIA" first
+  const groupedContasRaw = contas.reduce((acc, conta) => {
     const cat = conta.categoria || "SEM CATEGORIA";
     if (!acc[cat]) {
       acc[cat] = [];
@@ -161,6 +190,18 @@ export const useContasPagar = () => {
     acc[cat].push(conta);
     return acc;
   }, {} as Record<string, ContaPagar[]>);
+
+  // Reorder to have "SEM CATEGORIA" first
+  const groupedContas: Record<string, ContaPagar[]> = {};
+  if (groupedContasRaw["SEM CATEGORIA"]) {
+    groupedContas["SEM CATEGORIA"] = groupedContasRaw["SEM CATEGORIA"];
+  }
+  Object.keys(groupedContasRaw)
+    .filter(key => key !== "SEM CATEGORIA")
+    .sort()
+    .forEach(key => {
+      groupedContas[key] = groupedContasRaw[key];
+    });
 
   const totalPendente = contas
     .filter(c => c.status === "pendente")
@@ -178,6 +219,7 @@ export const useContasPagar = () => {
     totalPago,
     fetchContas,
     createConta,
+    createContasBatch,
     updateConta,
     pagarConta,
     deleteConta
