@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import logo from "@/assets/logo.webp";
+
+interface CustomerData {
+  razao_social: string;
+  email: string;
+  dominio: string;
+}
+
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  let score = 0;
+  
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8) score += 1;
+  if (/[a-z]/.test(password)) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1;
+
+  if (score <= 2) return { score: (score / 6) * 100, label: "Fraca", color: "bg-destructive" };
+  if (score <= 4) return { score: (score / 6) * 100, label: "Média", color: "bg-yellow-500" };
+  return { score: (score / 6) * 100, label: "Forte", color: "bg-green-500" };
+}
 
 export default function CriarUsuario() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [customerData, setCustomerData] = useState<CustomerData | null>(null);
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(true);
+  const [customerError, setCustomerError] = useState<string | null>(null);
+
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [dominio, setDominio] = useState("");
+  const [dominioOriginal, setDominioOriginal] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,18 +52,62 @@ export default function CriarUsuario() {
   const [dominioDisponivel, setDominioDisponivel] = useState<boolean | null>(null);
   const [verificandoDominio, setVerificandoDominio] = useState(false);
 
+  const dominioParam = searchParams.get("dominio");
+
+  const passwordStrength = useMemo(() => getPasswordStrength(senha), [senha]);
+
+  // Fetch customer data by domain
   useEffect(() => {
-    const emailParam = searchParams.get("email");
-    const dominioParam = searchParams.get("dominio");
+    const fetchCustomerData = async () => {
+      if (!dominioParam) {
+        setCustomerError("Domínio não informado na URL. Por favor, utilize o link enviado por email.");
+        setIsLoadingCustomer(false);
+        return;
+      }
 
-    if (emailParam) setEmail(decodeURIComponent(emailParam));
-    if (dominioParam) setDominio(dominioParam);
-  }, [searchParams]);
+      try {
+        const { data, error } = await supabase
+          .from("tb_clientes_saas")
+          .select("razao_social, email, dominio")
+          .eq("dominio", dominioParam)
+          .maybeSingle();
 
+        if (error) throw error;
+
+        if (!data) {
+          setCustomerError("Domínio não encontrado. Verifique se o link está correto ou entre em contato com o suporte.");
+          setIsLoadingCustomer(false);
+          return;
+        }
+
+        setCustomerData(data);
+        setNome(data.razao_social || "");
+        setEmail(data.email || "");
+        setDominio(data.dominio);
+        setDominioOriginal(data.dominio);
+        setDominioDisponivel(true);
+      } catch (error) {
+        console.error("Erro ao buscar dados do cliente:", error);
+        setCustomerError("Erro ao carregar dados. Por favor, tente novamente.");
+      } finally {
+        setIsLoadingCustomer(false);
+      }
+    };
+
+    fetchCustomerData();
+  }, [dominioParam]);
+
+  // Check domain availability when changed
   useEffect(() => {
     const verificarDominio = async () => {
       if (!dominio || dominio.length < 3) {
         setDominioDisponivel(null);
+        return;
+      }
+
+      // If domain hasn't changed from original, it's available
+      if (dominio === dominioOriginal) {
+        setDominioDisponivel(true);
         return;
       }
 
@@ -49,21 +120,7 @@ export default function CriarUsuario() {
           .maybeSingle();
 
         if (error) throw error;
-
-        // Se encontrou um registro, verificar se é o domínio do email atual
-        const emailParam = searchParams.get("email");
-        if (data) {
-          const { data: clienteData } = await supabase
-            .from("tb_clientes_saas")
-            .select("email")
-            .eq("dominio", dominio)
-            .maybeSingle();
-          
-          // Domínio disponível se pertence ao cliente atual
-          setDominioDisponivel(clienteData?.email === decodeURIComponent(emailParam || ""));
-        } else {
-          setDominioDisponivel(true);
-        }
+        setDominioDisponivel(!data);
       } catch (error) {
         console.error("Erro ao verificar domínio:", error);
         setDominioDisponivel(null);
@@ -74,7 +131,7 @@ export default function CriarUsuario() {
 
     const debounce = setTimeout(verificarDominio, 500);
     return () => clearTimeout(debounce);
-  }, [dominio, searchParams]);
+  }, [dominio, dominioOriginal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +166,7 @@ export default function CriarUsuario() {
     setIsLoading(true);
 
     try {
-      // 1. Criar usuário no Supabase Auth
+      // 1. Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -124,7 +181,7 @@ export default function CriarUsuario() {
         throw new Error("Erro ao criar usuário");
       }
 
-      // 2. Criar registro na tabela tb_usuarios
+      // 2. Create record in tb_usuarios
       const { error: usuarioError } = await supabase.from("tb_usuarios").insert({
         auth_user_id: authData.user.id,
         nome,
@@ -135,8 +192,7 @@ export default function CriarUsuario() {
 
       if (usuarioError) throw usuarioError;
 
-      // 3. Atualizar o domínio do cliente SaaS se foi alterado
-      const dominioOriginal = searchParams.get("dominio");
+      // 3. Update domain in tb_clientes_saas if changed
       if (dominioOriginal && dominioOriginal !== dominio) {
         const { error: updateError } = await supabase
           .from("tb_clientes_saas")
@@ -153,7 +209,6 @@ export default function CriarUsuario() {
         description: "Você será redirecionado para o painel.",
       });
 
-      // Redirecionar para o dashboard
       setTimeout(() => {
         navigate("/dashboard");
       }, 1500);
@@ -168,6 +223,46 @@ export default function CriarUsuario() {
       setIsLoading(false);
     }
   };
+
+  // Loading state
+  if (isLoadingCustomer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Carregando dados...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (customerError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Erro ao carregar</CardTitle>
+            <CardDescription className="text-base mt-2">
+              {customerError}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => navigate("/")} variant="outline">
+              Voltar para o início
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
@@ -268,6 +363,25 @@ export default function CriarUsuario() {
                   )}
                 </Button>
               </div>
+              {senha && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Força da senha:</span>
+                    <span className={`font-medium ${
+                      passwordStrength.label === "Fraca" ? "text-destructive" :
+                      passwordStrength.label === "Média" ? "text-yellow-600" :
+                      "text-green-600"
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={passwordStrength.score} 
+                    className="h-1.5"
+                    indicatorClassName={passwordStrength.color}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -296,6 +410,9 @@ export default function CriarUsuario() {
                   )}
                 </Button>
               </div>
+              {confirmarSenha && senha !== confirmarSenha && (
+                <p className="text-xs text-destructive">As senhas não coincidem</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading || !dominioDisponivel}>

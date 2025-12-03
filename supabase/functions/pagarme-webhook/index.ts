@@ -87,9 +87,7 @@ async function sendWelcomeEmail(
       },
     })
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const baseUrl = supabaseUrl.replace('https://', '').replace('.supabase.co', '')
-    const createUserUrl = `https://${baseUrl}.lovable.app/criar-usuario?dominio=${dominio}`
+    const createUserUrl = `https://trusthbpo.lovable.app/criar-usuario?dominio=${dominio}`
 
     await client.send({
       from: smtpFrom,
