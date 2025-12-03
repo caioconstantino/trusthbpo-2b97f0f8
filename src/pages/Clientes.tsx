@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CustomerForm } from "@/components/CustomerForm";
 import { CustomersTable } from "@/components/CustomersTable";
+import { CustomerKanban } from "@/components/CustomerKanban";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
-import { Loader2 } from "lucide-react";
+import { Loader2, LayoutGrid, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Clientes = () => {
   const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   
   const handleCustomerAdded = () => {
     console.log("Cliente adicionado");
@@ -35,13 +39,37 @@ const Clientes = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="gap-2"
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">Tabela</span>
+            </Button>
+            <Button
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("kanban")}
+              className="gap-2"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Kanban</span>
+            </Button>
+          </div>
+        </div>
 
         {/* Formulário de Novo Cliente */}
         <CustomerForm onCustomerAdded={handleCustomerAdded} />
 
-        {/* Tabela de Clientes */}
-        <CustomersTable />
+        {/* View Content */}
+        {viewMode === "table" ? <CustomersTable /> : <CustomerKanban />}
       </div>
     </DashboardLayout>
   );
