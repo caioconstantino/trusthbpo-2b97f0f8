@@ -9,7 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Pencil, Check, Trash2, Loader2 } from "lucide-react";
+import { CalendarIcon, Pencil, Check, Trash2, Loader2, List } from "lucide-react";
+import { ManageContasPagarCategoryDialog } from "@/components/ManageContasPagarCategoryDialog";
 import { cn } from "@/lib/utils";
 import { useContasPagar, ContaPagar } from "@/hooks/useContasPagar";
 import {
@@ -57,6 +58,7 @@ const ContasPagar = () => {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,12 +149,23 @@ const ContasPagar = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
               <div>
                 <Label className="text-xs">Categoria</Label>
-                <Input
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
-                  placeholder="Ex: COMPRAS"
-                  className="mt-1 h-9"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    placeholder="Ex: COMPRAS"
+                    className="h-9"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => setCategoryDialogOpen(true)}
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -413,6 +426,11 @@ const ContasPagar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ManageContasPagarCategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onSelectCategory={setCategoria}
+      />
     </DashboardLayout>
   );
 };
