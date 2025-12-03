@@ -233,6 +233,7 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Lead">Lead</SelectItem>
                 <SelectItem value="Ativo">Ativo</SelectItem>
                 <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>

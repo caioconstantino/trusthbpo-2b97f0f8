@@ -22,6 +22,7 @@ interface Customer {
   telefone: string;
   status: string;
   observacoes: string;
+  detalhes_cnpj: string | null;
 }
 
 export const CustomersTable = () => {
@@ -40,7 +41,7 @@ export const CustomersTable = () => {
     try {
       const { data, error } = await supabase
         .from("tb_clientes")
-        .select("id, razao_social, cpf_cnpj, email, telefone, status, observacoes")
+        .select("id, razao_social, cpf_cnpj, email, telefone, status, observacoes, detalhes_cnpj")
         .eq("dominio", dominio)
         .order("id", { ascending: false });
 
@@ -138,6 +139,8 @@ export const CustomersTable = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     customer.status === "Ativo" 
                       ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                      : customer.status === "Lead"
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                       : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                   }`}>
                     {customer.status}
