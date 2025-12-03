@@ -181,7 +181,7 @@ export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: 
     }
   };
 
-  // Group by category with "SEM CATEGORIA" first
+  // Group by category with "COMPRAS" first, then "SEM CATEGORIA"
   const groupedContasRaw = contas.reduce((acc, conta) => {
     const cat = conta.categoria || "SEM CATEGORIA";
     if (!acc[cat]) {
@@ -191,13 +191,21 @@ export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: 
     return acc;
   }, {} as Record<string, ContaPagar[]>);
 
-  // Reorder to have "SEM CATEGORIA" first
+  // Reorder: COMPRAS first, then SEM CATEGORIA, then alphabetically
   const groupedContas: Record<string, ContaPagar[]> = {};
-  if (groupedContasRaw["SEM CATEGORIA"]) {
-    groupedContas["SEM CATEGORIA"] = groupedContasRaw["SEM CATEGORIA"];
-  }
+  
+  // Priority categories in order
+  const priorityCategories = ["COMPRAS", "SEM CATEGORIA"];
+  
+  priorityCategories.forEach(cat => {
+    if (groupedContasRaw[cat]) {
+      groupedContas[cat] = groupedContasRaw[cat];
+    }
+  });
+  
+  // Then add remaining categories alphabetically
   Object.keys(groupedContasRaw)
-    .filter(key => key !== "SEM CATEGORIA")
+    .filter(key => !priorityCategories.includes(key))
     .sort()
     .forEach(key => {
       groupedContas[key] = groupedContasRaw[key];
