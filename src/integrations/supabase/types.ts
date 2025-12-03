@@ -281,6 +281,65 @@ export type Database = {
           },
         ]
       }
+      tb_contas_pagar: {
+        Row: {
+          categoria: string | null
+          compra_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          descricao: string
+          dominio: string
+          forma_pagamento: string | null
+          fornecedor: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          categoria?: string | null
+          compra_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          descricao: string
+          dominio: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento: string
+        }
+        Update: {
+          categoria?: string | null
+          compra_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          descricao?: string
+          dominio?: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_contas_pagar_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "tb_compras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_escolas: {
         Row: {
           created_at: string | null
