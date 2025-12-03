@@ -126,6 +126,11 @@ export default function Configuracoes() {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [selectedGrupoId, setSelectedGrupoId] = useState<string>("");
+  const [userNome, setUserNome] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userSenha, setUserSenha] = useState("");
+  const [userStatus, setUserStatus] = useState("Ativo");
+  const [isSavingUser, setIsSavingUser] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -318,35 +323,126 @@ export default function Configuracoes() {
     }
   };
 
-  const openUserDialog = (user: Usuario) => {
-    setEditingUser(user);
-    setSelectedGrupoId(user.grupo_id || "sem-grupo");
+  const openUserDialog = (user?: Usuario) => {
+    if (user) {
+      setEditingUser(user);
+      setUserNome(user.nome);
+      setUserEmail(user.email);
+      setUserSenha("");
+      setUserStatus(user.status || "Ativo");
+      setSelectedGrupoId(user.grupo_id || "sem-grupo");
+    } else {
+      setEditingUser(null);
+      setUserNome("");
+      setUserEmail("");
+      setUserSenha("");
+      setUserStatus("Ativo");
+      setSelectedGrupoId("sem-grupo");
+    }
     setUserDialogOpen(true);
   };
 
-  const saveUserGrupo = async () => {
-    if (!editingUser) return;
+  const saveUser = async () => {
+    if (!userNome.trim() || !userEmail.trim() || !userDominio) return;
 
+    setIsSavingUser(true);
     try {
       const grupoIdToSave = selectedGrupoId === "sem-grupo" ? null : selectedGrupoId;
-      const { error } = await supabase
-        .from("tb_usuarios")
-        .update({ grupo_id: grupoIdToSave })
-        .eq("id", editingUser.id);
 
-      if (error) throw error;
+      if (editingUser) {
+        // Update existing user
+        const { error } = await supabase
+          .from("tb_usuarios")
+          .update({
+            nome: userNome,
+            email: userEmail,
+            status: userStatus,
+            grupo_id: grupoIdToSave,
+          })
+          .eq("id", editingUser.id);
 
-      toast({
-        title: "Usuário atualizado",
-        description: "O grupo do usuário foi atualizado.",
-      });
+        if (error) throw error;
+
+        toast({
+          title: "Usuário atualizado",
+          description: "Os dados do usuário foram atualizados.",
+        });
+      } else {
+        // Create new user in Supabase Auth
+        if (!userSenha || userSenha.length < 6) {
+          toast({
+            title: "Erro",
+            description: "A senha deve ter pelo menos 6 caracteres.",
+            variant: "destructive",
+          });
+          setIsSavingUser(false);
+          return;
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: userEmail,
+          password: userSenha,
+        });
+
+        if (authError) throw authError;
+
+        if (!authData.user) {
+          throw new Error("Erro ao criar usuário na autenticação");
+        }
+
+        // Create record in tb_usuarios
+        const { error: usuarioError } = await supabase.from("tb_usuarios").insert({
+          auth_user_id: authData.user.id,
+          nome: userNome,
+          email: userEmail,
+          dominio: userDominio,
+          status: userStatus,
+          grupo_id: grupoIdToSave,
+        });
+
+        if (usuarioError) throw usuarioError;
+
+        toast({
+          title: "Usuário criado",
+          description: "O novo usuário foi criado com sucesso.",
+        });
+      }
 
       setUserDialogOpen(false);
       fetchData();
     } catch (error: any) {
+      console.error("Erro ao salvar usuário:", error);
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar usuário.",
+        description: error.message || "Erro ao salvar usuário.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingUser(false);
+    }
+  };
+
+  const deleteUser = async (user: Usuario) => {
+    if (!confirm(`Deseja excluir o usuário "${user.nome}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("tb_usuarios")
+        .delete()
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Usuário excluído",
+        description: `O usuário "${user.nome}" foi excluído.`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir usuário.",
         variant: "destructive",
       });
     }
@@ -595,11 +691,19 @@ export default function Configuracoes() {
                     </CardTitle>
                     <CardDescription>Gerencie os usuários e seus grupos de permissão</CardDescription>
                   </div>
+                  <Button size="sm" className="gap-2" onClick={() => openUserDialog()}>
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Novo Usuário</span>
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {usuarios.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">Nenhum usuário encontrado</p>
+                    <p className="text-sm">Crie um usuário para começar</p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {usuarios.map((usuario) => (
@@ -616,9 +720,15 @@ export default function Configuracoes() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
+                          <Badge variant={usuario.status === "Ativo" ? "default" : "secondary"}>
+                            {usuario.status || "Ativo"}
+                          </Badge>
                           <Badge variant="outline">{getGrupoNome(usuario.grupo_id)}</Badge>
                           <Button variant="ghost" size="icon" onClick={() => openUserDialog(usuario)}>
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteUser(usuario)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </div>
@@ -766,17 +876,67 @@ export default function Configuracoes() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para editar grupo do usuário */}
+      {/* Dialog para criar/editar usuário */}
       <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogTitle>{editingUser ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
             <DialogDescription>
-              Selecione o grupo de permissão para {editingUser?.nome}
+              {editingUser
+                ? "Atualize os dados do usuário"
+                : "Preencha os dados para criar um novo usuário"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="userNome">Nome</Label>
+              <Input
+                id="userNome"
+                value={userNome}
+                onChange={(e) => setUserNome(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="userEmail">E-mail</Label>
+              <Input
+                id="userEmail"
+                type="email"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                disabled={!!editingUser}
+              />
+            </div>
+
+            {!editingUser && (
+              <div className="space-y-2">
+                <Label htmlFor="userSenha">Senha</Label>
+                <Input
+                  id="userSenha"
+                  type="password"
+                  value={userSenha}
+                  onChange={(e) => setUserSenha(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={userStatus} onValueChange={setUserStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Inativo">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Grupo de Permissão</Label>
               <Select value={selectedGrupoId} onValueChange={setSelectedGrupoId}>
@@ -799,7 +959,19 @@ export default function Configuracoes() {
             <Button variant="outline" onClick={() => setUserDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={saveUserGrupo}>Salvar</Button>
+            <Button
+              onClick={saveUser}
+              disabled={isSavingUser || !userNome.trim() || !userEmail.trim() || (!editingUser && !userSenha)}
+            >
+              {isSavingUser ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
