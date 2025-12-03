@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Limpar sessão expirada ao carregar a página de login
+  useEffect(() => {
+    const clearExpiredSession = async () => {
+      await supabase.auth.signOut();
+    };
+    clearExpiredSession();
+  }, []);
 
   const validarDominio = async (e: React.FormEvent) => {
     e.preventDefault();
