@@ -16,7 +16,7 @@ import {
 import logo from "@/assets/logo.webp";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Package, label: "Produtos", path: "/produtos" },
   { icon: Users, label: "Clientes", path: "/clientes" },
   { icon: ShoppingCart, label: "PDV", path: "/pdv" },
