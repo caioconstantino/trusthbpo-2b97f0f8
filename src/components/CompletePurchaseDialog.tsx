@@ -124,16 +124,21 @@ export const CompletePurchaseDialog = ({
         })
         .eq("id", purchaseId);
 
-      // TODO: Register payable if checkbox is checked
-      // This would need a tb_contas_pagar table
+      // Register payable if checkbox is checked
       if (registerPayable && vencimento) {
-        // For now, just log it - you can implement the payables table later
-        console.log("Conta a pagar:", {
-          fornecedor,
-          valor: purchaseTotal,
-          vencimento,
-          formaPagamento
-        });
+        await supabase
+          .from("tb_contas_pagar")
+          .insert({
+            dominio,
+            categoria: "COMPRAS",
+            descricao: `Compra - ${fornecedor || 'Sem fornecedor'}`,
+            valor: purchaseTotal,
+            vencimento,
+            status: "pendente",
+            forma_pagamento: formaPagamento,
+            fornecedor: fornecedor || null,
+            compra_id: purchaseId
+          });
       }
 
       toast({ title: "Compra concluída!", description: "Estoque atualizado com sucesso." });
