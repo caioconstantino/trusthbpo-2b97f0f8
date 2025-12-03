@@ -197,6 +197,90 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_compras: {
+        Row: {
+          created_at: string
+          dominio: string
+          fornecedor: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          total: number
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dominio: string
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          total?: number
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dominio?: string
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          total?: number
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tb_compras_itens: {
+        Row: {
+          compra_id: string
+          created_at: string
+          id: string
+          preco_custo: number
+          produto_id: number
+          produto_nome: string
+          quantidade: number
+          total: number
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          id?: string
+          preco_custo?: number
+          produto_id: number
+          produto_nome: string
+          quantidade?: number
+          total?: number
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          id?: string
+          preco_custo?: number
+          produto_id?: number
+          produto_nome?: string
+          quantidade?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_compras_itens_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "tb_compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_compras_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "tb_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_escolas: {
         Row: {
           created_at: string | null
