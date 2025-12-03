@@ -72,18 +72,29 @@ const PDV = () => {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   // Check permissions after loading
-  if (!permissionsLoading && !canView("pdv")) {
+  if (!canView("pdv")) {
     return (
       <DashboardLayout>
         <NoPermission />
       </DashboardLayout>
     );
   }
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
 
   const fetchProducts = async () => {
     const dominio = localStorage.getItem("user_dominio");

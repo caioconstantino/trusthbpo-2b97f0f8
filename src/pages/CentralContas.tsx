@@ -12,7 +12,8 @@ import {
   Wallet, 
   ArrowUpRight,
   ArrowDownRight,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO, getDay, getHours, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -75,18 +76,29 @@ const CentralContas = () => {
   const [lastMonthDespesas, setLastMonthDespesas] = useState(0);
   const [forecastReceitas, setForecastReceitas] = useState(0);
 
+  useEffect(() => {
+    fetchAllData();
+  }, [period, dominio]);
+
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   // Check permissions after loading
-  if (!permissionsLoading && !canView("central_contas")) {
+  if (!canView("central_contas")) {
     return (
       <DashboardLayout>
         <NoPermission />
       </DashboardLayout>
     );
   }
-
-  useEffect(() => {
-    fetchAllData();
-  }, [period, dominio]);
 
   const fetchAllData = async () => {
     setLoading(true);

@@ -4,7 +4,7 @@ import { ProductForm } from "@/components/ProductForm";
 import { ProductsTable } from "@/components/ProductsTable";
 import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeftRight } from "lucide-react";
+import { ShoppingCart, ArrowLeftRight, Loader2 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 
@@ -17,8 +17,19 @@ const Produtos = () => {
     console.log("Produto adicionado");
   };
 
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   // Check permissions after loading
-  if (!permissionsLoading && !canView("produtos")) {
+  if (!canView("produtos")) {
     return (
       <DashboardLayout>
         <NoPermission />

@@ -51,15 +51,6 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Check permissions after loading
-  if (!permissionsLoading && !canView("dashboard")) {
-    return (
-      <DashboardLayout>
-        <NoPermission />
-      </DashboardLayout>
-    );
-  }
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
     custoHoje: 0,
@@ -257,6 +248,26 @@ const Index = () => {
       currency: 'BRL'
     }).format(value);
   };
+
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Check permissions
+  if (!canView("dashboard")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   if (loading) {
     return (

@@ -76,8 +76,19 @@ const ContasPagar = () => {
     deleteConta 
   } = useContasPagar(initialFilters);
 
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   // Check permissions after loading
-  if (!permissionsLoading && !canView("contas_pagar")) {
+  if (!canView("contas_pagar")) {
     return (
       <DashboardLayout>
         <NoPermission />
