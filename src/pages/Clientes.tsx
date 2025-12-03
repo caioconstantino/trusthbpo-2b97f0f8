@@ -1,11 +1,24 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CustomerForm } from "@/components/CustomerForm";
 import { CustomersTable } from "@/components/CustomersTable";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 
 const Clientes = () => {
+  const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
+  
   const handleCustomerAdded = () => {
     console.log("Cliente adicionado");
   };
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("clientes")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

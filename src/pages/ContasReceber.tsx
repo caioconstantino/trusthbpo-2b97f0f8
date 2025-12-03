@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { useContasReceber, ContaReceber } from "@/hooks/useContasReceber";
 import { ClienteSearchInput } from "@/components/ClienteSearchInput";
 import { ManageContasReceberCategoryDialog } from "@/components/ManageContasReceberCategoryDialog";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +51,8 @@ const getInitialEndDate = () => {
 };
 
 const ContasReceber = () => {
+  const { canView, canEdit, canDelete, isLoading: permissionsLoading } = usePermissions();
+  
   // Filter state (defined first so we can pass to hook)
   const [startDate, setStartDate] = useState<Date>(getInitialStartDate);
   const [endDate, setEndDate] = useState<Date>(getInitialEndDate);
@@ -72,6 +76,15 @@ const ContasReceber = () => {
     receberConta,
     deleteConta 
   } = useContasReceber(initialFilters);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("contas_receber")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   // Form state
   const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");

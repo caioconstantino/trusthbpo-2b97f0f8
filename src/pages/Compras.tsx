@@ -14,6 +14,8 @@ import { ViewPurchaseDialog } from "@/components/ViewPurchaseDialog";
 import { EditPurchaseDialog } from "@/components/EditPurchaseDialog";
 import { CompletePurchaseDialog } from "@/components/CompletePurchaseDialog";
 import { usePurchases, Purchase } from "@/hooks/usePurchases";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Compras = () => {
+  const { canView, canEdit, canDelete, isLoading: permissionsLoading } = usePermissions();
   const { pendingPurchases, completedPurchases, loading, fetchPurchases, deletePurchase } = usePurchases();
 
   const [viewingPurchaseId, setViewingPurchaseId] = useState<string | null>(null);
@@ -35,6 +38,15 @@ const Compras = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("compras")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   const handleView = (id: string) => {
     setViewingPurchaseId(id);

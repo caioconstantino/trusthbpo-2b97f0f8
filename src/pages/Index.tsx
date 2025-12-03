@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 import {
   AreaChart,
   Area,
@@ -45,9 +47,19 @@ interface DashboardData {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const Index = () => {
+  const { canView, isLoading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("dashboard")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
     custoHoje: 0,

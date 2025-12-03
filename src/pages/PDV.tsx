@@ -28,6 +28,8 @@ import { CloseSessionDialog } from "@/components/CloseSessionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { usePdvSession } from "@/hooks/usePdvSession";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { NoPermission } from "@/components/NoPermission";
 
 interface Product {
   id: number;
@@ -52,6 +54,7 @@ interface SelectedProduct {
 const PDV = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { canView, isLoading: permissionsLoading } = usePermissions();
   const { session, loading, needsSession, openSession, closeSession, usuarioNome } = usePdvSession();
   
   const [customer, setCustomer] = useState("");
@@ -68,6 +71,15 @@ const PDV = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showProductSearch, setShowProductSearch] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Check permissions after loading
+  if (!permissionsLoading && !canView("pdv")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   useEffect(() => {
     fetchProducts();
