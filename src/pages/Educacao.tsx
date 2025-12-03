@@ -49,8 +49,8 @@ export default function Educacao() {
       {/* Floating CTA */}
       <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-[#0A1E3F]/95 backdrop-blur-md shadow-lg' : 'bg-transparent'}`}>
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="TrustHBPO Logo" className="h-10 object-contain" />
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <img src={logo} alt="TrustHBPO Logo" className="h-10 object-contain hover:opacity-80 transition-opacity" />
             <span className="text-white/80 text-sm hidden md:inline">Projeto Social</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
