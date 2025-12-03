@@ -32,7 +32,8 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
     status: "Ativo",
     email: "",
     phone: "",
-    observations: ""
+    observations: "",
+    cnpjData: null as any
   });
 
   const searchCNPJ = async () => {
@@ -66,7 +67,8 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
         phone: data.estabelecimento?.ddd1 && data.estabelecimento?.telefone1 
           ? `(${data.estabelecimento.ddd1}) ${data.estabelecimento.telefone1}`
           : prev.phone,
-        email: data.estabelecimento?.email || prev.email
+        email: data.estabelecimento?.email || prev.email,
+        cnpjData: data
       }));
 
       toast({
@@ -119,6 +121,7 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
           email: formData.email,
           telefone: formData.phone,
           observacoes: formData.observations,
+          detalhes_cnpj: formData.cnpjData ? JSON.stringify(formData.cnpjData) : null,
           responsavel: ""
         });
 
@@ -135,7 +138,8 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
         status: "Ativo",
         email: "",
         phone: "",
-        observations: ""
+        observations: "",
+        cnpjData: null
       });
 
       onCustomerAdded();
