@@ -68,6 +68,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_categorias_contas_receber: {
+        Row: {
+          created_at: string | null
+          dominio: string
+          edit: string
+          id: number
+          nome: string | null
+          parent_id: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dominio: string
+          edit?: string
+          id?: number
+          nome?: string | null
+          parent_id?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dominio?: string
+          edit?: string
+          id?: number
+          nome?: string | null
+          parent_id?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tb_clientes: {
         Row: {
           cpf_cnpj: string

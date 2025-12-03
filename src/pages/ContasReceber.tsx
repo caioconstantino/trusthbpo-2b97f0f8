@@ -15,6 +15,7 @@ import { CalendarIcon, Check, Trash2, Loader2, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContasReceber, ContaReceber } from "@/hooks/useContasReceber";
 import { ClienteSearchInput } from "@/components/ClienteSearchInput";
+import { ManageContasReceberCategoryDialog } from "@/components/ManageContasReceberCategoryDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,6 +94,7 @@ const ContasReceber = () => {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [receivingId, setReceivingId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   // Generate parcelas when parcelamento changes
   const generateParcelas = (num: number, valorTotal: number, dataInicial: Date) => {
@@ -319,6 +321,15 @@ const ContasReceber = () => {
                     placeholder="Ex: VENDAS"
                     className="h-9"
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => setCategoryDialogOpen(true)}
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -768,6 +779,12 @@ const ContasReceber = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManageContasReceberCategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onSelectCategory={setCategoria}
+      />
     </DashboardLayout>
   );
 };
