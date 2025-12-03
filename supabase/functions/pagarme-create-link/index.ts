@@ -6,12 +6,9 @@ const corsHeaders = {
 interface CreateLinkRequest {
   planName: string
   planPrice: number // em centavos
-  customerEmail?: string
-  customerName?: string
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -27,12 +24,13 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log('API Key starts with:', pagarmeApiKey.substring(0, 10))
+
     const body: CreateLinkRequest = await req.json()
-    const { planName, planPrice, customerEmail, customerName } = body
+    const { planName, planPrice } = body
 
-    console.log('Creating payment link for:', { planName, planPrice, customerEmail })
+    console.log('Creating payment link for:', { planName, planPrice })
 
-    // Validação
     if (!planName || !planPrice) {
       return new Response(
         JSON.stringify({ error: 'planName and planPrice are required' }),
@@ -40,12 +38,12 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Payload simplificado para Pagar.me (Sandbox)
+    // Payload mínimo baseado na documentação oficial
     const pagarmePayload = {
-      name: `TrustHBPO - ${planName}`,
+      name: planName,
       type: 'order',
       payment_settings: {
-        accepted_payment_methods: ['credit_card', 'pix'],
+        accepted_payment_methods: ['credit_card'],
         credit_card_settings: {
           operation_type: 'auth_and_capture',
           installments: [
@@ -56,8 +54,7 @@ Deno.serve(async (req) => {
       cart_settings: {
         items: [
           {
-            name: `Plano ${planName}`,
-            description: `Assinatura mensal TrustHBPO`,
+            name: planName,
             amount: planPrice,
             default_quantity: 1
           }
@@ -65,37 +62,44 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('Sending to Pagar.me:', JSON.stringify(pagarmePayload, null, 2))
+    console.log('Payload:', JSON.stringify(pagarmePayload, null, 2))
 
-    // Autenticação Basic com a API key
-    const authHeader = 'Basic ' + btoa(pagarmeApiKey + ':')
+    // Autenticação Basic - API Key como username, password vazio
+    const credentials = btoa(`${pagarmeApiKey}:`)
+    console.log('Auth header created')
 
     const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/paymentlinks', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': authHeader
+        'Authorization': `Basic ${credentials}`
       },
       body: JSON.stringify(pagarmePayload)
     })
 
-    const pagarmeData = await pagarmeResponse.json()
-
+    const responseText = await pagarmeResponse.text()
     console.log('Pagar.me response status:', pagarmeResponse.status)
-    console.log('Pagar.me response:', JSON.stringify(pagarmeData, null, 2))
+    console.log('Pagar.me response:', responseText)
+
+    let pagarmeData
+    try {
+      pagarmeData = JSON.parse(responseText)
+    } catch {
+      pagarmeData = { raw: responseText }
+    }
 
     if (!pagarmeResponse.ok) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create payment link', 
+          status: pagarmeResponse.status,
           details: pagarmeData 
         }),
         { status: pagarmeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Retornar o link de pagamento
     return new Response(
       JSON.stringify({
         success: true,
@@ -107,10 +111,9 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error creating payment link:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: errorMessage }),
+      JSON.stringify({ error: 'Internal server error', details: String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
