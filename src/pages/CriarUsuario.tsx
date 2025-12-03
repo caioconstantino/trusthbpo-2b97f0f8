@@ -200,13 +200,54 @@ export default function CriarUsuario() {
         throw new Error("Erro ao criar usuário");
       }
 
-      // 3. Create record in tb_usuarios
+      // 3. Create "Administradores" permission group with all permissions
+      const { data: grupoData, error: grupoError } = await supabase
+        .from("tb_grupos_permissao")
+        .insert({
+          nome: "Administradores",
+          descricao: "Grupo com acesso total ao sistema",
+          dominio,
+        })
+        .select()
+        .single();
+
+      if (grupoError) throw grupoError;
+
+      // 4. Create permissions for all modules with full access
+      const modulos = [
+        "Dashboard",
+        "PDV",
+        "Produtos",
+        "Clientes",
+        "Compras",
+        "Contas a Pagar",
+        "Contas a Receber",
+        "Central de Contas",
+        "Configurações",
+      ];
+
+      const permissoes = modulos.map((modulo) => ({
+        grupo_id: grupoData.id,
+        modulo,
+        visualizar: true,
+        editar: true,
+        excluir: true,
+      }));
+
+      const { error: permissoesError } = await supabase
+        .from("tb_grupos_permissao_modulos")
+        .insert(permissoes);
+
+      if (permissoesError) throw permissoesError;
+
+      // 5. Create record in tb_usuarios linked to Administradores group
       const { error: usuarioError } = await supabase.from("tb_usuarios").insert({
         auth_user_id: authData.user.id,
         nome,
         email,
         dominio,
         status: "Ativo",
+        grupo_id: grupoData.id,
       });
 
       if (usuarioError) throw usuarioError;
