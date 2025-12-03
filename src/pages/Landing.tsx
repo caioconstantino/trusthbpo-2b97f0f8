@@ -6,6 +6,7 @@ import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sp
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logo from "@/assets/logo.webp";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -17,12 +18,7 @@ export default function Landing() {
       <header className="border-b border-border bg-background/95 backdrop-blur-md sticky top-0 z-50 animate-fade-in">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              TrustHub
-            </span>
+            <img src={logo} alt="TrustHBPO Logo" className="h-10 object-contain" />
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#plataforma" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
@@ -523,12 +519,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-5 gap-12 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  TrustHub
-                </span>
+                <img src={logo} alt="TrustHBPO Logo" className="h-10 object-contain" />
               </div>
               <p className="text-muted-foreground mb-6 max-w-sm">
                 Sistema completo de gestão empresarial. Simples, poderoso e feito para você crescer.
@@ -579,7 +570,7 @@ export default function Landing() {
           
           <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; 2025 TrustHub. Todos os direitos reservados.
+              &copy; 2025 TrustHBPO. Todos os direitos reservados.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-primary transition-colors">Privacidade</a>
