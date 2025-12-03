@@ -137,6 +137,66 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_clientes_saas: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string | null
+          cupom: string | null
+          dominio: string
+          email: string | null
+          id: number
+          multiempresa: string | null
+          observacoes: string | null
+          plano: string | null
+          proximo_pagamento: string | null
+          razao_social: string
+          responsavel: string | null
+          status: string
+          telefone: string | null
+          ultima_forma_pagamento: string | null
+          ultimo_pagamento: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          cupom?: string | null
+          dominio: string
+          email?: string | null
+          id?: number
+          multiempresa?: string | null
+          observacoes?: string | null
+          plano?: string | null
+          proximo_pagamento?: string | null
+          razao_social: string
+          responsavel?: string | null
+          status?: string
+          telefone?: string | null
+          ultima_forma_pagamento?: string | null
+          ultimo_pagamento?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          cupom?: string | null
+          dominio?: string
+          email?: string | null
+          id?: number
+          multiempresa?: string | null
+          observacoes?: string | null
+          plano?: string | null
+          proximo_pagamento?: string | null
+          razao_social?: string
+          responsavel?: string | null
+          status?: string
+          telefone?: string | null
+          ultima_forma_pagamento?: string | null
+          ultimo_pagamento?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tb_escolas: {
         Row: {
           created_at: string | null

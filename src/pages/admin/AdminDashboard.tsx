@@ -36,29 +36,18 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // Fetch all unique domains (SaaS customers)
+      // Fetch SaaS customers from dedicated table
       const { data: clientes, error } = await supabase
-        .from("tb_clientes")
-        .select("dominio, status")
-        .order("dominio");
+        .from("tb_clientes_saas")
+        .select("id, status");
 
       if (error) throw error;
-
-      // Get unique domains
-      const uniqueDomains = new Map();
-      clientes?.forEach(c => {
-        if (!uniqueDomains.has(c.dominio)) {
-          uniqueDomains.set(c.dominio, c.status);
-        }
-      });
-
-      const dominiosArray = Array.from(uniqueDomains.entries());
       
       setStats({
-        totalClientes: dominiosArray.length,
-        clientesAtivos: dominiosArray.filter(([_, status]) => status === "Ativo").length,
-        clientesInativos: dominiosArray.filter(([_, status]) => status === "Inativo").length,
-        clientesLeads: dominiosArray.filter(([_, status]) => status === "Lead").length,
+        totalClientes: clientes?.length || 0,
+        clientesAtivos: clientes?.filter(c => c.status === "Ativo").length || 0,
+        clientesInativos: clientes?.filter(c => c.status === "Inativo").length || 0,
+        clientesLeads: clientes?.filter(c => c.status === "Lead").length || 0,
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
