@@ -13,6 +13,7 @@ import {
   useSidebar,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import logo from "@/assets/logo.webp";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -39,15 +40,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-bold text-lg">G</span>
-          </div>
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <h1 className="font-bold text-sidebar-foreground truncate">GOGARA</h1>
-              <p className="text-xs text-muted-foreground truncate">e-compartilha mercas</p>
-            </div>
-          )}
+          <img 
+            src={logo} 
+            alt="TrustHBPO Logo" 
+            className={`${isCollapsed ? 'w-10 h-10' : 'h-12'} object-contain flex-shrink-0`}
+          />
         </div>
       </SidebarHeader>
 
