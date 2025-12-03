@@ -2,15 +2,65 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2 } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.webp";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [hoveredPlan, setHoveredPlan] = useState<number | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handleContractPlan = async (planName: string, priceInCents: number) => {
+    setLoadingPlan(planName);
+    try {
+      const { data, error } = await supabase.functions.invoke('pagarme-create-link', {
+        body: {
+          planName,
+          planPrice: priceInCents
+        }
+      });
+
+      if (error) {
+        console.error('Error creating payment link:', error);
+        toast({
+          title: "Erro ao criar link de pagamento",
+          description: error.message || "Tente novamente em alguns instantes",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.paymentLink) {
+        // Abre o link de pagamento em uma nova aba
+        window.open(data.paymentLink, '_blank');
+        toast({
+          title: "Link de pagamento criado!",
+          description: "Você será redirecionado para finalizar o pagamento"
+        });
+      } else {
+        toast({
+          title: "Erro inesperado",
+          description: "Não foi possível gerar o link de pagamento",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao processar sua solicitação",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -289,6 +339,7 @@ export default function Landing() {
               {
                 name: "Essencial",
                 price: "39,90",
+                priceInCents: 3990,
                 description: "Ideal para pequenos negócios",
                 features: [
                   "Até 500 produtos",
@@ -299,11 +350,12 @@ export default function Landing() {
                   "Suporte por email"
                 ],
                 popular: false,
-                cta: "Começar agora"
+                cta: "Contratar plano"
               },
               {
                 name: "Profissional",
                 price: "99,90",
+                priceInCents: 9990,
                 description: "Para empresas em crescimento",
                 features: [
                   "Produtos ilimitados",
@@ -316,7 +368,7 @@ export default function Landing() {
                   "Suporte prioritário"
                 ],
                 popular: true,
-                cta: "Começar agora"
+                cta: "Contratar plano"
               }
             ].map((plan, index) => (
               <Card
@@ -362,10 +414,20 @@ export default function Landing() {
                     className={`w-full group ${plan.popular ? '' : 'variant-outline'}`}
                     variant={plan.popular ? 'default' : 'outline'}
                     size="lg"
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() => handleContractPlan(plan.name, plan.priceInCents)}
+                    disabled={loadingPlan === plan.name}
                   >
-                    {plan.cta}
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    {loadingPlan === plan.name ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Gerando link...
+                      </>
+                    ) : (
+                      <>
+                        {plan.cta}
+                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
