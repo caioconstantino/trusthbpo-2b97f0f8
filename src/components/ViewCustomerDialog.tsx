@@ -7,26 +7,32 @@ import {
 import { Button } from "./ui/button";
 import { MessageCircle, Phone } from "lucide-react";
 
+interface Customer {
+  id: number;
+  razao_social: string;
+  cpf_cnpj: string;
+  email: string;
+  telefone: string;
+  status: string;
+  observacoes: string;
+}
+
 interface ViewCustomerDialogProps {
-  customerId: string | null;
+  customer: Customer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const ViewCustomerDialog = ({ customerId, open, onOpenChange }: ViewCustomerDialogProps) => {
-  const customerData = {
-    responsible: "Jorges Guedes",
-    status: "Ativo",
-    socialName: "Jorge Varejo",
-    cpfCnpj: "12.345.678/0001-23",
-    email: "jorgeguedes@gmail.com",
-    phone: "1298817002",
-    observations: "Sem observacoes.",
-    socialCapital: "N/A",
-    size: "N/A",
-    legalNature: "N/A",
-    partners: "N/A",
-    simples: "N/A"
+export const ViewCustomerDialog = ({ customer, open, onOpenChange }: ViewCustomerDialogProps) => {
+  if (!customer) return null;
+
+  const openWhatsApp = () => {
+    const phone = customer.telefone.replace(/\D/g, "");
+    window.open(`https://wa.me/55${phone}`, "_blank");
+  };
+
+  const openPhone = () => {
+    window.open(`tel:${customer.telefone}`, "_self");
   };
 
   return (
@@ -37,19 +43,16 @@ export const ViewCustomerDialog = ({ customerId, open, onOpenChange }: ViewCusto
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Detalhes */}
-          <div className="border rounded-lg p-4 bg-muted/30">
-            <h3 className="font-semibold text-lg mb-3">Detalhes:</h3>
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold text-muted-foreground">Responsavel:</span>{" "}
-                {customerData.responsible}
-              </p>
-              <p>
-                <span className="font-semibold text-muted-foreground">Status:</span>{" "}
-                {customerData.status}
-              </p>
-            </div>
+          {/* Status */}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              customer.status === "Ativo" 
+                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+            }`}>
+              {customer.status}
+            </span>
           </div>
 
           {/* Dados do Cliente */}
@@ -58,63 +61,50 @@ export const ViewCustomerDialog = ({ customerId, open, onOpenChange }: ViewCusto
             <div className="space-y-2 text-sm">
               <p>
                 <span className="font-semibold text-muted-foreground">Razão Social:</span>{" "}
-                {customerData.socialName}
+                {customer.razao_social}
               </p>
               <p>
                 <span className="font-semibold text-muted-foreground">CPF/CNPJ:</span>{" "}
-                {customerData.cpfCnpj}
+                {customer.cpf_cnpj || "Não informado"}
               </p>
               <p>
                 <span className="font-semibold text-muted-foreground">Email:</span>{" "}
-                {customerData.email}
+                {customer.email || "Não informado"}
               </p>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-muted-foreground">Telefone:</span>
-                <span>{customerData.phone}</span>
-                <div className="flex gap-1 ml-2">
-                  <Button size="icon" variant="secondary" className="h-7 w-7 bg-slate-700 hover:bg-slate-800 text-white">
-                    <MessageCircle className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="secondary" className="h-7 w-7 bg-sky-500 hover:bg-sky-600 text-white">
-                    <Phone className="w-4 h-4" />
-                  </Button>
+              {customer.telefone && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-muted-foreground">Telefone:</span>
+                  <span>{customer.telefone}</span>
+                  <div className="flex gap-1 ml-2">
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-7 w-7 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={openWhatsApp}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-7 w-7 bg-sky-500 hover:bg-sky-600 text-white"
+                      onClick={openPhone}
+                    >
+                      <Phone className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Observações */}
-          <div className="border rounded-lg p-4 bg-muted/30">
-            <h3 className="font-semibold text-lg mb-3">Observações:</h3>
-            <p className="text-sm text-muted-foreground">{customerData.observations}</p>
-          </div>
-
-          {/* Mais Detalhes */}
-          <div className="border rounded-lg p-4 bg-muted/30">
-            <h3 className="font-semibold text-lg mb-3">Mais Detalhes:</h3>
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold text-muted-foreground">Capital Social:</span>{" "}
-                {customerData.socialCapital}
-              </p>
-              <p>
-                <span className="font-semibold text-muted-foreground">Porte:</span>{" "}
-                {customerData.size}
-              </p>
-              <p>
-                <span className="font-semibold text-muted-foreground">Natureza Jurídica:</span>{" "}
-                {customerData.legalNature}
-              </p>
-              <p>
-                <span className="font-semibold text-muted-foreground">Socios:</span>{" "}
-                {customerData.partners}
-              </p>
-              <p>
-                <span className="font-semibold text-muted-foreground">Simples:</span>{" "}
-                {customerData.simples}
-              </p>
+          {customer.observacoes && (
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <h3 className="font-semibold text-lg mb-3">Observações:</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.observacoes}</p>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
