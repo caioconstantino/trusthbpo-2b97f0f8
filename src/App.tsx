@@ -24,6 +24,7 @@ import AdminClientes from "./pages/admin/AdminClientes";
 import AdminUsuarios from "./pages/admin/AdminUsuarios";
 import AdminWebhooks from "./pages/admin/AdminWebhooks";
 import CriarUsuario from "./pages/CriarUsuario";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/contas-pagar" element={<ProtectedRoute><ContasPagar /></ProtectedRoute>} />
             <Route path="/contas-receber" element={<ProtectedRoute><ContasReceber /></ProtectedRoute>} />
             <Route path="/central-contas" element={<ProtectedRoute><CentralContas /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
