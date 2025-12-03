@@ -48,7 +48,6 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [dominio, setDominio] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
     custoHoje: 0,
@@ -70,19 +69,16 @@ const Index = () => {
       setTutorialOpen(true);
       localStorage.setItem("hasSeenDashboardTutorial", "true");
     }
-
-    const storedDominio = localStorage.getItem("dominio");
-    setDominio(storedDominio);
+    
+    fetchDashboardData();
   }, []);
 
-  useEffect(() => {
-    if (dominio) {
-      fetchDashboardData();
-    }
-  }, [dominio]);
-
   const fetchDashboardData = async () => {
-    if (!dominio) return;
+    const currentDominio = localStorage.getItem("dominio");
+    if (!currentDominio) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -97,7 +93,7 @@ const Index = () => {
       const { data: vendasHoje } = await supabase
         .from('tb_vendas')
         .select('total, subtotal')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .gte('created_at', inicioHoje)
         .lte('created_at', fimHoje);
 
@@ -108,7 +104,7 @@ const Index = () => {
       const { data: vendasMes } = await supabase
         .from('tb_vendas')
         .select('total')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .gte('created_at', inicioMes)
         .lte('created_at', fimMes);
 
@@ -118,7 +114,7 @@ const Index = () => {
       const { data: vendasAno } = await supabase
         .from('tb_vendas')
         .select('total')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .gte('created_at', inicioAno);
 
       const totalVendasAno = vendasAno?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
@@ -127,7 +123,7 @@ const Index = () => {
       const { data: contasReceberHoje } = await supabase
         .from('tb_contas_receber')
         .select('valor')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -137,7 +133,7 @@ const Index = () => {
       const { data: contasReceberVencidas } = await supabase
         .from('tb_contas_receber')
         .select('valor')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .lt('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -147,7 +143,7 @@ const Index = () => {
       const { data: despesasHoje } = await supabase
         .from('tb_contas_pagar')
         .select('valor')
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -157,13 +153,13 @@ const Index = () => {
       const { count: totalClientes } = await supabase
         .from('tb_clientes')
         .select('*', { count: 'exact', head: true })
-        .eq('dominio', dominio);
+        .eq('dominio', currentDominio);
 
       // Buscar total de produtos
       const { count: totalProdutos } = await supabase
         .from('tb_produtos')
         .select('*', { count: 'exact', head: true })
-        .eq('dominio', dominio)
+        .eq('dominio', currentDominio)
         .eq('ativo', true);
 
       // Buscar vendas por mês (últimos 12 meses)
@@ -176,7 +172,7 @@ const Index = () => {
         const { data: vendasDoMes } = await supabase
           .from('tb_vendas')
           .select('total')
-          .eq('dominio', dominio)
+          .eq('dominio', currentDominio)
           .gte('created_at', inicioMesLoop)
           .lte('created_at', fimMesLoop + ' 23:59:59');
 
