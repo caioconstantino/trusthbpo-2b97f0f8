@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Grid3x3, Trash2, Maximize2 } from "lucide-react";
+import { Grid3x3, Trash2, Maximize2, Search } from "lucide-react";
 import { ProductGridDialog } from "@/components/ProductGridDialog";
 import { FinalizeSaleDialog } from "@/components/FinalizeSaleDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Product {
+  id: number;
+  nome: string;
+  preco_venda: number;
+  codigo: string | null;
+}
 
 interface CartItem {
   id: string;
@@ -23,11 +32,66 @@ interface CartItem {
 }
 
 const PDV = () => {
+  const { toast } = useToast();
   const [customer, setCustomer] = useState("");
   const [searchProduct, setSearchProduct] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showProductGrid, setShowProductGrid] = useState(false);
   const [showFinalizeSale, setShowFinalizeSale] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    const dominio = localStorage.getItem("user_dominio");
+    if (!dominio) return;
+
+    const { data, error } = await supabase
+      .from("tb_produtos")
+      .select("id, nome, preco_venda, codigo")
+      .eq("dominio", dominio)
+      .eq("ativo", true)
+      .order("nome");
+
+    if (!error && data) {
+      setProducts(data);
+    }
+  };
+
+  useEffect(() => {
+    if (searchProduct.length > 0) {
+      const filtered = products.filter(p => 
+        p.nome.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        p.codigo?.toLowerCase().includes(searchProduct.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+      setShowProductSearch(true);
+    } else {
+      setFilteredProducts([]);
+      setShowProductSearch(false);
+    }
+  }, [searchProduct, products]);
+
+  const handleSelectProduct = (product: Product) => {
+    addToCart({
+      id: product.id.toString(),
+      name: product.nome,
+      price: product.preco_venda || 0
+    });
+    setSearchProduct("");
+    setShowProductSearch(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && filteredProducts.length > 0) {
+      handleSelectProduct(filteredProducts[0]);
+    }
+  };
 
   const addToCart = (product: { id: string; name: string; price: number }) => {
     const existingItem = cartItems.find(item => item.id === product.id);
@@ -92,23 +156,50 @@ const PDV = () => {
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="text-lg font-semibold mb-3">Adicionar Produto</h3>
           <div className="flex gap-2">
-            <Input
-              value={searchProduct}
-              onChange={(e) => setSearchProduct(e.target.value)}
-              placeholder="Buscar Produto - S"
-              className="flex-1"
-            />
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                value={searchProduct}
+                onChange={(e) => setSearchProduct(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Buscar por nome ou código..."
+                className="pl-10"
+              />
+              {showProductSearch && filteredProducts.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="px-4 py-3 hover:bg-muted cursor-pointer flex justify-between items-center"
+                      onClick={() => handleSelectProduct(product)}
+                    >
+                      <div>
+                        <p className="font-medium">{product.nome}</p>
+                        <p className="text-xs text-muted-foreground">#{product.codigo || product.id}</p>
+                      </div>
+                      <span className="font-semibold text-primary">
+                        R$ {(product.preco_venda || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showProductSearch && searchProduct.length > 0 && filteredProducts.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 p-4 text-center text-muted-foreground">
+                  Nenhum produto encontrado
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               size="icon"
               onClick={() => setShowProductGrid(true)}
+              title="Abrir grade de produtos"
             >
               <Grid3x3 className="w-4 h-4" />
             </Button>
           </div>
-          <Button className="w-full mt-3" size="lg">
-            Adicionar
-          </Button>
         </div>
 
         {/* Cart Table */}
