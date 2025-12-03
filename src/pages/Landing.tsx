@@ -33,6 +33,9 @@ export default function Landing() {
             <a href="#cases" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Cases
             </a>
+            <a href="/educacao" className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1">
+              <span>🎓</span> Educação
+            </a>
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />

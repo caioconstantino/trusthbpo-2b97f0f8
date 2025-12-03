@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import Landing from "./pages/Landing";
+import Educacao from "./pages/Educacao";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Produtos from "./pages/Produtos";
@@ -33,6 +34,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/educacao" element={<Educacao />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/produtos" element={<ProtectedRoute><Produtos /></ProtectedRoute>} />
