@@ -19,7 +19,15 @@ import {
 } from "./ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { format, addMonths } from "date-fns";
+
+interface Parcela {
+  numero: number;
+  vencimento: string;
+  valor: number;
+  formaPagamento: string;
+}
 
 interface CompletePurchaseDialogProps {
   purchaseId: string | null;
@@ -39,19 +47,21 @@ export const CompletePurchaseDialog = ({
   const [purchaseTotal, setPurchaseTotal] = useState(0);
   const [registerPayable, setRegisterPayable] = useState(true);
   const [fornecedor, setFornecedor] = useState("");
-  const [vencimento, setVencimento] = useState("");
-  const [formaPagamento, setFormaPagamento] = useState("boleto");
+  const [numParcelas, setNumParcelas] = useState(1);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const dominio = localStorage.getItem("user_dominio") || "";
 
   useEffect(() => {
     if (open && purchaseId) {
       loadPurchaseData();
-      // Set default due date to 30 days from now
-      const defaultDate = new Date();
-      defaultDate.setDate(defaultDate.getDate() + 30);
-      setVencimento(defaultDate.toISOString().split('T')[0]);
     }
   }, [open, purchaseId]);
+
+  useEffect(() => {
+    if (purchaseTotal > 0) {
+      generateParcelas(numParcelas);
+    }
+  }, [numParcelas, purchaseTotal]);
 
   const loadPurchaseData = async () => {
     if (!purchaseId) return;
@@ -65,7 +75,32 @@ export const CompletePurchaseDialog = ({
     if (data) {
       setPurchaseTotal(Number(data.total));
       setFornecedor(data.fornecedor || "");
+      setNumParcelas(1);
     }
+  };
+
+  const generateParcelas = (num: number) => {
+    const valorParcela = purchaseTotal / num;
+    const novasParcelas: Parcela[] = [];
+    const hoje = new Date();
+
+    for (let i = 0; i < num; i++) {
+      const dataVencimento = addMonths(hoje, i + 1);
+      novasParcelas.push({
+        numero: i + 1,
+        vencimento: format(dataVencimento, "yyyy-MM-dd"),
+        valor: i === num - 1 ? purchaseTotal - valorParcela * (num - 1) : valorParcela,
+        formaPagamento: "boleto"
+      });
+    }
+
+    setParcelas(novasParcelas);
+  };
+
+  const updateParcela = (index: number, field: keyof Parcela, value: string | number) => {
+    const novasParcelas = [...parcelas];
+    novasParcelas[index] = { ...novasParcelas[index], [field]: value };
+    setParcelas(novasParcelas);
   };
 
   const handleComplete = async () => {
@@ -73,7 +108,6 @@ export const CompletePurchaseDialog = ({
 
     setLoading(true);
     try {
-      // Get purchase items
       const { data: items, error: itemsError } = await supabase
         .from("tb_compras_itens")
         .select("*")
@@ -81,7 +115,6 @@ export const CompletePurchaseDialog = ({
 
       if (itemsError) throw itemsError;
 
-      // Update stock for each item
       for (const item of items || []) {
         const { data: existing } = await supabase
           .from("tb_estq_unidades")
@@ -108,14 +141,12 @@ export const CompletePurchaseDialog = ({
             });
         }
 
-        // Update product cost price
         await supabase
           .from("tb_produtos")
           .update({ preco_custo: item.preco_custo })
           .eq("id", item.produto_id);
       }
 
-      // Update purchase status and fornecedor
       await supabase
         .from("tb_compras")
         .update({ 
@@ -124,21 +155,22 @@ export const CompletePurchaseDialog = ({
         })
         .eq("id", purchaseId);
 
-      // Register payable if checkbox is checked
-      if (registerPayable && vencimento) {
-        await supabase
-          .from("tb_contas_pagar")
-          .insert({
-            dominio,
-            categoria: "COMPRAS",
-            descricao: `Compra - ${fornecedor || 'Sem fornecedor'}`,
-            valor: purchaseTotal,
-            vencimento,
-            status: "pendente",
-            forma_pagamento: formaPagamento,
-            fornecedor: fornecedor || null,
-            compra_id: purchaseId
-          });
+      if (registerPayable && parcelas.length > 0) {
+        const contasAInserir = parcelas.map((parcela) => ({
+          dominio,
+          categoria: "COMPRAS",
+          descricao: parcelas.length > 1 
+            ? `Compra - ${fornecedor || 'Sem fornecedor'} (${parcela.numero}/${parcelas.length})`
+            : `Compra - ${fornecedor || 'Sem fornecedor'}`,
+          valor: parcela.valor,
+          vencimento: parcela.vencimento,
+          status: "pendente",
+          forma_pagamento: parcela.formaPagamento,
+          fornecedor: fornecedor || null,
+          compra_id: purchaseId
+        }));
+
+        await supabase.from("tb_contas_pagar").insert(contasAInserir);
       }
 
       toast({ title: "Compra concluída!", description: "Estoque atualizado com sucesso." });
@@ -152,9 +184,11 @@ export const CompletePurchaseDialog = ({
     }
   };
 
+  const totalParcelas = parcelas.reduce((sum, p) => sum + p.valor, 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Concluir Compra</DialogTitle>
           <DialogDescription>
@@ -191,32 +225,77 @@ export const CompletePurchaseDialog = ({
           </div>
 
           {registerPayable && (
-            <div className="space-y-3 pl-6 border-l-2 border-muted">
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
               <div>
-                <Label htmlFor="vencimento">Data de Vencimento</Label>
-                <Input
-                  id="vencimento"
-                  type="date"
-                  value={vencimento}
-                  onChange={(e) => setVencimento(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label>Forma de Pagamento</Label>
-                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                <Label>Número de Parcelas</Label>
+                <Select value={numParcelas.toString()} onValueChange={(v) => setNumParcelas(parseInt(v))}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                      <SelectItem key={n} value={n.toString()}>
+                        {n}x {n === 1 ? "(À vista)" : `de R$ ${(purchaseTotal / n).toFixed(2)}`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Parcelas</Label>
+                {parcelas.map((parcela, index) => (
+                  <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Parcela {parcela.numero}/{parcelas.length}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Vencimento</Label>
+                        <Input
+                          type="date"
+                          value={parcela.vencimento}
+                          onChange={(e) => updateParcela(index, "vencimento", e.target.value)}
+                          className="mt-1 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Valor</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={parcela.valor}
+                          onChange={(e) => updateParcela(index, "valor", parseFloat(e.target.value) || 0)}
+                          className="mt-1 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Forma Pgto</Label>
+                        <Select
+                          value={parcela.formaPagamento}
+                          onValueChange={(v) => updateParcela(index, "formaPagamento", v)}
+                        >
+                          <SelectTrigger className="mt-1 h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="boleto">Boleto</SelectItem>
+                            <SelectItem value="pix">PIX</SelectItem>
+                            <SelectItem value="transferencia">Transferência</SelectItem>
+                            <SelectItem value="cartao">Cartão</SelectItem>
+                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {Math.abs(totalParcelas - purchaseTotal) > 0.01 && (
+                  <p className="text-xs text-destructive">
+                    Atenção: Total das parcelas (R$ {totalParcelas.toFixed(2)}) difere do valor da compra
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Pencil, Check, Trash2, Loader2, List } from "lucide-react";
-import { ManageContasPagarCategoryDialog } from "@/components/ManageContasPagarCategoryDialog";
+import { CalendarIcon, Check, Trash2, Loader2, List, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContasPagar, ContaPagar } from "@/hooks/useContasPagar";
+import { ManageContasPagarCategoryDialog } from "@/components/ManageContasPagarCategoryDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+interface Parcela {
+  numero: number;
+  vencimento: Date;
+  valor: number;
+  formaPagamento: string;
+}
 
 const ContasPagar = () => {
   const { 
@@ -36,6 +44,8 @@ const ContasPagar = () => {
     deleteConta 
   } = useContasPagar();
 
+  // Form state
+  const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
@@ -43,6 +53,15 @@ const ContasPagar = () => {
   const [formaPagamento, setFormaPagamento] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Parcelamento state
+  const [numParcelas, setNumParcelas] = useState(2);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+
+  // Recorrência state
+  const [frequencia, setFrequencia] = useState<"mensal" | "semanal" | "quinzenal">("mensal");
+  const [numOcorrencias, setNumOcorrencias] = useState(12);
+
+  // Filter state
   const [startDate, setStartDate] = useState<Date>(() => {
     const date = new Date();
     date.setDate(1);
@@ -60,29 +79,105 @@ const ContasPagar = () => {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
+  // Generate parcelas when parcelamento changes
+  const generateParcelas = (num: number, valorTotal: number, dataInicial: Date) => {
+    const valorParcela = valorTotal / num;
+    const novasParcelas: Parcela[] = [];
+
+    for (let i = 0; i < num; i++) {
+      const dataVencimento = addMonths(dataInicial, i);
+      novasParcelas.push({
+        numero: i + 1,
+        vencimento: dataVencimento,
+        valor: i === num - 1 ? valorTotal - valorParcela * (num - 1) : valorParcela,
+        formaPagamento: formaPagamento || "boleto"
+      });
+    }
+
+    setParcelas(novasParcelas);
+  };
+
+  const handleNumParcelasChange = (num: string) => {
+    const n = parseInt(num);
+    setNumParcelas(n);
+    if (valor && vencimento) {
+      generateParcelas(n, parseFloat(valor), vencimento);
+    }
+  };
+
+  const updateParcela = (index: number, field: keyof Parcela, value: any) => {
+    const novasParcelas = [...parcelas];
+    novasParcelas[index] = { ...novasParcelas[index], [field]: value };
+    setParcelas(novasParcelas);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!categoria || !descricao || !valor || !vencimento) {
+    if (!categoria || !descricao) {
       return;
     }
 
     setSaving(true);
-    const success = await createConta({
-      categoria: categoria.toUpperCase(),
-      descricao,
-      valor: parseFloat(valor),
-      vencimento: format(vencimento, "yyyy-MM-dd"),
-      forma_pagamento: formaPagamento || undefined
-    });
 
-    if (success) {
+    try {
+      if (tipoCadastro === "unico") {
+        if (!valor || !vencimento) return;
+        await createConta({
+          categoria: categoria.toUpperCase(),
+          descricao,
+          valor: parseFloat(valor),
+          vencimento: format(vencimento, "yyyy-MM-dd"),
+          forma_pagamento: formaPagamento || undefined
+        });
+      } else if (tipoCadastro === "parcelado") {
+        for (const parcela of parcelas) {
+          await createConta({
+            categoria: categoria.toUpperCase(),
+            descricao: `${descricao} (${parcela.numero}/${parcelas.length})`,
+            valor: parcela.valor,
+            vencimento: format(parcela.vencimento, "yyyy-MM-dd"),
+            forma_pagamento: parcela.formaPagamento || undefined
+          });
+        }
+      } else if (tipoCadastro === "recorrente") {
+        if (!valor || !vencimento) return;
+        const valorNum = parseFloat(valor);
+        
+        for (let i = 0; i < numOcorrencias; i++) {
+          let dataVencimento: Date;
+          
+          if (frequencia === "mensal") {
+            dataVencimento = addMonths(vencimento, i);
+          } else if (frequencia === "quinzenal") {
+            dataVencimento = addDays(vencimento, i * 15);
+          } else {
+            dataVencimento = addWeeks(vencimento, i);
+          }
+
+          await createConta({
+            categoria: categoria.toUpperCase(),
+            descricao: `${descricao} (${i + 1}/${numOcorrencias})`,
+            valor: valorNum,
+            vencimento: format(dataVencimento, "yyyy-MM-dd"),
+            forma_pagamento: formaPagamento || undefined
+          });
+        }
+      }
+
+      // Reset form
       setCategoria("");
       setDescricao("");
       setValor("");
       setVencimento(undefined);
       setFormaPagamento("");
+      setParcelas([]);
+      setNumParcelas(2);
+      setNumOcorrencias(12);
+    } catch (error) {
+      console.error("Error creating conta:", error);
     }
+
     setSaving(false);
   };
 
@@ -146,7 +241,16 @@ const ContasPagar = () => {
           <h2 className="text-lg font-semibold mb-4">Nova Despesa</h2>
           
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+            {/* Tipo de cadastro */}
+            <Tabs value={tipoCadastro} onValueChange={(v) => setTipoCadastro(v as any)} className="mb-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="unico">Único</TabsTrigger>
+                <TabsTrigger value="parcelado">Parcelado</TabsTrigger>
+                <TabsTrigger value="recorrente">Recorrente</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               <div>
                 <Label className="text-xs">Categoria</Label>
                 <div className="flex gap-2 mt-1">
@@ -179,19 +283,28 @@ const ContasPagar = () => {
               </div>
 
               <div>
-                <Label className="text-xs">Valor</Label>
+                <Label className="text-xs">
+                  {tipoCadastro === "parcelado" ? "Valor Total" : "Valor"}
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={valor}
-                  onChange={(e) => setValor(e.target.value)}
+                  onChange={(e) => {
+                    setValor(e.target.value);
+                    if (tipoCadastro === "parcelado" && vencimento && e.target.value) {
+                      generateParcelas(numParcelas, parseFloat(e.target.value), vencimento);
+                    }
+                  }}
                   placeholder="0,00"
                   className="mt-1 h-9"
                 />
               </div>
 
               <div>
-                <Label className="text-xs">Vencimento</Label>
+                <Label className="text-xs">
+                  {tipoCadastro === "parcelado" ? "1º Vencimento" : "Vencimento"}
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -209,30 +322,175 @@ const ContasPagar = () => {
                     <Calendar
                       mode="single"
                       selected={vencimento}
-                      onSelect={setVencimento}
+                      onSelect={(date) => {
+                        setVencimento(date);
+                        if (tipoCadastro === "parcelado" && date && valor) {
+                          generateParcelas(numParcelas, parseFloat(valor), date);
+                        }
+                      }}
                       initialFocus
                       locale={ptBR}
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
               </div>
-
-              <div>
-                <Label className="text-xs">Forma Pagamento</Label>
-                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                  <SelectTrigger className="mt-1 h-9">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
+
+            {/* Opções específicas por tipo */}
+            {tipoCadastro === "unico" && (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <Label className="text-xs">Forma Pagamento</Label>
+                  <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="transferencia">Transferência</SelectItem>
+                      <SelectItem value="cartao">Cartão</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {tipoCadastro === "parcelado" && (
+              <div className="space-y-4 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Nº de Parcelas</Label>
+                    <Select value={numParcelas.toString()} onValueChange={handleNumParcelasChange}>
+                      <SelectTrigger className="mt-1 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24, 36, 48].map((n) => (
+                          <SelectItem key={n} value={n.toString()}>
+                            {n}x
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Forma Pagamento Padrão</Label>
+                    <Select value={formaPagamento} onValueChange={(v) => {
+                      setFormaPagamento(v);
+                      setParcelas(parcelas.map(p => ({ ...p, formaPagamento: v })));
+                    }}>
+                      <SelectTrigger className="mt-1 h-9">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="boleto">Boleto</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="transferencia">Transferência</SelectItem>
+                        <SelectItem value="cartao">Cartão</SelectItem>
+                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {parcelas.length > 0 && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted px-3 py-2 text-xs font-medium grid grid-cols-4 gap-2">
+                      <span>Parcela</span>
+                      <span>Vencimento</span>
+                      <span>Valor</span>
+                      <span>Forma Pgto</span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {parcelas.map((parcela, index) => (
+                        <div key={index} className="px-3 py-2 border-t border-border grid grid-cols-4 gap-2 items-center">
+                          <span className="text-sm">{parcela.numero}/{parcelas.length}</span>
+                          <Input
+                            type="date"
+                            value={format(parcela.vencimento, "yyyy-MM-dd")}
+                            onChange={(e) => updateParcela(index, "vencimento", new Date(e.target.value + 'T00:00:00'))}
+                            className="h-7 text-xs"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={parcela.valor.toFixed(2)}
+                            onChange={(e) => updateParcela(index, "valor", parseFloat(e.target.value) || 0)}
+                            className="h-7 text-xs"
+                          />
+                          <Select
+                            value={parcela.formaPagamento}
+                            onValueChange={(v) => updateParcela(index, "formaPagamento", v)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="transferencia">Transf.</SelectItem>
+                              <SelectItem value="cartao">Cartão</SelectItem>
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tipoCadastro === "recorrente" && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <Label className="text-xs">Frequência</Label>
+                  <Select value={frequencia} onValueChange={(v) => setFrequencia(v as any)}>
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="semanal">Semanal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Nº de Ocorrências</Label>
+                  <Select value={numOcorrencias.toString()} onValueChange={(v) => setNumOcorrencias(parseInt(v))}>
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[3, 6, 12, 18, 24, 36, 48].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n} vezes
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Forma Pagamento</Label>
+                  <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="transferencia">Transferência</SelectItem>
+                      <SelectItem value="cartao">Cartão</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end">
               <Button type="submit" disabled={saving}>
@@ -260,6 +518,7 @@ const ContasPagar = () => {
                   onSelect={(date) => date && setStartDate(date)}
                   initialFocus
                   locale={ptBR}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -281,6 +540,7 @@ const ContasPagar = () => {
                   onSelect={(date) => date && setEndDate(date)}
                   initialFocus
                   locale={ptBR}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -426,6 +686,7 @@ const ContasPagar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <ManageContasPagarCategoryDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
