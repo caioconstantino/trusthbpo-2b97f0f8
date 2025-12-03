@@ -24,8 +24,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('API Key starts with:', pagarmeApiKey.substring(0, 10))
-
     const body: CreateLinkRequest = await req.json()
     const { planName, planPrice } = body
 
@@ -38,17 +36,20 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Payload mínimo baseado na documentação oficial
+    // Payload com PIX e Cartão de Crédito
     const pagarmePayload = {
       name: planName,
       type: 'order',
       payment_settings: {
-        accepted_payment_methods: ['credit_card'],
+        accepted_payment_methods: ['credit_card', 'pix'],
         credit_card_settings: {
           operation_type: 'auth_and_capture',
           installments: [
             { number: 1, total: planPrice }
           ]
+        },
+        pix_settings: {
+          expires_in: 3600
         }
       },
       cart_settings: {
@@ -64,9 +65,7 @@ Deno.serve(async (req) => {
 
     console.log('Payload:', JSON.stringify(pagarmePayload, null, 2))
 
-    // Autenticação Basic - API Key como username, password vazio
     const credentials = btoa(`${pagarmeApiKey}:`)
-    console.log('Auth header created')
 
     const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/paymentlinks', {
       method: 'POST',
@@ -93,7 +92,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create payment link', 
-          status: pagarmeResponse.status,
           details: pagarmeData 
         }),
         { status: pagarmeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
