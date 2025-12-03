@@ -14,8 +14,8 @@ import {
 import { Grid3x3, Trash2, Maximize2, Search } from "lucide-react";
 import { ProductGridDialog } from "@/components/ProductGridDialog";
 import { FinalizeSaleDialog } from "@/components/FinalizeSaleDialog";
+import { QuantityDialog } from "@/components/QuantityDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: number;
@@ -31,13 +31,20 @@ interface CartItem {
   quantity: number;
 }
 
+interface SelectedProduct {
+  id: string;
+  name: string;
+  price: number;
+}
+
 const PDV = () => {
-  const { toast } = useToast();
   const [customer, setCustomer] = useState("");
   const [searchProduct, setSearchProduct] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showProductGrid, setShowProductGrid] = useState(false);
   const [showFinalizeSale, setShowFinalizeSale] = useState(false);
+  const [showQuantityDialog, setShowQuantityDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showProductSearch, setShowProductSearch] = useState(false);
@@ -78,13 +85,14 @@ const PDV = () => {
   }, [searchProduct, products]);
 
   const handleSelectProduct = (product: Product) => {
-    addToCart({
+    setSelectedProduct({
       id: product.id.toString(),
       name: product.nome,
       price: product.preco_venda || 0
     });
     setSearchProduct("");
     setShowProductSearch(false);
+    setShowQuantityDialog(true);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -93,18 +101,28 @@ const PDV = () => {
     }
   };
 
-  const addToCart = (product: { id: string; name: string; price: number }) => {
+  const handleProductFromGrid = (product: { id: string; name: string; price: number }) => {
+    setSelectedProduct(product);
+    setShowProductGrid(false);
+    setShowQuantityDialog(true);
+  };
+
+  const addToCartWithQuantity = (product: { id: string; name: string; price: number }, quantity: number) => {
     const existingItem = cartItems.find(item => item.id === product.id);
     
     if (existingItem) {
       setCartItems(cartItems.map(item =>
         item.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? { ...item, quantity: item.quantity + quantity }
           : item
       ));
     } else {
-      setCartItems([...cartItems, { ...product, quantity: 1 }]);
+      setCartItems([...cartItems, { ...product, quantity }]);
     }
+  };
+
+  const addToCart = (product: { id: string; name: string; price: number }) => {
+    addToCartWithQuantity(product, 1);
   };
 
   const removeFromCart = (id: string) => {
@@ -289,7 +307,14 @@ const PDV = () => {
       <ProductGridDialog
         open={showProductGrid}
         onOpenChange={setShowProductGrid}
-        onAddProduct={addToCart}
+        onAddProduct={handleProductFromGrid}
+      />
+
+      <QuantityDialog
+        open={showQuantityDialog}
+        onOpenChange={setShowQuantityDialog}
+        product={selectedProduct}
+        onConfirm={addToCartWithQuantity}
       />
 
       <FinalizeSaleDialog
