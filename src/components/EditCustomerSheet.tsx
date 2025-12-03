@@ -155,6 +155,7 @@ export const EditCustomerSheet = ({ customer, open, onOpenChange, onSuccess }: E
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Lead">Lead</SelectItem>
                 <SelectItem value="Ativo">Ativo</SelectItem>
                 <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>
