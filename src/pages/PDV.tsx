@@ -11,11 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Grid3x3, Trash2, Maximize2, Search } from "lucide-react";
+import { Grid3x3, Trash2, Maximize2, Search, Loader2 } from "lucide-react";
 import { ProductGridDialog } from "@/components/ProductGridDialog";
 import { FinalizeSaleDialog } from "@/components/FinalizeSaleDialog";
 import { QuantityDialog } from "@/components/QuantityDialog";
+import { OpenSessionDialog } from "@/components/OpenSessionDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { usePdvSession } from "@/hooks/usePdvSession";
 
 interface Product {
   id: number;
@@ -38,6 +40,8 @@ interface SelectedProduct {
 }
 
 const PDV = () => {
+  const { session, loading, needsSession, openSession, usuarioNome } = usePdvSession();
+  
   const [customer, setCustomer] = useState("");
   const [searchProduct, setSearchProduct] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -121,10 +125,6 @@ const PDV = () => {
     }
   };
 
-  const addToCart = (product: { id: string; name: string; price: number }) => {
-    addToCartWithQuantity(product, 1);
-  };
-
   const removeFromCart = (id: string) => {
     setCartItems(cartItems.filter(item => item.id !== id));
   };
@@ -146,6 +146,20 @@ const PDV = () => {
     setShowFinalizeSale(true);
   };
 
+  const handleOpenSession = async (valorAbertura: number, caixaNome: string) => {
+    await openSession(valorAbertura, caixaNome);
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-[1400px] mx-auto space-y-4">
@@ -162,11 +176,11 @@ const PDV = () => {
           </div>
           <div>
             <Label className="text-sm text-muted-foreground">Vendedor</Label>
-            <div className="mt-1 text-lg font-semibold">GOGAR</div>
+            <div className="mt-1 text-lg font-semibold">{usuarioNome}</div>
           </div>
           <div>
             <Label className="text-sm text-muted-foreground">PDV</Label>
-            <div className="mt-1 text-lg font-semibold">Caixa 1</div>
+            <div className="mt-1 text-lg font-semibold">{session?.caixa_nome || "Sem sessão"}</div>
           </div>
         </div>
 
@@ -288,7 +302,7 @@ const PDV = () => {
             size="lg"
             className="bg-slate-700 hover:bg-slate-800 text-white h-16 text-lg"
             onClick={handleFinalizeSale}
-            disabled={cartItems.length === 0}
+            disabled={cartItems.length === 0 || !session}
           >
             Finalizar Venda - F1
           </Button>
@@ -304,6 +318,12 @@ const PDV = () => {
       </div>
 
       {/* Modals */}
+      <OpenSessionDialog
+        open={needsSession}
+        onOpenChange={() => {}}
+        onConfirm={handleOpenSession}
+      />
+
       <ProductGridDialog
         open={showProductGrid}
         onOpenChange={setShowProductGrid}
@@ -322,8 +342,11 @@ const PDV = () => {
         onOpenChange={setShowFinalizeSale}
         cartItems={cartItems}
         total={total}
+        sessionId={session?.id || ""}
+        customerName={customer}
         onComplete={() => {
           setCartItems([]);
+          setCustomer("");
           setShowFinalizeSale(false);
         }}
       />
