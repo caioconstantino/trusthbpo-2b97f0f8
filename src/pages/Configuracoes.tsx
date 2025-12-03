@@ -320,7 +320,7 @@ export default function Configuracoes() {
 
   const openUserDialog = (user: Usuario) => {
     setEditingUser(user);
-    setSelectedGrupoId(user.grupo_id || "");
+    setSelectedGrupoId(user.grupo_id || "sem-grupo");
     setUserDialogOpen(true);
   };
 
@@ -328,9 +328,10 @@ export default function Configuracoes() {
     if (!editingUser) return;
 
     try {
+      const grupoIdToSave = selectedGrupoId === "sem-grupo" ? null : selectedGrupoId;
       const { error } = await supabase
         .from("tb_usuarios")
-        .update({ grupo_id: selectedGrupoId || null })
+        .update({ grupo_id: grupoIdToSave })
         .eq("id", editingUser.id);
 
       if (error) throw error;
@@ -783,7 +784,7 @@ export default function Configuracoes() {
                   <SelectValue placeholder="Selecione um grupo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem grupo</SelectItem>
+                  <SelectItem value="sem-grupo">Sem grupo</SelectItem>
                   {grupos.map((grupo) => (
                     <SelectItem key={grupo.id} value={grupo.id}>
                       {grupo.nome}
