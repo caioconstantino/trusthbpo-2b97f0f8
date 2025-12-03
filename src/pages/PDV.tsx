@@ -62,6 +62,7 @@ const PDV = () => {
   const [showQuantityDialog, setShowQuantityDialog] = useState(false);
   const [showSangriaDialog, setShowSangriaDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showOpenDialog, setShowOpenDialog] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -185,6 +186,37 @@ const PDV = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  const handleCloseOpenDialog = () => {
+    // Allow closing, PDV will be blocked
+  };
+
+  // If no session, show blocked state
+  if (needsSession && !loading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <div className="bg-muted/50 rounded-lg p-8 max-w-md">
+              <h2 className="text-xl font-semibold mb-2">Caixa Fechado</h2>
+              <p className="text-muted-foreground mb-4">
+                É necessário abrir o caixa para iniciar as vendas.
+              </p>
+              <Button onClick={() => setShowOpenDialog(true)}>
+                Abrir Caixa
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <OpenSessionDialog
+          open={showOpenDialog}
+          onOpenChange={setShowOpenDialog}
+          onConfirm={handleOpenSession}
+        />
       </DashboardLayout>
     );
   }
@@ -367,12 +399,6 @@ const PDV = () => {
       </div>
 
       {/* Modals */}
-      <OpenSessionDialog
-        open={needsSession}
-        onOpenChange={() => {}}
-        onConfirm={handleOpenSession}
-      />
-
       <ProductGridDialog
         open={showProductGrid}
         onOpenChange={setShowProductGrid}
