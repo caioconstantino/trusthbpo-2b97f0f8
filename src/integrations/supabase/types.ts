@@ -340,6 +340,57 @@ export type Database = {
           },
         ]
       }
+      tb_contas_receber: {
+        Row: {
+          categoria: string | null
+          cliente: string | null
+          created_at: string
+          data_recebimento: string | null
+          descricao: string
+          dominio: string
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor: number
+          vencimento: string
+          venda_id: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          cliente?: string | null
+          created_at?: string
+          data_recebimento?: string | null
+          descricao: string
+          dominio: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento: string
+          venda_id?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          cliente?: string | null
+          created_at?: string
+          data_recebimento?: string | null
+          descricao?: string
+          dominio?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+          venda_id?: string | null
+        }
+        Relationships: []
+      }
       tb_escolas: {
         Row: {
           created_at: string | null
