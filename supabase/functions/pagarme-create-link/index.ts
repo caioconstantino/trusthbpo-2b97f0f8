@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const pagarmeApiKey = Deno.env.get('PAGARME_SDX')
+    const pagarmeApiKey = Deno.env.get('PAGARME')
     
     if (!pagarmeApiKey) {
-      console.error('PAGARME_SDX secret not configured')
+      console.error('PAGARME secret not configured')
       return new Response(
         JSON.stringify({ error: 'Pagar.me API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const credentials = btoa(`${pagarmeApiKey}:`)
 
-    const pagarmeResponse = await fetch('https://sdx-api.pagar.me/core/v5/paymentlinks', {
+    const pagarmeResponse = await fetch('https://api.pagar.me/core/v5/paymentlinks', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
