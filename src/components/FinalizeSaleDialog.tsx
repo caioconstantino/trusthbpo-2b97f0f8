@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +54,7 @@ export const FinalizeSaleDialog = ({
   const [discount, setDiscount] = useState(0);
   const [addition, setAddition] = useState(0);
   const [paymentValue, setPaymentValue] = useState("");
+  const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const subtotal = total;
   const discountValue = (subtotal * discount) / 100;
@@ -64,11 +65,69 @@ export const FinalizeSaleDialog = ({
   const remaining = Math.max(0, finalTotal - totalPaid);
 
   const paymentMethods = [
-    { name: "Crédito", color: "bg-slate-700" },
-    { name: "Débito", color: "bg-slate-700" },
-    { name: "Dinheiro", color: "bg-primary" },
-    { name: "Pix", color: "bg-slate-700" }
+    { name: "Crédito", shortcut: "F1" },
+    { name: "Débito", shortcut: "F2" },
+    { name: "Dinheiro", shortcut: "F3" },
+    { name: "Pix", shortcut: "F4" }
   ];
+
+  // Set default payment value to remaining when dialog opens or remaining changes
+  useEffect(() => {
+    if (open && remaining > 0) {
+      setPaymentValue(remaining.toFixed(2));
+    }
+  }, [open, remaining]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setPayments([]);
+      setDiscount(0);
+      setAddition(0);
+      setPaymentValue("");
+      setSelectedMethod("Dinheiro");
+    }
+  }, [open]);
+
+  const selectPaymentMethod = (methodName: string) => {
+    setSelectedMethod(methodName);
+    setPaymentValue(remaining.toFixed(2));
+    
+    // Focus and select the input
+    setTimeout(() => {
+      if (paymentInputRef.current) {
+        paymentInputRef.current.focus();
+        paymentInputRef.current.select();
+      }
+    }, 0);
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F1") {
+        e.preventDefault();
+        selectPaymentMethod("Crédito");
+      } else if (e.key === "F2") {
+        e.preventDefault();
+        selectPaymentMethod("Débito");
+      } else if (e.key === "F3") {
+        e.preventDefault();
+        selectPaymentMethod("Dinheiro");
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        selectPaymentMethod("Pix");
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, remaining]);
 
   const addPayment = () => {
     const value = parseFloat(paymentValue);
@@ -82,14 +141,18 @@ export const FinalizeSaleDialog = ({
     };
 
     setPayments([...payments, newPayment]);
-    setPaymentValue("");
+    
+    // Calculate new remaining after this payment
+    const newTotalPaid = totalPaid + value;
+    const newRemaining = Math.max(0, finalTotal - newTotalPaid);
+    setPaymentValue(newRemaining > 0 ? newRemaining.toFixed(2) : "");
   };
 
   const removePayment = (id: string) => {
     setPayments(payments.filter(p => p.id !== id));
   };
 
-  const handleConfirmPayment = () => {
+  const handleFinalizeSale = () => {
     if (remaining > 0) {
       toast({
         title: "Pagamento incompleto",
@@ -122,7 +185,7 @@ export const FinalizeSaleDialog = ({
           <DialogTitle>Finalizar Venda</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-[1fr_400px] gap-6 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 mt-4">
           {/* Left Side - Payments Table */}
           <div className="space-y-4">
             <div className="border rounded-lg overflow-hidden">
@@ -168,26 +231,26 @@ export const FinalizeSaleDialog = ({
             </div>
 
             {/* Discount and Addition */}
-            <div className="grid grid-cols-2 gap-4 bg-slate-700 p-4 rounded-lg">
+            <div className="grid grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
               <div>
-                <Label className="text-white">Desconto %</Label>
+                <Label>Desconto %</Label>
                 <Input
                   type="number"
                   value={discount}
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                  className="mt-1 bg-slate-800 border-slate-600 text-white"
+                  className="mt-1"
                   step="0.01"
                   min="0"
                   max="100"
                 />
               </div>
               <div>
-                <Label className="text-white">Acréscimo %</Label>
+                <Label>Acréscimo %</Label>
                 <Input
                   type="number"
                   value={addition}
                   onChange={(e) => setAddition(parseFloat(e.target.value) || 0)}
-                  className="mt-1 bg-slate-800 border-slate-600 text-white"
+                  className="mt-1"
                   step="0.01"
                   min="0"
                 />
@@ -195,17 +258,20 @@ export const FinalizeSaleDialog = ({
             </div>
 
             {/* Summary */}
-            <div className="space-y-2 bg-slate-700 p-4 rounded-lg text-white">
-              <div className="flex justify-between">
-                <span>Subtotal {subtotal.toFixed(2)}</span>
-                <span>Desconto R$ {discountValue.toFixed(2)}</span>
+            <div className="space-y-2 bg-muted p-4 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal: R$ {subtotal.toFixed(2)}</span>
+                <span>Desconto: R$ {discountValue.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total {finalTotal.toFixed(2)}</span>
-                <span>Total Pago {totalPaid.toFixed(2)}</span>
+              <div className="flex justify-between text-sm">
+                <span>Acréscimo: R$ {additionValue.toFixed(2)}</span>
+                <span>Total Pago: R$ {totalPaid.toFixed(2)}</span>
               </div>
-              <div className="text-xl font-bold text-center">
-                Troco {change.toFixed(2)}
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
+                <span>Total: R$ {finalTotal.toFixed(2)}</span>
+                <span className={change > 0 ? "text-green-600" : ""}>
+                  Troco: R$ {change.toFixed(2)}
+                </span>
               </div>
             </div>
 
@@ -217,14 +283,15 @@ export const FinalizeSaleDialog = ({
                 onClick={handleCancel}
                 className="h-14 text-lg"
               >
-                Cancelar - F2
+                Cancelar - ESC
               </Button>
               <Button
                 size="lg"
-                className="h-14 text-lg bg-secondary hover:bg-secondary/90"
-                onClick={() => onOpenChange(false)}
+                className="h-14 text-lg"
+                onClick={handleFinalizeSale}
+                disabled={remaining > 0}
               >
-                Finalizar Venda - F1
+                Finalizar Venda
               </Button>
             </div>
           </div>
@@ -236,10 +303,11 @@ export const FinalizeSaleDialog = ({
                 <Button
                   key={method.name}
                   variant={selectedMethod === method.name ? "default" : "secondary"}
-                  className={`h-16 text-lg ${selectedMethod === method.name ? method.color : ""}`}
-                  onClick={() => setSelectedMethod(method.name)}
+                  className="h-16 text-lg flex flex-col gap-1"
+                  onClick={() => selectPaymentMethod(method.name)}
                 >
-                  {method.name}
+                  <span>{method.name}</span>
+                  <span className="text-xs opacity-70">{method.shortcut}</span>
                 </Button>
               ))}
             </div>
@@ -247,6 +315,7 @@ export const FinalizeSaleDialog = ({
             <div>
               <Label>Valor Pago</Label>
               <Input
+                ref={paymentInputRef}
                 type="number"
                 value={paymentValue}
                 onChange={(e) => setPaymentValue(e.target.value)}
@@ -264,14 +333,13 @@ export const FinalizeSaleDialog = ({
             <Button
               size="lg"
               className="w-full h-14 text-lg"
-              onClick={handleConfirmPayment}
-              disabled={remaining > 0}
+              onClick={addPayment}
             >
-              CONFIRMAR PAGAMENTO
+              Adicionar Pagamento
             </Button>
 
             {remaining > 0 && (
-              <div className="text-center text-destructive font-semibold">
+              <div className="text-center text-destructive font-semibold text-lg p-3 bg-destructive/10 rounded-lg">
                 Falta: R$ {remaining.toFixed(2)}
               </div>
             )}
