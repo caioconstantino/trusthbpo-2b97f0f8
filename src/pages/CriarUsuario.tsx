@@ -56,7 +56,7 @@ export default function CriarUsuario() {
 
   const passwordStrength = useMemo(() => getPasswordStrength(senha), [senha]);
 
-  // Fetch customer data by domain
+  // Fetch customer data by domain using edge function (bypasses RLS)
   useEffect(() => {
     const fetchCustomerData = async () => {
       if (!dominioParam) {
@@ -66,25 +66,27 @@ export default function CriarUsuario() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("tb_clientes_saas")
-          .select("razao_social, email, dominio")
-          .eq("dominio", dominioParam)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke("get-customer-data", {
+          body: { dominio: dominioParam },
+        });
 
         if (error) throw error;
 
-        if (!data) {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        if (!data.cliente) {
           setCustomerError("Domínio não encontrado. Verifique se o link está correto ou entre em contato com o suporte.");
           setIsLoadingCustomer(false);
           return;
         }
 
-        setCustomerData(data);
-        setNome(data.razao_social || "");
-        setEmail(data.email || "");
-        setDominio(data.dominio);
-        setDominioOriginal(data.dominio);
+        setCustomerData(data.cliente);
+        setNome(data.cliente.razao_social || "");
+        setEmail(data.cliente.email || "");
+        setDominio(data.cliente.dominio);
+        setDominioOriginal(data.cliente.dominio);
         setDominioDisponivel(true);
       } catch (error) {
         console.error("Erro ao buscar dados do cliente:", error);
@@ -113,14 +115,13 @@ export default function CriarUsuario() {
 
       setVerificandoDominio(true);
       try {
-        const { data, error } = await supabase
-          .from("tb_clientes_saas")
-          .select("dominio")
-          .eq("dominio", dominio)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke("get-customer-data", {
+          body: { dominio },
+        });
 
         if (error) throw error;
-        setDominioDisponivel(!data);
+        // If cliente exists, domain is taken
+        setDominioDisponivel(!data.cliente);
       } catch (error) {
         console.error("Erro ao verificar domínio:", error);
         setDominioDisponivel(null);

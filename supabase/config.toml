@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.pagarme-create-link]
 verify_jwt = false
+
+[functions.get-customer-data]
+verify_jwt = false
+
+[functions.update-customer-domain]
+verify_jwt = false
