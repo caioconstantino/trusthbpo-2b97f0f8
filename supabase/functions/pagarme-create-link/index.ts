@@ -48,16 +48,23 @@ Deno.serve(async (req) => {
       name: `TrustHBPO - ${planName}`,
       type: 'order',
       payment_settings: {
-        accepted_payment_methods: ['credit_card', 'boleto', 'pix'],
+        accepted_payment_methods: ['credit_card', 'pix'],
         credit_card_settings: {
-          installments_setup: {
-            interest_type: 'simple',
-            max_installments: planPrice >= 10000 ? 12 : 6, // 12x para planos acima de R$100
-            max_installments_without_interest: 3
-          }
-        },
-        boleto_settings: {
-          due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 dias
+          operation_type: 'auth_and_capture',
+          installments: [
+            {
+              number: 1,
+              total: planPrice
+            },
+            {
+              number: 2,
+              total: planPrice
+            },
+            {
+              number: 3,
+              total: planPrice
+            }
+          ]
         },
         pix_settings: {
           expires_in: 3600 // 1 hora em segundos
@@ -69,17 +76,11 @@ Deno.serve(async (req) => {
             name: `Plano ${planName}`,
             description: `Assinatura mensal TrustHBPO - Plano ${planName}`,
             amount: planPrice,
-            quantity: 1,
+            default_quantity: 1,
             code: planName.toLowerCase().replace(/\s/g, '-')
           }
         ]
       },
-      customer_settings: customerEmail ? {
-        customer: {
-          email: customerEmail,
-          name: customerName || 'Cliente TrustHBPO'
-        }
-      } : undefined,
       layout_settings: {
         primary_color: '#0A1E3F',
         secondary_color: '#D4AF37',
