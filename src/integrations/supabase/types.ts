@@ -481,6 +481,71 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_grupos_permissao: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          dominio: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          dominio: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tb_grupos_permissao_modulos: {
+        Row: {
+          created_at: string
+          editar: boolean
+          excluir: boolean
+          grupo_id: string
+          id: string
+          modulo: string
+          visualizar: boolean
+        }
+        Insert: {
+          created_at?: string
+          editar?: boolean
+          excluir?: boolean
+          grupo_id: string
+          id?: string
+          modulo: string
+          visualizar?: boolean
+        }
+        Update: {
+          created_at?: string
+          editar?: boolean
+          excluir?: boolean
+          grupo_id?: string
+          id?: string
+          modulo?: string
+          visualizar?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_grupos_permissao_modulos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "tb_grupos_permissao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_produtos: {
         Row: {
           ativo: boolean | null
@@ -594,6 +659,7 @@ export type Database = {
           created_at: string | null
           dominio: string
           email: string
+          grupo_id: string | null
           id: string
           nome: string
           status: string | null
@@ -604,6 +670,7 @@ export type Database = {
           created_at?: string | null
           dominio: string
           email: string
+          grupo_id?: string | null
           id?: string
           nome: string
           status?: string | null
@@ -614,12 +681,21 @@ export type Database = {
           created_at?: string | null
           dominio?: string
           email?: string
+          grupo_id?: string | null
           id?: string
           nome?: string
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_usuarios_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "tb_grupos_permissao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_vendas: {
         Row: {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   CreditCard,
-  Users,
   Shield,
   Settings,
   Building2,
@@ -22,6 +45,12 @@ import {
   Crown,
   Plus,
   Loader2,
+  Pencil,
+  Trash2,
+  Users,
+  Eye,
+  Edit,
+  Trash,
 } from "lucide-react";
 
 interface ClienteSaas {
@@ -42,66 +71,297 @@ interface Usuario {
   email: string;
   status: string | null;
   created_at: string | null;
+  grupo_id: string | null;
 }
+
+interface GrupoPermissao {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  dominio: string;
+}
+
+interface ModuloPermissao {
+  id: string;
+  grupo_id: string;
+  modulo: string;
+  visualizar: boolean;
+  editar: boolean;
+  excluir: boolean;
+}
+
+const MODULOS = [
+  { id: "dashboard", nome: "Dashboard" },
+  { id: "pdv", nome: "PDV" },
+  { id: "produtos", nome: "Produtos" },
+  { id: "clientes", nome: "Clientes" },
+  { id: "compras", nome: "Compras" },
+  { id: "contas_pagar", nome: "Contas a Pagar" },
+  { id: "contas_receber", nome: "Contas a Receber" },
+  { id: "central_contas", nome: "Central de Contas" },
+  { id: "configuracoes", nome: "Configurações" },
+];
 
 export default function Configuracoes() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "empresa");
   const [cliente, setCliente] = useState<ClienteSaas | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [grupos, setGrupos] = useState<GrupoPermissao[]>([]);
+  const [permissoesModulos, setPermissoesModulos] = useState<ModuloPermissao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userDominio, setUserDominio] = useState<string | null>(null);
 
+  // Dialog states
+  const [grupoDialogOpen, setGrupoDialogOpen] = useState(false);
+  const [editingGrupo, setEditingGrupo] = useState<GrupoPermissao | null>(null);
+  const [grupoNome, setGrupoNome] = useState("");
+  const [grupoDescricao, setGrupoDescricao] = useState("");
+  const [grupoPermissoes, setGrupoPermissoes] = useState<Record<string, { visualizar: boolean; editar: boolean; excluir: boolean }>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // User edit dialog
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<Usuario | null>(null);
+  const [selectedGrupoId, setSelectedGrupoId] = useState<string>("");
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Get current user's domain
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: userData } = await supabase
-          .from("tb_usuarios")
-          .select("dominio")
-          .eq("auth_user_id", user.id)
-          .single();
-
-        if (!userData) return;
-        setUserDominio(userData.dominio);
-
-        // Fetch client data (using edge function since RLS restricts tb_clientes_saas)
-        const { data: clienteData } = await supabase.functions.invoke("get-customer-data", {
-          body: { dominio: userData.dominio }
-        });
-
-        if (clienteData?.cliente) {
-          setCliente(clienteData.cliente);
-        }
-
-        // Fetch users for this domain
-        const { data: usuariosData } = await supabase
-          .from("tb_usuarios")
-          .select("id, nome, email, status, created_at")
-          .eq("dominio", userData.dominio);
-
-        if (usuariosData) {
-          setUsuarios(usuariosData);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userData } = await supabase
+        .from("tb_usuarios")
+        .select("dominio")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (!userData) return;
+      setUserDominio(userData.dominio);
+
+      // Fetch client data
+      const { data: clienteData } = await supabase.functions.invoke("get-customer-data", {
+        body: { dominio: userData.dominio }
+      });
+
+      if (clienteData?.cliente) {
+        setCliente(clienteData.cliente);
+      }
+
+      // Fetch users
+      const { data: usuariosData } = await supabase
+        .from("tb_usuarios")
+        .select("id, nome, email, status, created_at, grupo_id")
+        .eq("dominio", userData.dominio);
+
+      if (usuariosData) {
+        setUsuarios(usuariosData);
+      }
+
+      // Fetch permission groups
+      const { data: gruposData } = await supabase
+        .from("tb_grupos_permissao")
+        .select("*")
+        .eq("dominio", userData.dominio);
+
+      if (gruposData) {
+        setGrupos(gruposData);
+      }
+
+      // Fetch module permissions
+      const { data: permissoesData } = await supabase
+        .from("tb_grupos_permissao_modulos")
+        .select("*");
+
+      if (permissoesData) {
+        setPermissoesModulos(permissoesData);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("pt-BR");
+  };
+
+  const openGrupoDialog = (grupo?: GrupoPermissao) => {
+    if (grupo) {
+      setEditingGrupo(grupo);
+      setGrupoNome(grupo.nome);
+      setGrupoDescricao(grupo.descricao || "");
+      
+      // Load existing permissions
+      const perms: Record<string, { visualizar: boolean; editar: boolean; excluir: boolean }> = {};
+      MODULOS.forEach(mod => {
+        const existingPerm = permissoesModulos.find(p => p.grupo_id === grupo.id && p.modulo === mod.id);
+        perms[mod.id] = {
+          visualizar: existingPerm?.visualizar || false,
+          editar: existingPerm?.editar || false,
+          excluir: existingPerm?.excluir || false,
+        };
+      });
+      setGrupoPermissoes(perms);
+    } else {
+      setEditingGrupo(null);
+      setGrupoNome("");
+      setGrupoDescricao("");
+      const perms: Record<string, { visualizar: boolean; editar: boolean; excluir: boolean }> = {};
+      MODULOS.forEach(mod => {
+        perms[mod.id] = { visualizar: false, editar: false, excluir: false };
+      });
+      setGrupoPermissoes(perms);
+    }
+    setGrupoDialogOpen(true);
+  };
+
+  const saveGrupo = async () => {
+    if (!grupoNome.trim() || !userDominio) return;
+
+    setIsSaving(true);
+    try {
+      let grupoId: string;
+
+      if (editingGrupo) {
+        // Update existing group
+        const { error } = await supabase
+          .from("tb_grupos_permissao")
+          .update({ nome: grupoNome, descricao: grupoDescricao })
+          .eq("id", editingGrupo.id);
+
+        if (error) throw error;
+        grupoId = editingGrupo.id;
+
+        // Delete existing permissions
+        await supabase
+          .from("tb_grupos_permissao_modulos")
+          .delete()
+          .eq("grupo_id", grupoId);
+      } else {
+        // Create new group
+        const { data, error } = await supabase
+          .from("tb_grupos_permissao")
+          .insert({ nome: grupoNome, descricao: grupoDescricao, dominio: userDominio })
+          .select()
+          .single();
+
+        if (error) throw error;
+        grupoId = data.id;
+      }
+
+      // Insert permissions
+      const permissoesToInsert = MODULOS.map(mod => ({
+        grupo_id: grupoId,
+        modulo: mod.id,
+        visualizar: grupoPermissoes[mod.id]?.visualizar || false,
+        editar: grupoPermissoes[mod.id]?.editar || false,
+        excluir: grupoPermissoes[mod.id]?.excluir || false,
+      }));
+
+      const { error: permError } = await supabase
+        .from("tb_grupos_permissao_modulos")
+        .insert(permissoesToInsert);
+
+      if (permError) throw permError;
+
+      toast({
+        title: editingGrupo ? "Grupo atualizado" : "Grupo criado",
+        description: `O grupo "${grupoNome}" foi ${editingGrupo ? "atualizado" : "criado"} com sucesso.`,
+      });
+
+      setGrupoDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      console.error("Erro ao salvar grupo:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar grupo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteGrupo = async (grupo: GrupoPermissao) => {
+    if (!confirm(`Deseja excluir o grupo "${grupo.nome}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("tb_grupos_permissao")
+        .delete()
+        .eq("id", grupo.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Grupo excluído",
+        description: `O grupo "${grupo.nome}" foi excluído.`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir grupo.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openUserDialog = (user: Usuario) => {
+    setEditingUser(user);
+    setSelectedGrupoId(user.grupo_id || "");
+    setUserDialogOpen(true);
+  };
+
+  const saveUserGrupo = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase
+        .from("tb_usuarios")
+        .update({ grupo_id: selectedGrupoId || null })
+        .eq("id", editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Usuário atualizado",
+        description: "O grupo do usuário foi atualizado.",
+      });
+
+      setUserDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar usuário.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleAllPermissions = (modulo: string, checked: boolean) => {
+    setGrupoPermissoes(prev => ({
+      ...prev,
+      [modulo]: { visualizar: checked, editar: checked, excluir: checked }
+    }));
+  };
+
+  const getGrupoNome = (grupoId: string | null) => {
+    if (!grupoId) return "Sem grupo";
+    const grupo = grupos.find(g => g.id === grupoId);
+    return grupo?.nome || "—";
   };
 
   if (isLoading) {
@@ -126,7 +386,7 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1">
+          <TabsList className="grid w-full grid-cols-3 h-auto gap-1">
             <TabsTrigger value="empresa" className="gap-2 py-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Empresa</span>
@@ -134,10 +394,6 @@ export default function Configuracoes() {
             <TabsTrigger value="billing" className="gap-2 py-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Assinatura</span>
-            </TabsTrigger>
-            <TabsTrigger value="usuarios" className="gap-2 py-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
             <TabsTrigger value="permissoes" className="gap-2 py-2">
               <Shield className="h-4 w-4" />
@@ -276,27 +532,76 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          {/* Usuários Tab */}
-          <TabsContent value="usuarios" className="space-y-4">
+          {/* Permissões Tab */}
+          <TabsContent value="permissoes" className="space-y-4">
+            {/* Grupos de Permissão */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Usuários</CardTitle>
-                    <CardDescription>Gerencie os usuários do sistema</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Grupos de Permissão
+                    </CardTitle>
+                    <CardDescription>Crie grupos e defina as permissões de acesso</CardDescription>
                   </div>
-                  <Button size="sm" className="gap-2">
+                  <Button size="sm" className="gap-2" onClick={() => openGrupoDialog()}>
                     <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Novo Usuário</span>
+                    <span className="hidden sm:inline">Novo Grupo</span>
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {usuarios.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
-                  ) : (
-                    usuarios.map((usuario) => (
+                {grupos.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">Nenhum grupo criado</p>
+                    <p className="text-sm">Crie um grupo para definir permissões de acesso</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {grupos.map((grupo) => (
+                      <div key={grupo.id} className="flex items-center justify-between p-4 rounded-lg border">
+                        <div>
+                          <p className="font-medium">{grupo.nome}</p>
+                          {grupo.descricao && (
+                            <p className="text-sm text-muted-foreground">{grupo.descricao}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openGrupoDialog(grupo)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteGrupo(grupo)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Usuários */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Usuários
+                    </CardTitle>
+                    <CardDescription>Gerencie os usuários e seus grupos de permissão</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {usuarios.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
+                ) : (
+                  <div className="space-y-3">
+                    {usuarios.map((usuario) => (
                       <div key={usuario.id} className="flex items-center justify-between p-4 rounded-lg border">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -309,37 +614,194 @@ export default function Configuracoes() {
                             <p className="text-sm text-muted-foreground">{usuario.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={usuario.status === "Ativo" ? "default" : "secondary"}>
-                            {usuario.status || "Ativo"}
-                          </Badge>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline">{getGrupoNome(usuario.grupo_id)}</Badge>
+                          <Button variant="ghost" size="icon" onClick={() => openUserDialog(usuario)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Permissões Tab */}
-          <TabsContent value="permissoes" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Permissões</CardTitle>
-                <CardDescription>Configure as permissões de acesso dos usuários</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium">Em breve</p>
-                  <p className="text-sm">O sistema de permissões está em desenvolvimento</p>
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog para criar/editar grupo */}
+      <Dialog open={grupoDialogOpen} onOpenChange={setGrupoDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingGrupo ? "Editar Grupo" : "Novo Grupo"}</DialogTitle>
+            <DialogDescription>
+              Defina o nome do grupo e as permissões para cada módulo
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="grupoNome">Nome do Grupo</Label>
+                <Input
+                  id="grupoNome"
+                  value={grupoNome}
+                  onChange={(e) => setGrupoNome(e.target.value)}
+                  placeholder="Ex: Administradores"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="grupoDescricao">Descrição</Label>
+                <Input
+                  id="grupoDescricao"
+                  value={grupoDescricao}
+                  onChange={(e) => setGrupoDescricao(e.target.value)}
+                  placeholder="Descrição opcional"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Permissões por Módulo</h4>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Módulo</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          <span className="hidden sm:inline">Visualizar</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Edit className="h-4 w-4" />
+                          <span className="hidden sm:inline">Editar</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Trash className="h-4 w-4" />
+                          <span className="hidden sm:inline">Excluir</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center w-[80px]">Todos</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {MODULOS.map((modulo) => (
+                      <TableRow key={modulo.id}>
+                        <TableCell className="font-medium">{modulo.nome}</TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={grupoPermissoes[modulo.id]?.visualizar || false}
+                            onCheckedChange={(checked) => {
+                              setGrupoPermissoes(prev => ({
+                                ...prev,
+                                [modulo.id]: { ...prev[modulo.id], visualizar: !!checked }
+                              }));
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={grupoPermissoes[modulo.id]?.editar || false}
+                            onCheckedChange={(checked) => {
+                              setGrupoPermissoes(prev => ({
+                                ...prev,
+                                [modulo.id]: { ...prev[modulo.id], editar: !!checked }
+                              }));
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={grupoPermissoes[modulo.id]?.excluir || false}
+                            onCheckedChange={(checked) => {
+                              setGrupoPermissoes(prev => ({
+                                ...prev,
+                                [modulo.id]: { ...prev[modulo.id], excluir: !!checked }
+                              }));
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={
+                              grupoPermissoes[modulo.id]?.visualizar &&
+                              grupoPermissoes[modulo.id]?.editar &&
+                              grupoPermissoes[modulo.id]?.excluir
+                            }
+                            onCheckedChange={(checked) => toggleAllPermissions(modulo.id, !!checked)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGrupoDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveGrupo} disabled={isSaving || !grupoNome.trim()}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar grupo do usuário */}
+      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Selecione o grupo de permissão para {editingUser?.nome}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Grupo de Permissão</Label>
+              <Select value={selectedGrupoId} onValueChange={setSelectedGrupoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sem grupo</SelectItem>
+                  {grupos.map((grupo) => (
+                    <SelectItem key={grupo.id} value={grupo.id}>
+                      {grupo.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveUserGrupo}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
