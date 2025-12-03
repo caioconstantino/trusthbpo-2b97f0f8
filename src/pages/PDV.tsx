@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Grid3x3, Trash2, Maximize2, Search, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Grid3x3, Trash2, ChevronDown, Search, Loader2, LogOut, Banknote } from "lucide-react";
 import { ProductGridDialog } from "@/components/ProductGridDialog";
 import { FinalizeSaleDialog } from "@/components/FinalizeSaleDialog";
 import { QuantityDialog } from "@/components/QuantityDialog";
 import { OpenSessionDialog } from "@/components/OpenSessionDialog";
+import { SangriaDialog } from "@/components/SangriaDialog";
+import { CloseSessionDialog } from "@/components/CloseSessionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { usePdvSession } from "@/hooks/usePdvSession";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: number;
@@ -40,7 +50,9 @@ interface SelectedProduct {
 }
 
 const PDV = () => {
-  const { session, loading, needsSession, openSession, usuarioNome } = usePdvSession();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { session, loading, needsSession, openSession, closeSession, usuarioNome } = usePdvSession();
   
   const [customer, setCustomer] = useState("");
   const [searchProduct, setSearchProduct] = useState("");
@@ -48,6 +60,8 @@ const PDV = () => {
   const [showProductGrid, setShowProductGrid] = useState(false);
   const [showFinalizeSale, setShowFinalizeSale] = useState(false);
   const [showQuantityDialog, setShowQuantityDialog] = useState(false);
+  const [showSangriaDialog, setShowSangriaDialog] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -150,6 +164,21 @@ const PDV = () => {
     await openSession(valorAbertura, caixaNome);
   };
 
+  const handleSangria = async (valor: number, motivo: string) => {
+    toast({
+      title: "Sangria registrada",
+      description: `R$ ${valor.toFixed(2)} retirado do caixa`
+    });
+  };
+
+  const handleCloseSession = async (valorFechamento: number, observacoes: string) => {
+    const success = await closeSession(valorFechamento, observacoes);
+    if (success) {
+      setShowCloseDialog(false);
+      navigate("/dashboard");
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -162,31 +191,31 @@ const PDV = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1400px] mx-auto space-y-4">
+      <div className="max-w-[1400px] mx-auto space-y-3">
         {/* Header Info */}
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <Label className="text-sm text-muted-foreground">Cliente</Label>
+            <Label className="text-xs text-muted-foreground">Cliente</Label>
             <Input
               value={customer}
               onChange={(e) => setCustomer(e.target.value)}
               placeholder="Nome do cliente"
-              className="mt-1"
+              className="mt-1 h-9"
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Vendedor</Label>
-            <div className="mt-1 text-lg font-semibold">{usuarioNome}</div>
+            <Label className="text-xs text-muted-foreground">Vendedor</Label>
+            <div className="mt-1 text-base font-semibold">{usuarioNome}</div>
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">PDV</Label>
-            <div className="mt-1 text-lg font-semibold">{session?.caixa_nome || "Sem sessão"}</div>
+            <Label className="text-xs text-muted-foreground">PDV</Label>
+            <div className="mt-1 text-base font-semibold">{session?.caixa_nome || "Sem sessão"}</div>
           </div>
         </div>
 
         {/* Add Product Section */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-3">Adicionar Produto</h3>
+        <div className="bg-card border border-border rounded-lg p-3">
+          <h3 className="text-base font-semibold mb-2">Adicionar Produto</h3>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -196,21 +225,21 @@ const PDV = () => {
                 onChange={(e) => setSearchProduct(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Buscar por nome ou código..."
-                className="pl-10"
+                className="pl-10 h-9"
               />
               {showProductSearch && filteredProducts.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
                   {filteredProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="px-4 py-3 hover:bg-muted cursor-pointer flex justify-between items-center"
+                      className="px-3 py-2 hover:bg-muted cursor-pointer flex justify-between items-center"
                       onClick={() => handleSelectProduct(product)}
                     >
                       <div>
-                        <p className="font-medium">{product.nome}</p>
+                        <p className="font-medium text-sm">{product.nome}</p>
                         <p className="text-xs text-muted-foreground">#{product.codigo || product.id}</p>
                       </div>
-                      <span className="font-semibold text-primary">
+                      <span className="font-semibold text-primary text-sm">
                         R$ {(product.preco_venda || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -218,7 +247,7 @@ const PDV = () => {
                 </div>
               )}
               {showProductSearch && searchProduct.length > 0 && filteredProducts.length === 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 p-4 text-center text-muted-foreground">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 p-3 text-center text-muted-foreground text-sm">
                   Nenhum produto encontrado
                 </div>
               )}
@@ -226,6 +255,7 @@ const PDV = () => {
             <Button
               variant="outline"
               size="icon"
+              className="h-9 w-9"
               onClick={() => setShowProductGrid(true)}
               title="Abrir grade de produtos"
             >
@@ -239,27 +269,27 @@ const PDV = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-20">ID</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead className="w-32">Preço</TableHead>
-                <TableHead className="w-32">Quantidade</TableHead>
-                <TableHead className="w-32">Total</TableHead>
-                <TableHead className="w-24">Ação</TableHead>
+                <TableHead className="w-16 text-xs">ID</TableHead>
+                <TableHead className="text-xs">Nome</TableHead>
+                <TableHead className="w-28 text-xs">Preço</TableHead>
+                <TableHead className="w-24 text-xs">Qtd</TableHead>
+                <TableHead className="w-28 text-xs">Total</TableHead>
+                <TableHead className="w-16 text-xs">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {cartItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
                     Carrinho vazio
                   </TableCell>
                 </TableRow>
               ) : (
                 cartItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm">{item.id}</TableCell>
+                    <TableCell className="text-sm">{item.name}</TableCell>
+                    <TableCell className="text-sm">
                       R$ {item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
@@ -267,17 +297,18 @@ const PDV = () => {
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 0)}
-                        className="w-20"
+                        className="w-16 h-8 text-sm"
                         min="1"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm font-medium">
                       R$ {(item.price * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
                       <Button
                         size="icon"
                         variant="destructive"
+                        className="h-8 w-8"
                         onClick={() => removeFromCart(item.id)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -292,28 +323,46 @@ const PDV = () => {
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between">
-          <div className="text-3xl font-bold">
+          <div className="text-2xl font-bold">
             TOTAL: R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button
             size="lg"
-            className="bg-slate-700 hover:bg-slate-800 text-white h-16 text-lg"
+            className="bg-slate-700 hover:bg-slate-800 text-white h-12 text-base"
             onClick={handleFinalizeSale}
             disabled={cartItems.length === 0 || !session}
           >
             Finalizar Venda - F1
           </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="h-16 text-lg gap-2"
-          >
-            Funções do Caixa - F9
-            <Maximize2 className="w-5 h-5" />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="h-12 text-base gap-2"
+              >
+                Funções do Caixa
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setShowSangriaDialog(true)}>
+                <Banknote className="w-4 h-4 mr-2" />
+                Sangria
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setShowCloseDialog(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Fechamento de Caixa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -349,6 +398,19 @@ const PDV = () => {
           setCustomer("");
           setShowFinalizeSale(false);
         }}
+      />
+
+      <SangriaDialog
+        open={showSangriaDialog}
+        onOpenChange={setShowSangriaDialog}
+        onConfirm={handleSangria}
+      />
+
+      <CloseSessionDialog
+        open={showCloseDialog}
+        onOpenChange={setShowCloseDialog}
+        sessionId={session?.id || ""}
+        onConfirm={handleCloseSession}
       />
     </DashboardLayout>
   );
