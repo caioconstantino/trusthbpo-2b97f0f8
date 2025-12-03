@@ -284,56 +284,39 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[
               {
-                name: "Starter",
-                price: "55",
-                description: "Perfeito para começar",
+                name: "Essencial",
+                price: "39,90",
+                description: "Ideal para pequenos negócios",
                 features: [
-                  "Até 100 produtos",
+                  "Até 500 produtos",
                   "1 usuário",
                   "Vendas ilimitadas",
                   "Controle de estoque",
-                  "Notas fiscais básicas",
+                  "Relatórios básicos",
                   "Suporte por email"
                 ],
                 popular: false,
-                cta: "Começar grátis"
+                cta: "Começar agora"
               },
               {
-                name: "Professional",
-                price: "149",
-                description: "Mais poder para crescer",
+                name: "Profissional",
+                price: "99,90",
+                description: "Para empresas em crescimento",
                 features: [
                   "Produtos ilimitados",
                   "5 usuários",
                   "Vendas ilimitadas",
-                  "Controle avançado",
-                  "Notas fiscais completas",
+                  "Controle avançado de estoque",
+                  "Relatórios completos",
                   "Multi-lojas",
-                  "Integrações premium",
+                  "Contas a pagar/receber",
                   "Suporte prioritário"
                 ],
                 popular: true,
-                cta: "Começar grátis"
-              },
-              {
-                name: "Enterprise",
-                price: "399",
-                description: "Solução completa",
-                features: [
-                  "Tudo do Professional",
-                  "Usuários ilimitados",
-                  "API personalizada",
-                  "Integração ERP",
-                  "Gestor de conta dedicado",
-                  "Treinamento incluso",
-                  "SLA garantido",
-                  "Suporte 24/7"
-                ],
-                popular: false,
-                cta: "Falar com vendas"
+                cta: "Começar agora"
               }
             ].map((plan, index) => (
               <Card

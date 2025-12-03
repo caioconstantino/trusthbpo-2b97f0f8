@@ -22,6 +22,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminClientes from "./pages/admin/AdminClientes";
 import AdminUsuarios from "./pages/admin/AdminUsuarios";
+import AdminWebhooks from "./pages/admin/AdminWebhooks";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
             <Route path="/admin/clientes" element={<AdminProtectedRoute><AdminClientes /></AdminProtectedRoute>} />
             <Route path="/admin/usuarios" element={<AdminProtectedRoute><AdminUsuarios /></AdminProtectedRoute>} />
+            <Route path="/admin/webhooks" element={<AdminProtectedRoute><AdminWebhooks /></AdminProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
