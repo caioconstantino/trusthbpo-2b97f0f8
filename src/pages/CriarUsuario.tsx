@@ -166,7 +166,26 @@ export default function CriarUsuario() {
     setIsLoading(true);
 
     try {
-      // 1. Create user in Supabase Auth
+      // 1. Update domain in tb_clientes_saas if changed (using edge function)
+      if (dominioOriginal && dominioOriginal !== dominio) {
+        const { data: updateData, error: updateError } = await supabase.functions.invoke(
+          'update-customer-domain',
+          {
+            body: { originalDomain: dominioOriginal, newDomain: dominio }
+          }
+        );
+
+        if (updateError) {
+          console.error("Erro ao atualizar domínio:", updateError);
+          throw new Error("Erro ao atualizar domínio. Tente novamente.");
+        }
+
+        if (updateData?.error) {
+          throw new Error(updateData.error);
+        }
+      }
+
+      // 2. Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -181,7 +200,7 @@ export default function CriarUsuario() {
         throw new Error("Erro ao criar usuário");
       }
 
-      // 2. Create record in tb_usuarios
+      // 3. Create record in tb_usuarios
       const { error: usuarioError } = await supabase.from("tb_usuarios").insert({
         auth_user_id: authData.user.id,
         nome,
@@ -191,18 +210,6 @@ export default function CriarUsuario() {
       });
 
       if (usuarioError) throw usuarioError;
-
-      // 3. Update domain in tb_clientes_saas if changed
-      if (dominioOriginal && dominioOriginal !== dominio) {
-        const { error: updateError } = await supabase
-          .from("tb_clientes_saas")
-          .update({ dominio })
-          .eq("dominio", dominioOriginal);
-
-        if (updateError) {
-          console.error("Erro ao atualizar domínio:", updateError);
-        }
-      }
 
       toast({
         title: "Conta criada com sucesso!",
