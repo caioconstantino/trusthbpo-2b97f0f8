@@ -546,6 +546,87 @@ export type Database = {
           },
         ]
       }
+      tb_indicacoes: {
+        Row: {
+          created_at: string
+          data_conversao: string | null
+          id: string
+          indicado_dominio: string
+          indicado_email: string | null
+          indicado_nome: string
+          indicador_dominio: string
+          percentual_comissao: number
+          status: string
+          updated_at: string
+          valor_assinatura: number
+          valor_comissao: number
+        }
+        Insert: {
+          created_at?: string
+          data_conversao?: string | null
+          id?: string
+          indicado_dominio: string
+          indicado_email?: string | null
+          indicado_nome: string
+          indicador_dominio: string
+          percentual_comissao?: number
+          status?: string
+          updated_at?: string
+          valor_assinatura?: number
+          valor_comissao?: number
+        }
+        Update: {
+          created_at?: string
+          data_conversao?: string | null
+          id?: string
+          indicado_dominio?: string
+          indicado_email?: string | null
+          indicado_nome?: string
+          indicador_dominio?: string
+          percentual_comissao?: number
+          status?: string
+          updated_at?: string
+          valor_assinatura?: number
+          valor_comissao?: number
+        }
+        Relationships: []
+      }
+      tb_indicacoes_config: {
+        Row: {
+          codigo: string
+          created_at: string
+          dominio: string
+          id: string
+          link_slug: string
+          saldo: number
+          total_ganho: number
+          total_sacado: number
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          dominio: string
+          id?: string
+          link_slug: string
+          saldo?: number
+          total_ganho?: number
+          total_sacado?: number
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          dominio?: string
+          id?: string
+          link_slug?: string
+          saldo?: number
+          total_ganho?: number
+          total_sacado?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tb_produtos: {
         Row: {
           ativo: boolean | null
@@ -604,6 +685,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tb_saques: {
+        Row: {
+          chave_pix: string | null
+          created_at: string
+          data_processamento: string | null
+          dominio: string
+          id: string
+          observacoes: string | null
+          status: string
+          tipo_chave_pix: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          chave_pix?: string | null
+          created_at?: string
+          data_processamento?: string | null
+          dominio: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_chave_pix?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          chave_pix?: string | null
+          created_at?: string
+          data_processamento?: string | null
+          dominio?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_chave_pix?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
       }
       tb_sessoes_caixa: {
         Row: {

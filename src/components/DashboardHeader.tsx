@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Gift, GraduationCap, Filter, Settings, LogOut, User } from "lucide-react";
+import { Bell, Gift, GraduationCap, Filter, Settings, LogOut, User, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
 import { ThemeToggle } from "./ThemeToggle";
+import { ReferralDialog } from "./ReferralDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
 
   // Mock notifications - in a real app, these would come from the database
   const [notifications] = useState<Notification[]>([
@@ -87,9 +89,18 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
-        <Button variant="default" size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground hidden md:flex">
-          <span className="hidden lg:inline">Emissão Fiscal Grátis!</span>
-          <span className="lg:hidden">Fiscal</span>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2 hidden md:flex border-primary/50 text-primary hover:bg-primary/10"
+          onClick={() => setReferralOpen(true)}
+        >
+          <Users className="w-4 h-4" />
+          <span className="hidden lg:inline">Indique e Ganhe</span>
+          <span className="lg:hidden">Indicar</span>
+        </Button>
+        <Button variant="default" size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground hidden lg:flex">
+          Emissão Fiscal Grátis!
         </Button>
         <Button variant="outline" size="sm" className="gap-2 hidden xl:flex">
           <Gift className="w-4 h-4" />
@@ -178,6 +189,9 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Referral Dialog */}
+      <ReferralDialog open={referralOpen} onOpenChange={setReferralOpen} />
     </header>
   );
 };
