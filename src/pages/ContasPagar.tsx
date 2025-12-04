@@ -57,6 +57,28 @@ const ContasPagar = () => {
   const [endDate, setEndDate] = useState<Date>(getInitialEndDate);
   const [statusFilter, setStatusFilter] = useState("Todos");
 
+  // Form state - ALL HOOKS MUST BE BEFORE CONDITIONAL RETURNS
+  const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");
+  const [categoria, setCategoria] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState("");
+  const [vencimento, setVencimento] = useState<Date>();
+  const [formaPagamento, setFormaPagamento] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savingProgress, setSavingProgress] = useState({ current: 0, total: 0 });
+
+  // Parcelamento state
+  const [numParcelas, setNumParcelas] = useState(2);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+
+  // Recorrência state
+  const [frequencia, setFrequencia] = useState<"mensal" | "semanal" | "quinzenal">("mensal");
+  const [numOcorrencias, setNumOcorrencias] = useState(12);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+
   // Initial filters for hook
   const initialFilters = useMemo(() => ({
     startDate: format(getInitialStartDate(), "yyyy-MM-dd"),
@@ -95,28 +117,6 @@ const ContasPagar = () => {
       </DashboardLayout>
     );
   }
-
-  // Form state
-  const [tipoCadastro, setTipoCadastro] = useState<"unico" | "parcelado" | "recorrente">("unico");
-  const [categoria, setCategoria] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState("");
-  const [vencimento, setVencimento] = useState<Date>();
-  const [formaPagamento, setFormaPagamento] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [savingProgress, setSavingProgress] = useState({ current: 0, total: 0 });
-
-  // Parcelamento state
-  const [numParcelas, setNumParcelas] = useState(2);
-  const [parcelas, setParcelas] = useState<Parcela[]>([]);
-
-  // Recorrência state
-  const [frequencia, setFrequencia] = useState<"mensal" | "semanal" | "quinzenal">("mensal");
-  const [numOcorrencias, setNumOcorrencias] = useState(12);
-
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [payingId, setPayingId] = useState<string | null>(null);
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   // Generate parcelas when parcelamento changes
   const generateParcelas = (num: number, valorTotal: number, dataInicial: Date) => {
