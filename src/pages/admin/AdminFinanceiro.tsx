@@ -26,7 +26,7 @@ const AdminFinanceiro = () => {
     queryFn: async () => {
       const { data: clientes, error } = await supabase
         .from("tb_clientes_saas")
-        .select("plano, status, created_at");
+        .select("plano, status, created_at, ultimo_pagamento");
       if (error) throw error;
 
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
@@ -34,43 +34,44 @@ const AdminFinanceiro = () => {
       const receita9990 = ativos.filter(c => c.plano === "R$ 99,90").length * 99.90;
       const receitaTotal = receita3990 + receita9990;
 
-      // Buscar vendas por mês (últimos 6 meses)
+      // Total de receitas pagas (clientes que já pagaram pelo menos uma vez)
+      const clientesPagantes = clientes?.filter(c => c.ultimo_pagamento) || [];
+      let totalReceitasPagas = 0;
+      clientesPagantes.forEach(c => {
+        if (c.plano === "R$ 39,90") totalReceitasPagas += 39.90;
+        else if (c.plano === "R$ 99,90") totalReceitasPagas += 99.90;
+      });
+
+      // Buscar comissões de indicações
+      const { data: indicacoes } = await supabase
+        .from("tb_indicacoes")
+        .select("valor_comissao, status");
+      
+      const comissaoAPagar = indicacoes?.filter(i => i.status === "convertido" || i.status === "pendente")
+        .reduce((acc, i) => acc + Number(i.valor_comissao), 0) || 0;
+
+      // Receita SaaS por mês (últimos 6 meses)
       const hoje = new Date();
       const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-      
-      const { data: vendas } = await supabase
-        .from("tb_vendas")
-        .select("total, created_at")
-        .gte("created_at", new Date(hoje.getFullYear(), hoje.getMonth() - 5, 1).toISOString());
 
-      const vendasPorMes: { mes: string; vendas: number; assinaturas: number }[] = [];
+      const receitaPorMes: { mes: string; receita: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const fimMes = new Date(data.getFullYear(), data.getMonth() + 1, 0);
         const mesNome = meses[data.getMonth()];
-        const totalVendas = vendas?.filter(v => {
-          const created = new Date(v.created_at);
-          return created.getMonth() === data.getMonth() && created.getFullYear() === data.getFullYear();
-        }).reduce((acc, v) => acc + Number(v.total), 0) || 0;
         
-        // Simular receita de assinaturas (proporcional aos clientes ativos no período)
-        const clientesNoMes = clientes?.filter(c => {
+        // Clientes ativos até o fim do mês
+        const ativosNoMes = clientes?.filter(c => {
           const created = new Date(c.created_at);
-          return created <= new Date(data.getFullYear(), data.getMonth() + 1, 0) && c.status === "Ativo";
-        }).length || 0;
+          return created <= fimMes && c.status === "Ativo";
+        }) || [];
         
-        vendasPorMes.push({ 
-          mes: mesNome, 
-          vendas: totalVendas,
-          assinaturas: clientesNoMes * (receitaTotal / (ativos.length || 1))
-        });
+        const receitaMes = 
+          ativosNoMes.filter(c => c.plano === "R$ 39,90").length * 39.90 +
+          ativosNoMes.filter(c => c.plano === "R$ 99,90").length * 99.90;
+        
+        receitaPorMes.push({ mes: mesNome, receita: receitaMes });
       }
-
-      // Total de vendas geral
-      const { data: todasVendas } = await supabase
-        .from("tb_vendas")
-        .select("total");
-      
-      const totalVendasGeral = todasVendas?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
 
       return {
         clientesAtivos: ativos.length,
@@ -78,8 +79,9 @@ const AdminFinanceiro = () => {
         ticketMedio: ativos.length > 0 ? receitaTotal / ativos.length : 0,
         plano3990: ativos.filter(c => c.plano === "R$ 39,90").length,
         plano9990: ativos.filter(c => c.plano === "R$ 99,90").length,
-        vendasPorMes,
-        totalVendasGeral,
+        receitaPorMes,
+        totalReceitasPagas,
+        comissaoAPagar,
         receitaAnual: receitaTotal * 12,
       };
     },
@@ -203,45 +205,45 @@ const AdminFinanceiro = () => {
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">
-                Receita Anual (ARR)
-              </CardTitle>
-              <TrendingUp className="w-5 h-5 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-500">
-                {isLoading ? "..." : formatCurrency(stats?.receitaAnual || 0)}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Projeção anual</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">
-                Volume de Vendas
+                Total Receitas Pagas
               </CardTitle>
               <DollarSign className="w-5 h-5 text-blue-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-500">
-                {isLoading ? "..." : formatCurrency(stats?.totalVendasGeral || 0)}
+                {isLoading ? "..." : formatCurrency(stats?.totalReceitasPagas || 0)}
               </div>
-              <p className="text-xs text-slate-500 mt-1">Total processado na plataforma</p>
+              <p className="text-xs text-slate-500 mt-1">Receita recebida dos clientes</p>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">
-                Ticket Médio
+                Comissão a Pagar
               </CardTitle>
-              <Wallet className="w-5 h-5 text-purple-500" />
+              <Wallet className="w-5 h-5 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-500">
+                {isLoading ? "..." : formatCurrency(stats?.comissaoAPagar || 0)}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Indicações pendentes</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-slate-400">
+                Receita Anual (ARR)
+              </CardTitle>
+              <TrendingUp className="w-5 h-5 text-purple-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-purple-500">
-                {isLoading ? "..." : formatCurrency(stats?.ticketMedio || 0)}
+                {isLoading ? "..." : formatCurrency(stats?.receitaAnual || 0)}
               </div>
-              <p className="text-xs text-slate-500 mt-1">Por cliente/mês</p>
+              <p className="text-xs text-slate-500 mt-1">Projeção anual</p>
             </CardContent>
           </Card>
         </div>
@@ -250,20 +252,20 @@ const AdminFinanceiro = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Evolução de Vendas (R$)</CardTitle>
+              <CardTitle className="text-white text-lg">Evolução da Receita SaaS (R$)</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={stats?.vendasPorMes || []}>
+                <AreaChart data={stats?.receitaPorMes || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="mes" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                     labelStyle={{ color: "#fff" }}
-                    formatter={(value: number) => [formatCurrency(value), ""]}
+                    formatter={(value: number) => [formatCurrency(value), "Receita"]}
                   />
-                  <Area type="monotone" dataKey="vendas" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} name="Vendas" />
+                  <Area type="monotone" dataKey="receita" stroke="#22c55e" fill="#22c55e" fillOpacity={0.3} name="Receita" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -271,31 +273,40 @@ const AdminFinanceiro = () => {
 
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Receita por Tipo</CardTitle>
+              <CardTitle className="text-white text-lg">Insights Financeiros</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={stats?.vendasPorMes || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="mes" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
-                    labelStyle={{ color: "#fff" }}
-                    formatter={(value: number) => [formatCurrency(value), ""]}
-                  />
-                  <Bar dataKey="vendas" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Vendas Clientes" />
-                  <Bar dataKey="assinaturas" fill="#22c55e" radius={[4, 4, 0, 0]} name="Assinaturas" />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-slate-400 text-sm">Vendas Clientes</span>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">Total Receitas Pagas</p>
+                    <p className="text-white font-semibold">{formatCurrency(stats?.totalReceitasPagas || 0)}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-slate-400 text-sm">Assinaturas</span>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">Comissões Pendentes</p>
+                    <p className="text-white font-semibold">{formatCurrency(stats?.comissaoAPagar || 0)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-sm">Ticket Médio</p>
+                    <p className="text-white font-semibold">{formatCurrency(stats?.ticketMedio || 0)}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>

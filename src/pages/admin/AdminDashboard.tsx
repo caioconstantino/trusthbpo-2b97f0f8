@@ -18,11 +18,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface Stats {
   totalClientes: number;
   clientesAtivos: number;
-  clientesInativos: number;
+  clientesInadimplentes: number;
+  clientesCancelados: number;
   clientesLeads: number;
   receitaMensal: number;
+  receitaSaasPorMes: { mes: string; total: number }[];
   clientesPorMes: { mes: string; total: number }[];
-  vendasPorMes: { mes: string; total: number }[];
 }
 
 const AdminDashboard = () => {
@@ -31,11 +32,12 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<Stats>({
     totalClientes: 0,
     clientesAtivos: 0,
-    clientesInativos: 0,
+    clientesInadimplentes: 0,
+    clientesCancelados: 0,
     clientesLeads: 0,
     receitaMensal: 0,
+    receitaSaasPorMes: [],
     clientesPorMes: [],
-    vendasPorMes: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,18 +49,32 @@ const AdminDashboard = () => {
     try {
       const { data: clientes, error } = await supabase
         .from("tb_clientes_saas")
-        .select("id, status, plano, created_at");
+        .select("id, status, plano, created_at, proximo_pagamento");
 
       if (error) throw error;
+
+      const hoje = new Date();
+      const hojeStr = hoje.toISOString().split('T')[0];
 
       // Calcular receita mensal
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
       const receita3990 = ativos.filter(c => c.plano === "R$ 39,90").length * 39.90;
       const receita9990 = ativos.filter(c => c.plano === "R$ 99,90").length * 99.90;
 
+      // Clientes inadimplentes (ativos com próximo_pagamento vencido)
+      const inadimplentes = clientes?.filter(c => 
+        c.status === "Ativo" && 
+        c.proximo_pagamento && 
+        c.proximo_pagamento < hojeStr
+      ).length || 0;
+
+      // Clientes cancelados (status Inativo, Cancelado ou Suspenso)
+      const cancelados = clientes?.filter(c => 
+        c.status === "Inativo" || c.status === "Cancelado" || c.status === "Suspenso"
+      ).length || 0;
+
       // Clientes por mês (últimos 6 meses)
       const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-      const hoje = new Date();
       const clientesPorMes: { mes: string; total: number }[] = [];
       
       for (let i = 5; i >= 0; i--) {
@@ -71,31 +87,35 @@ const AdminDashboard = () => {
         clientesPorMes.push({ mes: mesNome, total: clientesNoMes });
       }
 
-      // Buscar vendas por mês
-      const { data: vendas } = await supabase
-        .from("tb_vendas")
-        .select("total, created_at")
-        .gte("created_at", new Date(hoje.getFullYear(), hoje.getMonth() - 5, 1).toISOString());
-
-      const vendasPorMes: { mes: string; total: number }[] = [];
+      // Receita SaaS por mês (baseado em clientes ativos acumulados)
+      const receitaSaasPorMes: { mes: string; total: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const fimMes = new Date(data.getFullYear(), data.getMonth() + 1, 0);
         const mesNome = meses[data.getMonth()];
-        const totalVendas = vendas?.filter(v => {
-          const created = new Date(v.created_at);
-          return created.getMonth() === data.getMonth() && created.getFullYear() === data.getFullYear();
-        }).reduce((acc, v) => acc + Number(v.total), 0) || 0;
-        vendasPorMes.push({ mes: mesNome, total: totalVendas });
+        
+        // Clientes ativos até o fim do mês
+        const ativosNoMes = clientes?.filter(c => {
+          const created = new Date(c.created_at);
+          return created <= fimMes && c.status === "Ativo";
+        }) || [];
+        
+        const receitaMes = 
+          ativosNoMes.filter(c => c.plano === "R$ 39,90").length * 39.90 +
+          ativosNoMes.filter(c => c.plano === "R$ 99,90").length * 99.90;
+        
+        receitaSaasPorMes.push({ mes: mesNome, total: receitaMes });
       }
       
       setStats({
         totalClientes: clientes?.length || 0,
-        clientesAtivos: clientes?.filter(c => c.status === "Ativo").length || 0,
-        clientesInativos: clientes?.filter(c => c.status === "Inativo").length || 0,
+        clientesAtivos: ativos.length,
+        clientesInadimplentes: inadimplentes,
+        clientesCancelados: cancelados,
         clientesLeads: clientes?.filter(c => c.status === "Lead").length || 0,
         receitaMensal: receita3990 + receita9990,
+        receitaSaasPorMes,
         clientesPorMes,
-        vendasPorMes,
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
@@ -228,28 +248,28 @@ const AdminDashboard = () => {
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">
-                Leads
+                Inadimplentes
               </CardTitle>
-              <Users className="w-5 h-5 text-blue-500" />
+              <Users className="w-5 h-5 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-500">
-                {isLoading ? "..." : stats.clientesLeads}
+              <div className="text-3xl font-bold text-amber-500">
+                {isLoading ? "..." : stats.clientesInadimplentes}
               </div>
-              <p className="text-xs text-slate-500 mt-1">Em processo de conversão</p>
+              <p className="text-xs text-slate-500 mt-1">Pagamento em atraso</p>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-slate-400">
-                Inativos
+                Cancelados
               </CardTitle>
               <DollarSign className="w-5 h-5 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-red-500">
-                {isLoading ? "..." : stats.clientesInativos}
+                {isLoading ? "..." : stats.clientesCancelados}
               </div>
               <p className="text-xs text-slate-500 mt-1">Assinatura cancelada</p>
             </CardContent>
@@ -280,18 +300,18 @@ const AdminDashboard = () => {
 
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Volume de Vendas (R$)</CardTitle>
+              <CardTitle className="text-white text-lg">Receita SaaS Mensal (R$)</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={stats.vendasPorMes}>
+                <LineChart data={stats.receitaSaasPorMes}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="mes" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                     labelStyle={{ color: "#fff" }}
-                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Total"]}
+                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Receita"]}
                   />
                   <Line type="monotone" dataKey="total" stroke="#22c55e" strokeWidth={2} dot={{ fill: "#22c55e" }} />
                 </LineChart>
@@ -310,7 +330,8 @@ const AdminDashboard = () => {
                     data={[
                       { name: "Ativos", value: stats.clientesAtivos, color: "#22c55e" },
                       { name: "Leads", value: stats.clientesLeads, color: "#3b82f6" },
-                      { name: "Inativos", value: stats.clientesInativos, color: "#ef4444" },
+                      { name: "Inadimplentes", value: stats.clientesInadimplentes, color: "#f59e0b" },
+                      { name: "Cancelados", value: stats.clientesCancelados, color: "#ef4444" },
                     ]}
                     cx="50%"
                     cy="50%"
@@ -322,7 +343,8 @@ const AdminDashboard = () => {
                     {[
                       { name: "Ativos", value: stats.clientesAtivos, color: "#22c55e" },
                       { name: "Leads", value: stats.clientesLeads, color: "#3b82f6" },
-                      { name: "Inativos", value: stats.clientesInativos, color: "#ef4444" },
+                      { name: "Inadimplentes", value: stats.clientesInadimplentes, color: "#f59e0b" },
+                      { name: "Cancelados", value: stats.clientesCancelados, color: "#ef4444" },
                     ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -332,7 +354,7 @@ const AdminDashboard = () => {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-6 mt-2">
+              <div className="flex flex-wrap justify-center gap-4 mt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span className="text-slate-400 text-sm">Ativos</span>
@@ -342,8 +364,12 @@ const AdminDashboard = () => {
                   <span className="text-slate-400 text-sm">Leads</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500" />
+                  <span className="text-slate-400 text-sm">Inadimplentes</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <span className="text-slate-400 text-sm">Inativos</span>
+                  <span className="text-slate-400 text-sm">Cancelados</span>
                 </div>
               </div>
             </CardContent>
