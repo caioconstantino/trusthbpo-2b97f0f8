@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      tb_alunos: {
+        Row: {
+          ativo: boolean
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          email: string
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_cidade: string | null
+          endereco_complemento: string | null
+          endereco_estado: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
+          escola_id: number
+          id: string
+          nome: string
+          professor_id: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_complemento?: string | null
+          endereco_estado?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          escola_id: number
+          id?: string
+          nome: string
+          professor_id: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_complemento?: string | null
+          endereco_estado?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
+          escola_id?: number
+          id?: string
+          nome?: string
+          professor_id?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_alunos_escola_id_fkey"
+            columns: ["escola_id"]
+            isOneToOne: false
+            referencedRelation: "tb_escolas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_alunos_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "tb_professores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_categorias: {
         Row: {
           created_at: string | null
@@ -423,24 +501,36 @@ export type Database = {
       }
       tb_escolas: {
         Row: {
+          auth_user_id: string | null
           created_at: string | null
           cupom: number
+          email: string | null
           id: number
+          logo_url: string | null
           nome: string
+          slug: string | null
           updated_at: string | null
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string | null
           cupom?: number
+          email?: string | null
           id?: number
+          logo_url?: string | null
           nome: string
+          slug?: string | null
           updated_at?: string | null
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string | null
           cupom?: number
+          email?: string | null
           id?: number
+          logo_url?: string | null
           nome?: string
+          slug?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -682,6 +772,50 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "tb_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_professores: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string | null
+          created_at: string
+          email: string
+          escola_id: number
+          id: string
+          nome: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email: string
+          escola_id: number
+          id?: string
+          nome: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string
+          escola_id?: number
+          id?: string
+          nome?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_professores_escola_id_fkey"
+            columns: ["escola_id"]
+            isOneToOne: false
+            referencedRelation: "tb_escolas"
             referencedColumns: ["id"]
           },
         ]

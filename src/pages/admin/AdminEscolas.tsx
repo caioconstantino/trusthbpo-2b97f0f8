@@ -14,7 +14,9 @@ import {
   Webhook,
   DollarSign,
   Search,
-  Plus
+  Plus,
+  Copy,
+  Settings
 } from "lucide-react";
 import {
   Table,
@@ -24,13 +26,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "sonner";
+import { CreateEscolaDialog } from "@/components/admin/CreateEscolaDialog";
+import { ManageProfessoresSheet } from "@/components/admin/ManageProfessoresSheet";
+
+interface Escola {
+  id: number;
+  nome: string;
+  cupom: number;
+  email: string | null;
+  logo_url: string | null;
+  slug: string | null;
+  created_at: string | null;
+}
 
 const AdminEscolas = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedEscola, setSelectedEscola] = useState<Escola | null>(null);
+  const [professoresSheetOpen, setProfessoresSheetOpen] = useState(false);
 
-  const { data: escolas = [], isLoading } = useQuery({
+  const { data: escolas = [], isLoading, refetch } = useQuery({
     queryKey: ["admin-escolas"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,13 +56,14 @@ const AdminEscolas = () => {
         .select("*")
         .order("nome");
       if (error) throw error;
-      return data;
+      return data as Escola[];
     },
   });
 
   const filteredEscolas = escolas.filter(
     (escola) =>
-      escola.nome.toLowerCase().includes(searchTerm.toLowerCase())
+      escola.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      escola.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleLogout = async () => {
@@ -53,6 +72,21 @@ const AdminEscolas = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const copyLink = (slug: string | null) => {
+    if (!slug) {
+      toast.error("Esta escola não possui link de cadastro");
+      return;
+    }
+    const link = `${window.location.origin}/cadastro/escola/${slug}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Link copiado!");
+  };
+
+  const openProfessoresSheet = (escola: Escola) => {
+    setSelectedEscola(escola);
+    setProfessoresSheetOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -136,7 +170,10 @@ const AdminEscolas = () => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Escolas Parceiras</h2>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => setCreateDialogOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nova Escola
           </Button>
@@ -173,21 +210,55 @@ const AdminEscolas = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                    <TableHead className="text-slate-400">ID</TableHead>
+                    <TableHead className="text-slate-400">Logo</TableHead>
                     <TableHead className="text-slate-400">Nome</TableHead>
-                    <TableHead className="text-slate-400">Cupom</TableHead>
+                    <TableHead className="text-slate-400">Email</TableHead>
+                    <TableHead className="text-slate-400">Link</TableHead>
                     <TableHead className="text-slate-400">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEscolas.map((escola) => (
                     <TableRow key={escola.id} className="border-slate-700 hover:bg-slate-700/50">
-                      <TableCell className="text-slate-300">{escola.id}</TableCell>
-                      <TableCell className="text-white font-medium">{escola.nome}</TableCell>
-                      <TableCell className="text-slate-300">{escola.cupom}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                          Editar
+                        {escola.logo_url ? (
+                          <img 
+                            src={escola.logo_url} 
+                            alt={escola.nome}
+                            className="w-10 h-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center">
+                            <GraduationCap className="w-5 h-5 text-slate-400" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-white font-medium">{escola.nome}</TableCell>
+                      <TableCell className="text-slate-300">{escola.email || "-"}</TableCell>
+                      <TableCell>
+                        {escola.slug ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white"
+                            onClick={() => copyLink(escola.slug)}
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copiar Link
+                          </Button>
+                        ) : (
+                          <span className="text-slate-500">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-slate-400 hover:text-white"
+                          onClick={() => openProfessoresSheet(escola)}
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Professores
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -198,6 +269,18 @@ const AdminEscolas = () => {
           </CardContent>
         </Card>
       </main>
+
+      <CreateEscolaDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={refetch}
+      />
+
+      <ManageProfessoresSheet
+        escola={selectedEscola}
+        open={professoresSheetOpen}
+        onOpenChange={setProfessoresSheetOpen}
+      />
     </div>
   );
 };

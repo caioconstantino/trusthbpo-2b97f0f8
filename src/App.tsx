@@ -28,6 +28,7 @@ import AdminAlunos from "./pages/admin/AdminAlunos";
 import AdminFinanceiro from "./pages/admin/AdminFinanceiro";
 import CriarUsuario from "./pages/CriarUsuario";
 import Configuracoes from "./pages/Configuracoes";
+import CadastroAluno from "./pages/CadastroAluno";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,9 @@ const App = () => (
             <Route path="/admin/escolas" element={<AdminProtectedRoute><AdminEscolas /></AdminProtectedRoute>} />
             <Route path="/admin/alunos" element={<AdminProtectedRoute><AdminAlunos /></AdminProtectedRoute>} />
             <Route path="/admin/financeiro" element={<AdminProtectedRoute><AdminFinanceiro /></AdminProtectedRoute>} />
+            
+            {/* Public Registration Routes */}
+            <Route path="/cadastro/aluno/:slug" element={<CadastroAluno />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
