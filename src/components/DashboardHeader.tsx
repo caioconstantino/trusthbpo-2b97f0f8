@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Gift, GraduationCap, Settings, LogOut, User, Users } from "lucide-react";
+import { Bell, GraduationCap, Settings, LogOut, User, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
@@ -93,10 +93,6 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           <Users className="w-4 h-4" />
           <span className="hidden lg:inline">Indique e Ganhe</span>
           <span className="lg:hidden">Indicar</span>
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2 hidden xl:flex">
-          <Gift className="w-4 h-4" />
-          Oferta especial para você!
         </Button>
         <ThemeToggle />
 
