@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Gift, GraduationCap, Filter, Settings, LogOut, User, Users } from "lucide-react";
+import { Bell, Gift, GraduationCap, Settings, LogOut, User, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
@@ -81,11 +81,6 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           <GraduationCap className="w-4 h-4" />
           <span className="hidden md:inline">Tutorial</span>
         </Button>
-        <Button id="date-filter" variant="outline" size="sm" className="gap-2 hidden lg:flex">
-          <Filter className="w-4 h-4" />
-          <span className="hidden xl:inline">Filtro Aplicado: Hoje</span>
-          <span className="xl:hidden">Hoje</span>
-        </Button>
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
@@ -98,9 +93,6 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           <Users className="w-4 h-4" />
           <span className="hidden lg:inline">Indique e Ganhe</span>
           <span className="lg:hidden">Indicar</span>
-        </Button>
-        <Button variant="default" size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground hidden lg:flex">
-          Emissão Fiscal Grátis!
         </Button>
         <Button variant="outline" size="sm" className="gap-2 hidden xl:flex">
           <Gift className="w-4 h-4" />
