@@ -2,7 +2,7 @@ import { useState, useEffect, DragEvent, useMemo } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Eye, Phone, Mail, GripVertical, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, Phone, Mail, GripVertical, Plus, Search, Trash2, MoveHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ViewCustomerDialog } from "./ViewCustomerDialog";
@@ -68,7 +68,10 @@ export const CustomerKanban = () => {
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [draggedCustomer, setDraggedCustomer] = useState<Customer | null>(null);
+  const [draggedColumn, setDraggedColumn] = useState<StatusColumn | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [dragOverColumnOrder, setDragOverColumnOrder] = useState<string | null>(null);
   
   // Search
   const [searchTerm, setSearchTerm] = useState("");
@@ -157,6 +160,7 @@ export const CustomerKanban = () => {
 
   const handleDragLeave = () => {
     setDragOverColumn(null);
+    setDragOverColumnOrder(null);
   };
 
   const handleDrop = async (e: DragEvent<HTMLDivElement>, newStatus: string) => {
@@ -212,6 +216,51 @@ export const CustomerKanban = () => {
 
   const getCustomersByStatus = (status: string) => {
     return filteredCustomers.filter(c => c.status === status);
+  };
+
+  // Column reorder handlers
+  const handleColumnDragStart = (e: DragEvent<HTMLDivElement>, column: StatusColumn) => {
+    setDraggedColumn(column);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("type", "column");
+  };
+
+  const handleColumnDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumnOrder(null);
+  };
+
+  const handleColumnDragOver = (e: DragEvent<HTMLDivElement>, columnId: string) => {
+    e.preventDefault();
+    if (draggedColumn) {
+      e.dataTransfer.dropEffect = "move";
+      setDragOverColumnOrder(columnId);
+    }
+  };
+
+  const handleColumnDrop = (e: DragEvent<HTMLDivElement>, targetColumnId: string) => {
+    e.preventDefault();
+    if (!draggedColumn || draggedColumn.id === targetColumnId) {
+      setDraggedColumn(null);
+      setDragOverColumnOrder(null);
+      return;
+    }
+
+    const oldIndex = columns.findIndex(c => c.id === draggedColumn.id);
+    const newIndex = columns.findIndex(c => c.id === targetColumnId);
+
+    const newColumns = [...columns];
+    newColumns.splice(oldIndex, 1);
+    newColumns.splice(newIndex, 0, draggedColumn);
+
+    setColumns(newColumns);
+    setDraggedColumn(null);
+    setDragOverColumnOrder(null);
+
+    toast({
+      title: "Colunas reordenadas",
+      description: `"${draggedColumn.title}" foi movida`,
+    });
   };
 
   const handleAddColumn = () => {
@@ -329,20 +378,41 @@ export const CustomerKanban = () => {
         {columns.map((column) => {
           const columnCustomers = getCustomersByStatus(column.id);
           const isDropTarget = dragOverColumn === column.id;
+          const isColumnDropTarget = dragOverColumnOrder === column.id && draggedColumn?.id !== column.id;
 
           return (
             <div
               key={column.id}
               className={cn(
-                "flex flex-col rounded-lg border border-border bg-muted/30 min-h-[400px] transition-colors",
-                isDropTarget && "border-primary bg-primary/5"
+                "flex flex-col rounded-lg border border-border bg-muted/30 min-h-[400px] transition-all",
+                isDropTarget && "border-primary bg-primary/5",
+                isColumnDropTarget && "border-dashed border-2 border-blue-500",
+                draggedColumn?.id === column.id && "opacity-50 scale-95"
               )}
-              onDragOver={(e) => handleDragOver(e, column.id)}
+              onDragOver={(e) => {
+                if (draggedColumn) {
+                  handleColumnDragOver(e, column.id);
+                } else {
+                  handleDragOver(e, column.id);
+                }
+              }}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, column.id)}
+              onDrop={(e) => {
+                if (draggedColumn) {
+                  handleColumnDrop(e, column.id);
+                } else {
+                  handleDrop(e, column.id);
+                }
+              }}
             >
               {/* Column Header */}
-              <div className="p-3 border-b border-border flex items-center gap-2">
+              <div 
+                className="p-3 border-b border-border flex items-center gap-2 cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={(e) => handleColumnDragStart(e, column)}
+                onDragEnd={handleColumnDragEnd}
+              >
+                <MoveHorizontal className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <div className={cn("w-3 h-3 rounded-full", column.color)} />
                 <h3 className="font-semibold text-foreground">{column.title}</h3>
                 <span className="ml-auto bg-muted px-2 py-0.5 rounded-full text-xs text-muted-foreground">
