@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,12 +23,14 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   LogOut,
   Building2,
-  UserCog,
   LayoutDashboard,
   Search,
   Eye,
   Pencil,
-  ArrowLeft
+  GraduationCap,
+  Users,
+  Webhook,
+  DollarSign
 } from "lucide-react";
 
 interface SaasCliente {
@@ -50,6 +52,7 @@ interface SaasCliente {
 
 const AdminClientes = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [clientes, setClientes] = useState<SaasCliente[]>([]);
   const [filteredClientes, setFilteredClientes] = useState<SaasCliente[]>([]);
@@ -110,6 +113,8 @@ const AdminClientes = () => {
     navigate("/admin/login");
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       Ativo: "bg-green-500/20 text-green-400",
@@ -146,10 +151,10 @@ const AdminClientes = () => {
 
       {/* Navigation */}
       <nav className="bg-slate-800/50 border-b border-slate-700 px-6 py-2">
-        <div className="max-w-7xl mx-auto flex gap-4">
+        <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto">
           <Button 
             variant="ghost" 
-            className="text-slate-400 hover:text-white hover:bg-slate-700"
+            className={isActive("/admin") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
             onClick={() => navigate("/admin")}
           >
             <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -157,18 +162,42 @@ const AdminClientes = () => {
           </Button>
           <Button 
             variant="ghost" 
-            className="text-primary bg-primary/10 hover:bg-primary/20"
+            className={isActive("/admin/clientes") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
           >
             <Building2 className="w-4 h-4 mr-2" />
-            Clientes SaaS
+            Clientes
           </Button>
           <Button 
             variant="ghost" 
-            className="text-slate-400 hover:text-white hover:bg-slate-700"
-            onClick={() => navigate("/admin/usuarios")}
+            className={isActive("/admin/escolas") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
+            onClick={() => navigate("/admin/escolas")}
           >
-            <UserCog className="w-4 h-4 mr-2" />
-            Usuários
+            <GraduationCap className="w-4 h-4 mr-2" />
+            Escolas
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={isActive("/admin/alunos") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
+            onClick={() => navigate("/admin/alunos")}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Alunos
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={isActive("/admin/webhooks") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
+            onClick={() => navigate("/admin/webhooks")}
+          >
+            <Webhook className="w-4 h-4 mr-2" />
+            Webhooks
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={isActive("/admin/financeiro") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
+            onClick={() => navigate("/admin/financeiro")}
+          >
+            <DollarSign className="w-4 h-4 mr-2" />
+            Financeiro
           </Button>
         </div>
       </nav>
