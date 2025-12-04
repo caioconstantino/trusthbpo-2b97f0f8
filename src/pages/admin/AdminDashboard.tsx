@@ -13,12 +13,16 @@ import {
   Webhook,
   GraduationCap
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 interface Stats {
   totalClientes: number;
   clientesAtivos: number;
   clientesInativos: number;
   clientesLeads: number;
+  receitaMensal: number;
+  clientesPorMes: { mes: string; total: number }[];
+  vendasPorMes: { mes: string; total: number }[];
 }
 
 const AdminDashboard = () => {
@@ -29,6 +33,9 @@ const AdminDashboard = () => {
     clientesAtivos: 0,
     clientesInativos: 0,
     clientesLeads: 0,
+    receitaMensal: 0,
+    clientesPorMes: [],
+    vendasPorMes: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,15 +47,55 @@ const AdminDashboard = () => {
     try {
       const { data: clientes, error } = await supabase
         .from("tb_clientes_saas")
-        .select("id, status");
+        .select("id, status, plano, created_at");
 
       if (error) throw error;
+
+      // Calcular receita mensal
+      const ativos = clientes?.filter(c => c.status === "Ativo") || [];
+      const receita3990 = ativos.filter(c => c.plano === "R$ 39,90").length * 39.90;
+      const receita9990 = ativos.filter(c => c.plano === "R$ 99,90").length * 99.90;
+
+      // Clientes por mês (últimos 6 meses)
+      const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const hoje = new Date();
+      const clientesPorMes: { mes: string; total: number }[] = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const mesNome = meses[data.getMonth()];
+        const clientesNoMes = clientes?.filter(c => {
+          const created = new Date(c.created_at);
+          return created.getMonth() === data.getMonth() && created.getFullYear() === data.getFullYear();
+        }).length || 0;
+        clientesPorMes.push({ mes: mesNome, total: clientesNoMes });
+      }
+
+      // Buscar vendas por mês
+      const { data: vendas } = await supabase
+        .from("tb_vendas")
+        .select("total, created_at")
+        .gte("created_at", new Date(hoje.getFullYear(), hoje.getMonth() - 5, 1).toISOString());
+
+      const vendasPorMes: { mes: string; total: number }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const mesNome = meses[data.getMonth()];
+        const totalVendas = vendas?.filter(v => {
+          const created = new Date(v.created_at);
+          return created.getMonth() === data.getMonth() && created.getFullYear() === data.getFullYear();
+        }).reduce((acc, v) => acc + Number(v.total), 0) || 0;
+        vendasPorMes.push({ mes: mesNome, total: totalVendas });
+      }
       
       setStats({
         totalClientes: clientes?.length || 0,
         clientesAtivos: clientes?.filter(c => c.status === "Ativo").length || 0,
         clientesInativos: clientes?.filter(c => c.status === "Inativo").length || 0,
         clientesLeads: clientes?.filter(c => c.status === "Lead").length || 0,
+        receitaMensal: receita3990 + receita9990,
+        clientesPorMes,
+        vendasPorMes,
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
@@ -205,6 +252,122 @@ const AdminDashboard = () => {
                 {isLoading ? "..." : stats.clientesInativos}
               </div>
               <p className="text-xs text-slate-500 mt-1">Assinatura cancelada</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Novos Clientes por Mês</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={stats.clientesPorMes}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="mes" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                    labelStyle={{ color: "#fff" }}
+                  />
+                  <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Volume de Vendas (R$)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={stats.vendasPorMes}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="mes" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                    labelStyle={{ color: "#fff" }}
+                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Total"]}
+                  />
+                  <Line type="monotone" dataKey="total" stroke="#22c55e" strokeWidth={2} dot={{ fill: "#22c55e" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Distribuição de Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Ativos", value: stats.clientesAtivos, color: "#22c55e" },
+                      { name: "Leads", value: stats.clientesLeads, color: "#3b82f6" },
+                      { name: "Inativos", value: stats.clientesInativos, color: "#ef4444" },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {[
+                      { name: "Ativos", value: stats.clientesAtivos, color: "#22c55e" },
+                      { name: "Leads", value: stats.clientesLeads, color: "#3b82f6" },
+                      { name: "Inativos", value: stats.clientesInativos, color: "#ef4444" },
+                    ].map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex justify-center gap-6 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-slate-400 text-sm">Ativos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-slate-400 text-sm">Leads</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-slate-400 text-sm">Inativos</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Receita Recorrente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-4xl font-bold text-green-500">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.receitaMensal)}
+                  </p>
+                  <p className="text-slate-400 text-sm mt-1">Receita Mensal Recorrente (MRR)</p>
+                </div>
+                <div className="text-center pt-4 border-t border-slate-700">
+                  <p className="text-2xl font-bold text-amber-500">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.receitaMensal * 12)}
+                  </p>
+                  <p className="text-slate-400 text-sm mt-1">Receita Anual Projetada (ARR)</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

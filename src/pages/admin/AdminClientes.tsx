@@ -48,6 +48,7 @@ interface SaasCliente {
   ultimo_pagamento: string | null;
   ultima_forma_pagamento: string | null;
   cupom: string | null;
+  total_vendas?: number;
 }
 
 const AdminClientes = () => {
@@ -77,7 +78,24 @@ const AdminClientes = () => {
 
       if (error) throw error;
 
-      setClientes(data as SaasCliente[] || []);
+      // Buscar total de vendas por domínio
+      const { data: vendas } = await supabase
+        .from("tb_vendas")
+        .select("dominio, total");
+
+      // Agrupar vendas por domínio
+      const vendasPorDominio: Record<string, number> = {};
+      vendas?.forEach(v => {
+        vendasPorDominio[v.dominio] = (vendasPorDominio[v.dominio] || 0) + Number(v.total);
+      });
+
+      // Adicionar total de vendas a cada cliente
+      const clientesComVendas = (data || []).map(cliente => ({
+        ...cliente,
+        total_vendas: vendasPorDominio[cliente.dominio] || 0,
+      }));
+
+      setClientes(clientesComVendas as SaasCliente[]);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -246,7 +264,7 @@ const AdminClientes = () => {
                   <TableHead className="text-slate-400">Razão Social</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
                   <TableHead className="text-slate-400">Plano</TableHead>
-                  <TableHead className="text-slate-400">Responsável</TableHead>
+                  <TableHead className="text-slate-400">Total Vendas</TableHead>
                   <TableHead className="text-slate-400">Próx. Pagamento</TableHead>
                   <TableHead className="text-slate-400 text-center">Ações</TableHead>
                 </TableRow>
@@ -281,8 +299,8 @@ const AdminClientes = () => {
                       <TableCell className="text-slate-300">
                         {cliente.plano || "-"}
                       </TableCell>
-                      <TableCell className="text-slate-300">
-                        {cliente.responsavel || "-"}
+                      <TableCell className="text-green-400 font-medium">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.total_vendas || 0)}
                       </TableCell>
                       <TableCell className="text-slate-300">
                         {cliente.proximo_pagamento 
