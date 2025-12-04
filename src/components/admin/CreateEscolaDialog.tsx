@@ -81,62 +81,41 @@ export function CreateEscolaDialog({ open, onOpenChange, onSuccess }: CreateEsco
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      // Check if slug already exists
-      const { data: existingSlug } = await supabase
-        .from("tb_escolas")
-        .select("id")
-        .eq("slug", data.slug)
-        .single();
-
-      if (existingSlug) {
-        toast.error("Este slug já está em uso");
-        setIsLoading(false);
-        return;
-      }
-
-      // Create auth user for the school
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.senha,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (authError) throw authError;
-
-      // Upload logo if provided
+      // Upload logo first if provided (we'll use a temporary ID)
       let logoUrl = null;
-      if (logoFile && authData.user) {
+      if (logoFile) {
         const fileExt = logoFile.name.split(".").pop();
-        const fileName = `${authData.user.id}/logo.${fileExt}`;
+        const tempId = crypto.randomUUID();
+        const fileName = `${tempId}/logo.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from("escolas")
           .upload(fileName, logoFile, { upsert: true });
 
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrl } = supabase.storage
-          .from("escolas")
-          .getPublicUrl(fileName);
-        
-        logoUrl = publicUrl.publicUrl;
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          // Continue without logo if upload fails
+        } else {
+          const { data: publicUrl } = supabase.storage
+            .from("escolas")
+            .getPublicUrl(fileName);
+          logoUrl = publicUrl.publicUrl;
+        }
       }
 
-      // Create school record
-      const { error: insertError } = await supabase
-        .from("tb_escolas")
-        .insert({
-          nome: data.nome,
+      // Call edge function to create school and auth user
+      const { data: result, error } = await supabase.functions.invoke("create-escola-user", {
+        body: {
           email: data.email,
+          password: data.senha,
+          nome: data.nome,
           slug: data.slug,
-          logo_url: logoUrl,
-          auth_user_id: authData.user?.id,
-          cupom: 0,
-        });
+          logoUrl,
+        },
+      });
 
-      if (insertError) throw insertError;
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
       toast.success("Escola cadastrada com sucesso!");
       form.reset();
