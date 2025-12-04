@@ -6,7 +6,7 @@ import { StockSection } from "@/components/StockSection";
 import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { Accordion } from "@/components/ui/accordion";
-import { Package, Archive, FileText, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Package, Archive, TrendingUp, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns";
@@ -29,6 +29,21 @@ import {
   Legend
 } from "recharts";
 
+interface UnidadeData {
+  vendas: number;
+  produtos: number;
+  total: number;
+  custo: number;
+}
+
+interface EstoqueData {
+  totalPecas: number;
+  valorEstoque: number;
+  custoEstoque: number;
+  lucroEsperado: number;
+  produtosAtencao: number;
+}
+
 interface DashboardData {
   vendasHoje: number;
   custoHoje: number;
@@ -41,7 +56,10 @@ interface DashboardData {
   totalProdutos: number;
   vendasPorMes: { mes: string; valor: number }[];
   vendasPorFormaPagamento: { forma: string; valor: number }[];
+  vendasPorCategoria: { name: string; totalSold: number }[];
   topProdutos: { nome: string; quantidade: number; total: number }[];
+  vendasPorUnidade: Record<string, UnidadeData>;
+  estoque: EstoqueData;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -63,7 +81,18 @@ const Index = () => {
     totalProdutos: 0,
     vendasPorMes: [],
     vendasPorFormaPagamento: [],
-    topProdutos: []
+    vendasPorCategoria: [],
+    topProdutos: [],
+    vendasPorUnidade: {
+      MATRIZ: { vendas: 0, produtos: 0, total: 0, custo: 0 }
+    },
+    estoque: {
+      totalPecas: 0,
+      valorEstoque: 0,
+      custoEstoque: 0,
+      lucroEsperado: 0,
+      produtosAtencao: 0
+    }
   });
 
   useEffect(() => {
@@ -221,6 +250,45 @@ const Index = () => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
+      // Buscar vendas por categoria
+      const { data: vendasItensCategoria } = await supabase
+        .from('tb_vendas_itens')
+        .select('produto_id, total');
+
+      const { data: produtosCategoria } = await supabase
+        .from('tb_produtos')
+        .select('id, categoria_id')
+        .eq('dominio', currentDominio);
+
+      const { data: categorias } = await supabase
+        .from('tb_categorias')
+        .select('id, nome')
+        .eq('dominio', currentDominio);
+
+      const vendasPorCategoriaMap: Record<string, number> = {};
+      vendasItensCategoria?.forEach(item => {
+        const produto = produtosCategoria?.find(p => p.id === item.produto_id);
+        const categoria = categorias?.find(c => c.id === produto?.categoria_id);
+        const categoriaNome = categoria?.nome || 'Sem Categoria';
+        vendasPorCategoriaMap[categoriaNome] = (vendasPorCategoriaMap[categoriaNome] || 0) + Number(item.total);
+      });
+
+      const vendasPorCategoria = Object.entries(vendasPorCategoriaMap).map(([name, totalSold]) => ({
+        name,
+        totalSold
+      })).sort((a, b) => b.totalSold - a.totalSold);
+
+      // Buscar dados de estoque
+      const { data: produtos } = await supabase
+        .from('tb_produtos')
+        .select('preco_venda, preco_custo')
+        .eq('dominio', currentDominio)
+        .eq('ativo', true);
+
+      const custoEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0) || 0;
+      const valorEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0) || 0;
+      const lucroEsperado = valorEstoque - custoEstoque;
+
       setDashboardData({
         vendasHoje: totalVendasHoje,
         custoHoje: custoVendasHoje,
@@ -233,7 +301,23 @@ const Index = () => {
         totalProdutos: totalProdutos || 0,
         vendasPorMes,
         vendasPorFormaPagamento,
-        topProdutos
+        vendasPorCategoria,
+        topProdutos,
+        vendasPorUnidade: {
+          MATRIZ: {
+            vendas: vendasHoje?.length || 0,
+            produtos: itensVendidos?.length || 0,
+            total: totalVendasHoje,
+            custo: custoVendasHoje
+          }
+        },
+        estoque: {
+          totalPecas: totalProdutos || 0,
+          valorEstoque,
+          custoEstoque,
+          lucroEsperado,
+          produtosAtencao: 0
+        }
       });
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
@@ -506,55 +590,46 @@ const Index = () => {
             <Archive className="w-4 h-4" />
             <span className="text-sm md:text-base">Estoque</span>
           </button>
-          <button
-            id="fiscal-tab"
-            onClick={() => setActiveTab("fiscal")}
-            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "fiscal"
-                ? "border-primary text-primary font-medium"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span className="text-sm md:text-base">Fiscal</span>
-          </button>
         </div>
-
-        {/* Product Carousel */}
-        <ProductCarousel />
 
         {/* Tab Content */}
         {activeTab === "operacional" && (
           <div id="branches-section">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground text-center">
-                  Dados operacionais por unidade serão implementados aqui
-                </p>
-              </CardContent>
-            </Card>
+            <Accordion type="multiple" className="space-y-3">
+              <OperationalSection 
+                branch={{
+                  name: "MATRIZ",
+                  sales: dashboardData.vendasPorUnidade?.MATRIZ?.vendas || 0,
+                  products: dashboardData.vendasPorUnidade?.MATRIZ?.produtos || 0,
+                  total: dashboardData.vendasPorUnidade?.MATRIZ?.total || 0,
+                  cost: dashboardData.vendasPorUnidade?.MATRIZ?.custo || 0,
+                  categories: dashboardData.vendasPorCategoria || []
+                }}
+                value="matriz"
+              />
+            </Accordion>
           </div>
         )}
 
         {activeTab === "estoque" && (
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-muted-foreground text-center">
-                Dados de estoque por unidade serão implementados aqui
-              </p>
-            </CardContent>
-          </Card>
+          <Accordion type="multiple" className="space-y-3">
+            <StockSection 
+              stock={{
+                name: "MATRIZ",
+                pieces: dashboardData.estoque?.totalPecas || 0,
+                stockValue: dashboardData.estoque?.valorEstoque || 0,
+                stockCost: dashboardData.estoque?.custoEstoque || 0,
+                units: dashboardData.totalProdutos,
+                expectedProfit: dashboardData.estoque?.lucroEsperado || 0,
+                hasAlert: (dashboardData.estoque?.produtosAtencao || 0) > 0
+              }}
+              value="matriz-stock"
+            />
+          </Accordion>
         )}
 
-        {activeTab === "fiscal" && (
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-muted-foreground text-center">
-                Conteúdo Fiscal será implementado aqui
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Product Carousel */}
+        <ProductCarousel />
       </div>
 
       {/* Tutorial */}
