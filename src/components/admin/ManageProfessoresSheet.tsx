@@ -136,42 +136,19 @@ export function ManageProfessoresSheet({ escola, open, onOpenChange }: ManagePro
     try {
       const slug = generateSlug(data.nome, escola.slug);
 
-      // Check if slug already exists
-      const { data: existingSlug } = await supabase
-        .from("tb_professores")
-        .select("id")
-        .eq("slug", slug)
-        .single();
-
-      if (existingSlug) {
-        toast.error("Este slug já está em uso");
-        setIsLoading(false);
-        return;
-      }
-
-      // Create auth user for the professor
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.senha,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
+      // Call edge function to create professor
+      const { data: result, error } = await supabase.functions.invoke("create-professor-user", {
+        body: {
+          email: data.email,
+          password: data.senha,
+          nome: data.nome,
+          slug,
+          escola_id: escola.id,
         },
       });
 
-      if (authError) throw authError;
-
-      // Create professor record
-      const { error: insertError } = await supabase
-        .from("tb_professores")
-        .insert({
-          escola_id: escola.id,
-          nome: data.nome,
-          email: data.email,
-          slug,
-          auth_user_id: authData.user?.id,
-        });
-
-      if (insertError) throw insertError;
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       toast.success("Professor cadastrado com sucesso!");
       form.reset();
