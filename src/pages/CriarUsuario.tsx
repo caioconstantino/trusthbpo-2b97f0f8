@@ -14,6 +14,8 @@ interface CustomerData {
   razao_social: string;
   email: string;
   dominio: string;
+  tipo_conta?: string;
+  aluno_id?: string;
 }
 
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
@@ -252,6 +254,21 @@ export default function CriarUsuario() {
       });
 
       if (usuarioError) throw usuarioError;
+
+      // 6. If it's a student account, update the tb_alunos auth_user_id
+      if (customerData?.tipo_conta === "aluno" && customerData?.aluno_id) {
+        const { error: alunoError } = await supabase.functions.invoke("update-aluno-auth", {
+          body: {
+            aluno_id: customerData.aluno_id,
+            auth_user_id: authData.user.id,
+          },
+        });
+
+        if (alunoError) {
+          console.error("Erro ao vincular aluno:", alunoError);
+          // Non-blocking error - continue with login
+        }
+      }
 
       toast({
         title: "Conta criada com sucesso!",
