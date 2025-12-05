@@ -1,4 +1,5 @@
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -12,17 +13,49 @@ import {
   SidebarMenuItem,
   useSidebar,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.webp";
 import { usePermissions } from "@/hooks/usePermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { AdoptCompanyDialog } from "./AdoptCompanyDialog";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const { canView } = usePermissions();
+  const [isEducational, setIsEducational] = useState(false);
+  const [alunoId, setAlunoId] = useState<string | null>(null);
+  const [adoptDialogOpen, setAdoptDialogOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
+
+  // Verificar se é conta educacional
+  useEffect(() => {
+    const checkEducationalAccount = async () => {
+      const dominio = localStorage.getItem("dominio");
+      if (!dominio) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("tb_clientes_saas")
+          .select("tipo_conta, aluno_id")
+          .eq("dominio", dominio)
+          .maybeSingle();
+
+        if (!error && data) {
+          setIsEducational(data.tipo_conta === "aluno");
+          setAlunoId(data.aluno_id);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar tipo de conta:", err);
+      }
+    };
+
+    checkEducationalAccount();
+  }, []);
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", modulo: "dashboard" },
@@ -100,6 +133,28 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      {/* Botão Adote uma Empresa para contas educacionais */}
+      {isEducational && alunoId && (
+        <SidebarFooter className="p-3">
+          <Button
+            onClick={() => setAdoptDialogOpen(true)}
+            className={`w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 ${
+              isCollapsed ? "p-2" : "gap-2"
+            }`}
+            size={isCollapsed ? "icon" : "default"}
+          >
+            <Sparkles className="h-4 w-4" />
+            {!isCollapsed && <span className="font-semibold">Adote uma Empresa</span>}
+          </Button>
+        </SidebarFooter>
+      )}
+
+      <AdoptCompanyDialog
+        open={adoptDialogOpen}
+        onOpenChange={setAdoptDialogOpen}
+        alunoId={alunoId || ""}
+      />
     </Sidebar>
   );
 }

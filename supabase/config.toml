@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.update-aluno-auth]
 verify_jwt = false
+
+[functions.adopt-company]
+verify_jwt = false
