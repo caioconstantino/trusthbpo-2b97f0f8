@@ -14,7 +14,8 @@ import {
   Webhook,
   DollarSign,
   Search,
-  Eye
+  Eye,
+  Building
 } from "lucide-react";
 import {
   Table,
@@ -40,6 +41,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface EmpresaAdotada {
+  id: number;
+  dominio: string;
+  razao_social: string;
+  status: string;
+  created_at: string;
+}
+
 interface Aluno {
   id: string;
   nome: string;
@@ -51,6 +60,7 @@ interface Aluno {
   endereco_estado: string | null;
   ativo: boolean;
   created_at: string;
+  auth_user_id: string | null;
   professor: {
     id: string;
     nome: string;
@@ -59,6 +69,8 @@ interface Aluno {
     id: number;
     nome: string;
   } | null;
+  empresa_adotada: EmpresaAdotada | null;
+  ultimo_login: string | null;
 }
 
 interface Escola {
@@ -132,7 +144,8 @@ const AdminAlunos = () => {
           ativo,
           created_at,
           professor_id,
-          escola_id
+          escola_id,
+          auth_user_id
         `)
         .order("created_at", { ascending: false });
 
@@ -147,11 +160,13 @@ const AdminAlunos = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch professor and escola names
+      // Fetch professor, escola, empresa adotada and ultimo login
       const alunosWithRelations = await Promise.all(
         (data || []).map(async (aluno: any) => {
           let professor = null;
           let escola = null;
+          let empresa_adotada = null;
+          let ultimo_login = null;
 
           if (aluno.professor_id) {
             const { data: profData } = await supabase
@@ -171,10 +186,34 @@ const AdminAlunos = () => {
             escola = escolaData;
           }
 
+          // Buscar empresa adotada pelo aluno
+          const { data: empresaData } = await supabase
+            .from("tb_clientes_saas")
+            .select("id, dominio, razao_social, status, created_at")
+            .eq("aluno_id", aluno.id)
+            .maybeSingle();
+          empresa_adotada = empresaData;
+
+          // Buscar último login da empresa adotada (via edge function)
+          if (empresa_adotada) {
+            try {
+              const { data: loginData } = await supabase.functions.invoke("get-last-login", {
+                body: { dominio: empresa_adotada.dominio },
+              });
+              if (loginData?.last_sign_in_at) {
+                ultimo_login = loginData.last_sign_in_at;
+              }
+            } catch (err) {
+              console.error("Erro ao buscar último login:", err);
+            }
+          }
+
           return {
             ...aluno,
             professor,
             escola,
+            empresa_adotada,
+            ultimo_login,
           };
         })
       );
@@ -187,7 +226,9 @@ const AdminAlunos = () => {
     (aluno) =>
       aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       aluno.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      aluno.cpf?.includes(searchTerm)
+      aluno.cpf?.includes(searchTerm) ||
+      aluno.empresa_adotada?.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      aluno.empresa_adotada?.dominio?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleLogout = async () => {
@@ -304,7 +345,7 @@ const AdminAlunos = () => {
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Buscar por nome, email ou CPF..."
+                  placeholder="Buscar por nome, email, CPF ou empresa..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
@@ -357,44 +398,61 @@ const AdminAlunos = () => {
                 <p>Nenhum aluno encontrado</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-slate-700/50">
-                    <TableHead className="text-slate-400">Nome</TableHead>
-                    <TableHead className="text-slate-400">Email</TableHead>
-                    <TableHead className="text-slate-400">Telefone</TableHead>
-                    <TableHead className="text-slate-400">Escola</TableHead>
-                    <TableHead className="text-slate-400">Professor</TableHead>
-                    <TableHead className="text-slate-400">Cadastro</TableHead>
-                    <TableHead className="text-slate-400">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAlunos.map((aluno) => (
-                    <TableRow key={aluno.id} className="border-slate-700 hover:bg-slate-700/50">
-                      <TableCell className="text-white font-medium">{aluno.nome}</TableCell>
-                      <TableCell className="text-slate-300">{aluno.email}</TableCell>
-                      <TableCell className="text-slate-300">{formatPhone(aluno.telefone)}</TableCell>
-                      <TableCell className="text-slate-300">{aluno.escola?.nome || "-"}</TableCell>
-                      <TableCell className="text-slate-300">{aluno.professor?.nome || "-"}</TableCell>
-                      <TableCell className="text-slate-300">
-                        {format(new Date(aluno.created_at), "dd/MM/yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-400 hover:text-white"
-                          onClick={() => setViewAluno(aluno)}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-700 hover:bg-slate-700/50">
+                      <TableHead className="text-slate-400">Nome</TableHead>
+                      <TableHead className="text-slate-400">Email</TableHead>
+                      <TableHead className="text-slate-400">Escola</TableHead>
+                      <TableHead className="text-slate-400">Professor</TableHead>
+                      <TableHead className="text-slate-400">Empresa Adotada</TableHead>
+                      <TableHead className="text-slate-400">Último Login</TableHead>
+                      <TableHead className="text-slate-400">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAlunos.map((aluno) => (
+                      <TableRow key={aluno.id} className="border-slate-700 hover:bg-slate-700/50">
+                        <TableCell className="text-white font-medium">{aluno.nome}</TableCell>
+                        <TableCell className="text-slate-300">{aluno.email}</TableCell>
+                        <TableCell className="text-slate-300">{aluno.escola?.nome || "-"}</TableCell>
+                        <TableCell className="text-slate-300">{aluno.professor?.nome || "-"}</TableCell>
+                        <TableCell>
+                          {aluno.empresa_adotada ? (
+                            <div className="flex items-center gap-2">
+                              <Building className="w-4 h-4 text-primary" />
+                              <div>
+                                <p className="text-white text-sm">{aluno.empresa_adotada.razao_social}</p>
+                                <p className="text-slate-400 text-xs">{aluno.empresa_adotada.dominio}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 italic">Sem empresa</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {aluno.ultimo_login 
+                            ? format(new Date(aluno.ultimo_login), "dd/MM/yyyy HH:mm")
+                            : "-"
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white"
+                            onClick={() => setViewAluno(aluno)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -461,6 +519,51 @@ const AdminAlunos = () => {
                     <p className="text-white">{viewAluno.professor?.nome || "-"}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Empresa Adotada Section */}
+              <div className="border-t border-slate-700 pt-4">
+                <p className="text-sm text-slate-400 mb-2">Empresa Adotada</p>
+                {viewAluno.empresa_adotada ? (
+                  <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Building className="w-5 h-5 text-primary" />
+                      <span className="text-white font-medium">{viewAluno.empresa_adotada.razao_social}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-slate-400">Domínio:</span>
+                        <span className="text-white ml-2">{viewAluno.empresa_adotada.dominio}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Status:</span>
+                        <Badge 
+                          variant={viewAluno.empresa_adotada.status === "Ativo" ? "default" : "secondary"}
+                          className="ml-2"
+                        >
+                          {viewAluno.empresa_adotada.status}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Criada em:</span>
+                        <span className="text-white ml-2">
+                          {format(new Date(viewAluno.empresa_adotada.created_at), "dd/MM/yyyy")}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Último login:</span>
+                        <span className="text-white ml-2">
+                          {viewAluno.ultimo_login 
+                            ? format(new Date(viewAluno.ultimo_login), "dd/MM/yyyy HH:mm")
+                            : "-"
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">Nenhuma empresa adotada ainda</p>
+                )}
               </div>
 
               <div className="border-t border-slate-700 pt-4">
