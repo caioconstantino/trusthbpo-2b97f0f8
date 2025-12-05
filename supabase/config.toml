@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.get-last-login]
 verify_jwt = false
+
+[functions.check-inactive-clients]
+verify_jwt = false
