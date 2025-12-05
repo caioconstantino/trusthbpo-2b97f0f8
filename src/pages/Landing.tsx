@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, Loader2, ShoppingCart, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -230,89 +230,175 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="recursos" className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background" />
+      {/* Features Section - Bento Grid */}
+      <section id="recursos" className="py-24 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-50" />
+        <div className="absolute top-20 right-20 w-72 h-72 bg-accent/20 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1s' }} />
+        
         <div className="container mx-auto px-4 relative">
           <div className="text-center mb-16 animate-fade-in">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
+              <Sparkles className="w-3 h-3 mr-2" />
               Recursos completos
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               Tudo que você precisa em{" "}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
                 um só lugar
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Ferramentas poderosas para gerenciar vendas, estoque, finanças e muito mais com eficiência máxima
+              Ferramentas poderosas para gerenciar vendas, estoque, finanças e muito mais
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🛒",
-                title: "Vendas Inteligentes",
-                description: "Gerencie pedidos, notas fiscais e vendas multicanal em um só lugar",
-                color: "from-blue-500/10 to-blue-500/5"
-              },
-              {
-                icon: "📦",
-                title: "Controle de Estoque",
-                description: "Rastreamento em tempo real, alertas automáticos e gestão de fornecedores",
-                color: "from-purple-500/10 to-purple-500/5"
-              },
-              {
-                icon: "🚚",
-                title: "Logística Integrada",
-                description: "Separe pedidos, gere etiquetas e acompanhe entregas automaticamente",
-                color: "from-green-500/10 to-green-500/5"
-              },
-              {
-                icon: "💰",
-                title: "Gestão Financeira",
-                description: "Controle completo de contas a pagar e receber com fluxo de caixa",
-                color: "from-yellow-500/10 to-yellow-500/5"
-              },
-              {
-                icon: "💳",
-                title: "Pagamentos",
-                description: "Aceite PIX, cartão, boleto e links de pagamento integrados",
-                color: "from-pink-500/10 to-pink-500/5"
-              },
-              {
-                icon: "📊",
-                title: "Relatórios Avançados",
-                description: "Dashboards interativos e insights em tempo real para decisões rápidas",
-                color: "from-indigo-500/10 to-indigo-500/5"
-              }
-            ].map((feature, index) => (
-              <Card
-                key={index}
-                className="group relative overflow-hidden border-border hover:border-primary/50 transition-all hover:shadow-xl hover:-translate-y-2 animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                <CardHeader className="relative">
-                  <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform">
-                    {feature.icon}
+          {/* Bento Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-7xl mx-auto">
+            
+            {/* Large Feature Card - Vendas */}
+            <div className="lg:col-span-2 lg:row-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-border hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 animate-fade-in">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/30 rounded-full blur-[60px] group-hover:scale-150 transition-transform duration-700" />
+              <div className="relative p-8 h-full flex flex-col justify-between min-h-[400px]">
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <ShoppingCart className="w-8 h-8 text-blue-500" />
                   </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-                <CardFooter className="relative">
-                  <Button variant="ghost" size="sm" className="group/btn">
-                    Saiba mais
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  <h3 className="text-2xl lg:text-3xl font-bold mb-4 group-hover:text-blue-500 transition-colors">
+                    Vendas Inteligentes
+                  </h3>
+                  <p className="text-muted-foreground text-lg mb-6">
+                    Gerencie pedidos, notas fiscais e vendas multicanal em uma única plataforma integrada
+                  </p>
+                  <ul className="space-y-3">
+                    {["PDV completo", "Múltiplos canais", "Notas fiscais automáticas", "Relatórios em tempo real"].map((item, i) => (
+                      <li key={i} className="flex items-center gap-3 text-muted-foreground">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-blue-500" />
+                        </div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="mt-6 p-4 rounded-2xl bg-card/50 backdrop-blur-sm border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Vendas hoje</span>
+                    <span className="text-xs text-green-500 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> +23%
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-500">R$ 12.458,90</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Medium Card - Estoque */}
+            <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-border hover:border-purple-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/30 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700" />
+              <div className="relative p-6 h-full min-h-[200px] flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Package className="w-6 h-6 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-purple-500 transition-colors">Estoque</h3>
+                <p className="text-sm text-muted-foreground flex-1">Rastreamento em tempo real com alertas automáticos</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full w-3/4 bg-gradient-to-r from-purple-500 to-purple-400 rounded-full" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">75%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Medium Card - Logística */}
+            <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-border hover:border-green-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-green-500/30 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700" />
+              <div className="relative p-6 h-full min-h-[200px] flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="w-6 h-6 text-green-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-green-500 transition-colors">Logística</h3>
+                <p className="text-sm text-muted-foreground flex-1">Entregas rastreadas e etiquetas automáticas</p>
+                <div className="mt-4 flex gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-green-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Wide Card - Financeiro */}
+            <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-border hover:border-amber-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 animate-fade-in" style={{ animationDelay: '300ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-0 left-1/2 w-40 h-40 bg-amber-500/30 rounded-full blur-[60px] group-hover:scale-150 transition-transform duration-700" />
+              <div className="relative p-6 h-full min-h-[200px]">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <TrendingUp className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-amber-500 transition-colors">Gestão Financeira</h3>
+                    <p className="text-sm text-muted-foreground">Controle completo de contas a pagar e receber</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-amber-500">+45%</p>
+                    <p className="text-xs text-muted-foreground">lucro este mês</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
+                    <div key={i} className="flex-1 bg-muted rounded-full overflow-hidden h-16 flex items-end">
+                      <div 
+                        className="w-full bg-gradient-to-t from-amber-500 to-amber-400 rounded-full transition-all duration-500 group-hover:opacity-100 opacity-70"
+                        style={{ height: `${h}%` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Small Card - Pagamentos */}
+            <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500/10 via-pink-500/5 to-transparent border border-border hover:border-pink-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-pink-500/10 animate-fade-in" style={{ animationDelay: '400ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative p-6 h-full min-h-[200px] flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="w-6 h-6 text-pink-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-pink-500 transition-colors">Pagamentos</h3>
+                <p className="text-sm text-muted-foreground flex-1">PIX, cartão, boleto integrados</p>
+                <div className="mt-4 flex gap-2">
+                  <div className="px-3 py-1 rounded-full bg-pink-500/20 text-xs text-pink-500">PIX</div>
+                  <div className="px-3 py-1 rounded-full bg-pink-500/20 text-xs text-pink-500">Cartão</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Small Card - Relatórios */}
+            <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent border border-border hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 animate-fade-in" style={{ animationDelay: '500ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative p-6 h-full min-h-[200px] flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <BarChart3 className="w-6 h-6 text-indigo-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-indigo-500 transition-colors">Relatórios</h3>
+                <p className="text-sm text-muted-foreground flex-1">Dashboards e insights em tempo real</p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-8 rounded bg-indigo-500/20" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
