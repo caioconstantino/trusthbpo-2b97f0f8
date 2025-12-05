@@ -256,35 +256,35 @@ export default function Landing() {
           </div>
 
           {/* Bento Grid Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
             
             {/* Large Feature Card - Vendas */}
-            <div className="lg:col-span-2 lg:row-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-border hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 animate-fade-in">
+            <div className="md:col-span-2 lg:col-span-1 lg:row-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-border hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 animate-fade-in">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/30 rounded-full blur-[60px] group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative p-8 h-full flex flex-col justify-between min-h-[400px]">
+              <div className="relative p-6 lg:p-8 h-full flex flex-col justify-between min-h-[350px] lg:min-h-[450px]">
                 <div>
-                  <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <ShoppingCart className="w-8 h-8 text-blue-500" />
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                    <ShoppingCart className="w-7 h-7 text-blue-500" />
                   </div>
-                  <h3 className="text-2xl lg:text-3xl font-bold mb-4 group-hover:text-blue-500 transition-colors">
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-500 transition-colors">
                     Vendas Inteligentes
                   </h3>
-                  <p className="text-muted-foreground text-lg mb-6">
-                    Gerencie pedidos, notas fiscais e vendas multicanal em uma única plataforma integrada
+                  <p className="text-muted-foreground mb-5">
+                    Gerencie pedidos, notas fiscais e vendas multicanal em uma única plataforma
                   </p>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {["PDV completo", "Múltiplos canais", "Notas fiscais automáticas", "Relatórios em tempo real"].map((item, i) => (
-                      <li key={i} className="flex items-center gap-3 text-muted-foreground">
-                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <Check className="w-3 h-3 text-blue-500" />
+                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-blue-500" />
                         </div>
                         {item}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="mt-6 p-4 rounded-2xl bg-card/50 backdrop-blur-sm border border-border">
+                <div className="mt-5 p-4 rounded-2xl bg-card/50 backdrop-blur-sm border border-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Vendas hoje</span>
                     <span className="text-xs text-green-500 flex items-center gap-1">
@@ -296,7 +296,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Medium Card - Estoque */}
+            {/* Card - Estoque */}
             <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-border hover:border-purple-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10 animate-fade-in" style={{ animationDelay: '100ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/30 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700" />
@@ -315,7 +315,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Medium Card - Logística */}
+            {/* Card - Logística */}
             <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-border hover:border-green-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/10 animate-fade-in" style={{ animationDelay: '200ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-green-500/30 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700" />
@@ -336,7 +336,7 @@ export default function Landing() {
             </div>
 
             {/* Wide Card - Financeiro */}
-            <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-border hover:border-amber-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 animate-fade-in" style={{ animationDelay: '300ms' }}>
+            <div className="md:col-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-border hover:border-amber-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 animate-fade-in" style={{ animationDelay: '300ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute top-0 left-1/2 w-40 h-40 bg-amber-500/30 rounded-full blur-[60px] group-hover:scale-150 transition-transform duration-700" />
               <div className="relative p-6 h-full min-h-[200px]">
@@ -366,7 +366,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Small Card - Pagamentos */}
+            {/* Card - Pagamentos */}
             <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500/10 via-pink-500/5 to-transparent border border-border hover:border-pink-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-pink-500/10 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative p-6 h-full min-h-[200px] flex flex-col">
@@ -375,14 +375,15 @@ export default function Landing() {
                 </div>
                 <h3 className="text-xl font-bold mb-2 group-hover:text-pink-500 transition-colors">Pagamentos</h3>
                 <p className="text-sm text-muted-foreground flex-1">PIX, cartão, boleto integrados</p>
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex gap-2 flex-wrap">
                   <div className="px-3 py-1 rounded-full bg-pink-500/20 text-xs text-pink-500">PIX</div>
                   <div className="px-3 py-1 rounded-full bg-pink-500/20 text-xs text-pink-500">Cartão</div>
+                  <div className="px-3 py-1 rounded-full bg-pink-500/20 text-xs text-pink-500">Boleto</div>
                 </div>
               </div>
             </div>
 
-            {/* Small Card - Relatórios */}
+            {/* Card - Relatórios */}
             <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent border border-border hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 animate-fade-in" style={{ animationDelay: '500ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative p-6 h-full min-h-[200px] flex flex-col">
@@ -395,6 +396,26 @@ export default function Landing() {
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="h-8 rounded bg-indigo-500/20" />
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Card Extra - Suporte */}
+            <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent border border-border hover:border-cyan-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-500/10 animate-fade-in" style={{ animationDelay: '600ms' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative p-6 h-full min-h-[200px] flex flex-col">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="w-6 h-6 text-cyan-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-cyan-500 transition-colors">Suporte 24/7</h3>
+                <p className="text-sm text-muted-foreground flex-1">Equipe dedicada para ajudar você</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-cyan-500/30 border-2 border-background" />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">+10 atendentes</span>
                 </div>
               </div>
             </div>
