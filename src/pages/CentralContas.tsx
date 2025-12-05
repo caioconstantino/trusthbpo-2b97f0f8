@@ -256,25 +256,9 @@ const CentralContas = () => {
     fetchAllData();
   }, [period, dominio]);
 
-  // Show loading while checking permissions
-  if (permissionsLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Check permissions after loading
-  if (!canView("central_contas")) {
-    return (
-      <DashboardLayout>
-        <NoPermission />
-      </DashboardLayout>
-    );
-  }
+  const maxHeatmapValue = useMemo(() => {
+    return Math.max(...salesHeatmap.map(s => s.total), 1);
+  }, [salesHeatmap]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
@@ -301,9 +285,25 @@ const CentralContas = () => {
     return "bg-emerald-600 dark:bg-emerald-500";
   };
 
-  const maxHeatmapValue = useMemo(() => {
-    return Math.max(...salesHeatmap.map(s => s.total), 1);
-  }, [salesHeatmap]);
+  // Show loading while checking permissions
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Check permissions after loading
+  if (!canView("central_contas")) {
+    return (
+      <DashboardLayout>
+        <NoPermission />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
