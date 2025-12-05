@@ -52,7 +52,8 @@ import {
   MoreHorizontal,
   Ban,
   CheckCircle,
-  Trash2
+  Trash2,
+  Handshake
 } from "lucide-react";
 import { ImportClientesDialog } from "@/components/admin/ImportClientesDialog";
 import { ViewClienteDialog } from "@/components/admin/ViewClienteDialog";
@@ -297,6 +298,14 @@ const AdminClientes = () => {
           >
             <Users className="w-4 h-4 mr-2" />
             Alunos
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={isActive("/admin/revendas") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
+            onClick={() => navigate("/admin/revendas")}
+          >
+            <Handshake className="w-4 h-4 mr-2" />
+            Revendas
           </Button>
           <Button 
             variant="ghost" 
