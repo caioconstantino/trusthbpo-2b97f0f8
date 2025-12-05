@@ -33,6 +33,7 @@ import Configuracoes from "./pages/Configuracoes";
 import CadastroAluno from "./pages/CadastroAluno";
 import RevendaLanding from "./pages/RevendaLanding";
 import RevendaDashboard from "./pages/RevendaDashboard";
+import RevendaLogin from "./pages/RevendaLogin";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/cadastro/aluno/:slug" element={<CadastroAluno />} />
             
             {/* Revenda Routes */}
+            <Route path="/revenda/login" element={<RevendaLogin />} />
             <Route path="/revenda/dashboard" element={<RevendaDashboard />} />
             <Route path="/revenda/:slug" element={<RevendaLanding />} />
             

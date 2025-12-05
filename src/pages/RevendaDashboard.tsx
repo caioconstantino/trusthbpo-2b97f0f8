@@ -69,7 +69,7 @@ const RevendaDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        navigate("/login");
+        navigate("/revenda/login");
         return;
       }
 
@@ -128,7 +128,7 @@ const RevendaDashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    navigate("/revenda/login");
   };
 
   const copyToClipboard = (text: string) => {
