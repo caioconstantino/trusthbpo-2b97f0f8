@@ -44,22 +44,7 @@ export const useProductLimit = () => {
       const isPro = !isBasico;
       const produtosAdicionais = cliente?.produtos_adicionais || 0;
 
-      // Only basic plan has product limit
-      if (isPro) {
-        setData({
-          totalProdutos: 0,
-          limiteBase: 0,
-          produtosAdicionais: 0,
-          limiteTotal: Infinity,
-          isBasico: false,
-          isPro: true,
-          podecadastrar: true,
-          isLoading: false,
-        });
-        return;
-      }
-
-      // Count total products for this domain/unit
+      // Count total products for this domain/unit (always count, regardless of plan)
       let query = supabase
         .from("tb_produtos")
         .select("id", { count: "exact", head: true })
@@ -72,17 +57,17 @@ export const useProductLimit = () => {
       const { count } = await query;
       const totalProdutos = count || 0;
       
-      // Calculate limit: base (500) + adicionais (500 each)
-      const limiteTotal = LIMITE_BASE_BASICO + (produtosAdicionais * 500);
+      // Calculate limit: base (500) + adicionais (500 each) - only for basic plan
+      const limiteTotal = isPro ? Infinity : LIMITE_BASE_BASICO + (produtosAdicionais * 500);
 
       setData({
         totalProdutos,
-        limiteBase: LIMITE_BASE_BASICO,
-        produtosAdicionais,
+        limiteBase: isPro ? 0 : LIMITE_BASE_BASICO,
+        produtosAdicionais: isPro ? 0 : produtosAdicionais,
         limiteTotal,
         isBasico,
         isPro,
-        podecadastrar: totalProdutos < limiteTotal,
+        podecadastrar: isPro || totalProdutos < limiteTotal,
         isLoading: false,
       });
     } catch (error) {
