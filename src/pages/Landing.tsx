@@ -94,8 +94,8 @@ export default function Landing() {
             <Button variant="ghost" onClick={() => navigate("/login")} className="hidden sm:inline-flex">
               Login
             </Button>
-            <Button onClick={() => navigate("/login")} className="group">
-              Teste grátis
+            <Button onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })} className="group">
+              Contratar
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
@@ -143,18 +143,18 @@ export default function Landing() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button size="lg" className="group text-lg h-14 px-8" onClick={() => navigate("/dashboard")}>
-                  Começar teste grátis
+                <Button size="lg" className="group text-lg h-14 px-8" onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}>
+                  Começar agora
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg h-14 px-8" onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}>
-                  Ver planos
+                <Button size="lg" variant="outline" className="text-lg h-14 px-8" onClick={() => navigate("/login")}>
+                  Já sou cliente
                 </Button>
               </div>
 
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
-                Teste grátis por 30 dias • Sem cartão de crédito • Cancele quando quiser
+                Setup em minutos • Suporte dedicado • Cancele quando quiser
               </p>
             </div>
 
