@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.adopt-company]
 verify_jwt = false
+
+[functions.get-last-login]
+verify_jwt = false
