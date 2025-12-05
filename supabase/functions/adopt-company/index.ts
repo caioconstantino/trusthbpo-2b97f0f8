@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
       aluno_id,
       razao_social,
       dominio,
+      senha,
       cpf_cnpj,
       email,
       telefone,
@@ -30,9 +31,16 @@ Deno.serve(async (req) => {
     console.log("Adopting company for aluno:", aluno_id);
 
     // Validar campos obrigatórios
-    if (!aluno_id || !razao_social || !dominio) {
+    if (!aluno_id || !razao_social || !dominio || !senha) {
       return new Response(
-        JSON.stringify({ error: "Campos obrigatórios não preenchidos" }),
+        JSON.stringify({ error: "Campos obrigatórios não preenchidos (aluno_id, razao_social, dominio, senha)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (senha.length < 6) {
+      return new Response(
+        JSON.stringify({ error: "Senha deve ter no mínimo 6 caracteres" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -40,7 +48,7 @@ Deno.serve(async (req) => {
     // Verificar se aluno existe e está ativo
     const { data: alunoData, error: alunoError } = await supabaseAdmin
       .from("tb_alunos")
-      .select("id, nome, ativo")
+      .select("id, nome, email, ativo")
       .eq("id", aluno_id)
       .maybeSingle();
 
@@ -72,6 +80,33 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Usar email do aluno ou o email fornecido
+    const emailUsuario = email || alunoData.email;
+
+    // Criar usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: emailUsuario,
+      password: senha,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      console.error("Auth error:", authError);
+      // Se o usuário já existe, tentar buscar
+      if (authError.message.includes("already been registered")) {
+        return new Response(
+          JSON.stringify({ error: "Este email já está registrado no sistema. Use outro email ou faça login na empresa existente." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: authError.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Auth user created:", authData.user.id);
+
     // Calcular data de expiração (1 ano a partir de hoje)
     const hoje = new Date();
     const umAno = new Date(hoje);
@@ -84,9 +119,9 @@ Deno.serve(async (req) => {
         dominio,
         razao_social,
         cpf_cnpj: cpf_cnpj || null,
-        email: email || null,
+        email: emailUsuario,
         telefone: telefone?.replace(/\D/g, "") || null,
-        responsavel: responsavel || null,
+        responsavel: responsavel || alunoData.nome,
         observacoes: observacoes || null,
         status: "Ativo",
         tipo_conta: "aluno",
@@ -100,6 +135,8 @@ Deno.serve(async (req) => {
 
     if (clienteError) {
       console.error("Cliente error:", clienteError);
+      // Rollback: deletar usuário auth
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return new Response(
         JSON.stringify({ error: clienteError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -121,8 +158,9 @@ Deno.serve(async (req) => {
 
     if (grupoError) {
       console.error("Grupo error:", grupoError);
-      // Rollback: deletar cliente
+      // Rollback
       await supabaseAdmin.from("tb_clientes_saas").delete().eq("id", clienteData.id);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return new Response(
         JSON.stringify({ error: "Erro ao criar grupo de permissões" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -158,10 +196,28 @@ Deno.serve(async (req) => {
 
     if (permissoesError) {
       console.error("Permissoes error:", permissoesError);
-      // Continue mesmo com erro nas permissões
     }
 
     console.log("Permissoes created for grupo:", grupoData.id);
+
+    // Criar registro do usuário na tb_usuarios
+    const { error: usuarioError } = await supabaseAdmin
+      .from("tb_usuarios")
+      .insert({
+        auth_user_id: authData.user.id,
+        email: emailUsuario,
+        nome: alunoData.nome,
+        dominio,
+        grupo_id: grupoData.id,
+        status: "Ativo",
+      });
+
+    if (usuarioError) {
+      console.error("Usuario error:", usuarioError);
+      // Não fazer rollback completo, a empresa foi criada
+    }
+
+    console.log("Usuario created for dominio:", dominio);
 
     return new Response(
       JSON.stringify({
@@ -169,7 +225,7 @@ Deno.serve(async (req) => {
         cliente_id: clienteData.id,
         dominio,
         grupo_id: grupoData.id,
-        message: `Empresa "${razao_social}" adotada com sucesso!`,
+        message: `Empresa "${razao_social}" adotada com sucesso! Você já pode fazer login com o domínio "${dominio}" e a senha cadastrada.`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
