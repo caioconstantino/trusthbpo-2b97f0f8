@@ -99,6 +99,20 @@ const PDV = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    if (searchProduct.length > 0) {
+      const filtered = products.filter(p => 
+        p.nome.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        p.codigo?.toLowerCase().includes(searchProduct.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+      setShowProductSearch(true);
+    } else {
+      setFilteredProducts([]);
+      setShowProductSearch(false);
+    }
+  }, [searchProduct, products]);
+
   // Show loading while checking permissions
   if (permissionsLoading) {
     return (
@@ -118,20 +132,6 @@ const PDV = () => {
       </DashboardLayout>
     );
   }
-
-  useEffect(() => {
-    if (searchProduct.length > 0) {
-      const filtered = products.filter(p => 
-        p.nome.toLowerCase().includes(searchProduct.toLowerCase()) ||
-        p.codigo?.toLowerCase().includes(searchProduct.toLowerCase())
-      );
-      setFilteredProducts(filtered);
-      setShowProductSearch(true);
-    } else {
-      setFilteredProducts([]);
-      setShowProductSearch(false);
-    }
-  }, [searchProduct, products]);
 
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct({
