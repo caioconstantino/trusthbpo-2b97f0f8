@@ -8,6 +8,9 @@ interface CreateLinkRequest {
   planPrice: number // em centavos
   cupom?: string // código da revenda
   revendaId?: string // ID da revenda
+  dominio?: string // domínio do cliente (para adicionais)
+  tipo?: string // tipo de compra: 'plano', 'pdv_adicional', 'empresa_adicional'
+  quantidade?: number // quantidade de adicionais
 }
 
 Deno.serve(async (req) => {
@@ -27,9 +30,9 @@ Deno.serve(async (req) => {
     }
 
     const body: CreateLinkRequest = await req.json()
-    const { planName, planPrice, cupom, revendaId } = body
+    const { planName, planPrice, cupom, revendaId, dominio, tipo, quantidade } = body
 
-    console.log('Creating payment link for:', { planName, planPrice, cupom, revendaId })
+    console.log('Creating payment link for:', { planName, planPrice, cupom, revendaId, dominio, tipo, quantidade })
 
     if (!planName || !planPrice) {
       return new Response(
@@ -66,10 +69,13 @@ Deno.serve(async (req) => {
     }
 
     // Add metadata if cupom/revenda is provided
-    if (cupom || revendaId) {
+    if (cupom || revendaId || dominio || tipo) {
       pagarmePayload.metadata = {
         cupom: cupom || '',
-        revenda_id: revendaId || ''
+        revenda_id: revendaId || '',
+        dominio: dominio || '',
+        tipo: tipo || 'plano',
+        quantidade: quantidade || 1
       }
     }
 

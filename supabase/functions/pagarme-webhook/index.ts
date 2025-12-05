@@ -35,6 +35,9 @@ interface PagarmeWebhookPayload {
     metadata?: {
       cupom?: string
       revenda_id?: string
+      dominio?: string
+      tipo?: string
+      quantidade?: number
     }
   }
 }
@@ -296,10 +299,63 @@ Deno.serve(async (req) => {
       const metadata = payload.data?.metadata
       const cupom = metadata?.cupom || null
       const revendaId = metadata?.revenda_id || null
+      const metaDominio = metadata?.dominio || null
+      const tipo = metadata?.tipo || 'plano'
+      const quantidade = metadata?.quantidade || 1
       
-      console.log('Metadata:', { cupom, revendaId })
+      console.log('Metadata:', { cupom, revendaId, metaDominio, tipo, quantidade })
       
-      if (!customer) {
+      // Handle addon purchases (PDV or Empresa adicional)
+      if (tipo === 'pdv_adicional' || tipo === 'empresa_adicional') {
+        console.log(`Processing ${tipo} purchase for domain:`, metaDominio)
+        
+        if (!metaDominio) {
+          console.error('No domain provided for addon purchase')
+          processResult = { error: 'No domain provided for addon purchase' }
+        } else {
+          // Find customer by domain
+          const { data: customerData, error: findError } = await supabase
+            .from('tb_clientes_saas')
+            .select('id, pdvs_adicionais, empresas_adicionais, razao_social, email')
+            .eq('dominio', metaDominio)
+            .single()
+          
+          if (findError || !customerData) {
+            console.error('Customer not found for domain:', metaDominio)
+            processResult = { error: `Customer not found for domain: ${metaDominio}` }
+          } else {
+            // Update the appropriate addon count
+            const updateData: Record<string, number> = {}
+            if (tipo === 'pdv_adicional') {
+              updateData.pdvs_adicionais = (customerData.pdvs_adicionais || 0) + quantidade
+            } else {
+              updateData.empresas_adicionais = (customerData.empresas_adicionais || 0) + quantidade
+            }
+            
+            const { error: updateError } = await supabase
+              .from('tb_clientes_saas')
+              .update(updateData)
+              .eq('id', customerData.id)
+            
+            if (updateError) {
+              console.error('Error updating addon count:', updateError)
+              processResult = { error: updateError.message }
+            } else {
+              console.log(`${tipo} updated for ${metaDominio}:`, updateData)
+              processResult = {
+                action: 'addon_purchased',
+                tipo,
+                quantidade,
+                dominio: metaDominio,
+                new_count: tipo === 'pdv_adicional' ? updateData.pdvs_adicionais : updateData.empresas_adicionais
+              }
+              processed = true
+            }
+          }
+        }
+      }
+      // Handle regular plan purchases
+      else if (!customer) {
         console.log('No customer data in payload')
         processResult = { warning: 'No customer data in payload' }
       } else {
