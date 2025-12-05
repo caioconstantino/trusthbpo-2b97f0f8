@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-f
 import { ptBR } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
+import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
 import {
   AreaChart,
   Area,
@@ -72,6 +73,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 
 const Index = () => {
   const { canView, isLoading: permissionsLoading } = usePermissions();
+  const { unidadeAtiva, isLoading: unidadeLoading } = useUnidadeAtiva();
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,12 +110,16 @@ const Index = () => {
       localStorage.setItem("hasSeenDashboardTutorial", "true");
     }
     
-    fetchDashboardData();
-  }, []);
+    if (unidadeAtiva) {
+      fetchDashboardData();
+    }
+  }, [unidadeAtiva]);
 
   const fetchDashboardData = async () => {
     const currentDominio = localStorage.getItem("user_dominio");
-    if (!currentDominio) {
+    const unidadeId = unidadeAtiva?.id;
+    
+    if (!currentDominio || !unidadeId) {
       setLoading(false);
       return;
     }
@@ -152,6 +158,7 @@ const Index = () => {
         .from('tb_vendas')
         .select('total, subtotal')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .gte('created_at', inicioHoje)
         .lte('created_at', fimHoje);
 
@@ -163,6 +170,7 @@ const Index = () => {
         .from('tb_vendas')
         .select('total')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .gte('created_at', inicioMes)
         .lte('created_at', fimMes);
 
@@ -173,6 +181,7 @@ const Index = () => {
         .from('tb_vendas')
         .select('total')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .gte('created_at', inicioAno);
 
       const totalVendasAno = vendasAno?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
@@ -182,6 +191,7 @@ const Index = () => {
         .from('tb_contas_receber')
         .select('valor')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -192,6 +202,7 @@ const Index = () => {
         .from('tb_contas_receber')
         .select('valor')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .lt('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -202,6 +213,7 @@ const Index = () => {
         .from('tb_contas_pagar')
         .select('valor')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
         .eq('status', 'pendente');
 
@@ -211,13 +223,15 @@ const Index = () => {
       const { count: totalClientes } = await supabase
         .from('tb_clientes')
         .select('*', { count: 'exact', head: true })
-        .eq('dominio', currentDominio);
+        .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId);
 
       // Buscar total de produtos
       const { count: totalProdutos } = await supabase
         .from('tb_produtos')
         .select('*', { count: 'exact', head: true })
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .eq('ativo', true);
 
       // Buscar vendas por mês (últimos 12 meses)
@@ -231,6 +245,7 @@ const Index = () => {
           .from('tb_vendas')
           .select('total')
           .eq('dominio', currentDominio)
+          .eq('unidade_id', unidadeId)
           .gte('created_at', inicioMesLoop)
           .lte('created_at', fimMesLoop + ' 23:59:59');
 
@@ -241,10 +256,23 @@ const Index = () => {
         });
       }
 
-      // Buscar vendas por forma de pagamento
-      const { data: pagamentos } = await supabase
-        .from('tb_vendas_pagamentos')
-        .select('forma_pagamento, valor');
+      // Buscar vendas por forma de pagamento - precisa filtrar por vendas da unidade
+      const { data: vendasIds } = await supabase
+        .from('tb_vendas')
+        .select('id')
+        .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId);
+      
+      const vendaIdsArray = vendasIds?.map(v => v.id) || [];
+      
+      let pagamentos: any[] = [];
+      if (vendaIdsArray.length > 0) {
+        const { data: pagamentosData } = await supabase
+          .from('tb_vendas_pagamentos')
+          .select('forma_pagamento, valor')
+          .in('venda_id', vendaIdsArray);
+        pagamentos = pagamentosData || [];
+      }
 
       const pagamentosPorForma: Record<string, number> = {};
       pagamentos?.forEach(p => {
@@ -252,15 +280,21 @@ const Index = () => {
         pagamentosPorForma[forma] = (pagamentosPorForma[forma] || 0) + Number(p.valor);
       });
 
+
       const vendasPorFormaPagamento = Object.entries(pagamentosPorForma).map(([forma, valor]) => ({
         forma,
         valor
       }));
 
-      // Buscar top produtos
-      const { data: itensVendidos } = await supabase
-        .from('tb_vendas_itens')
-        .select('produto_nome, quantidade, total');
+      // Buscar top produtos - filtrando por vendas da unidade
+      let itensVendidos: any[] = [];
+      if (vendaIdsArray.length > 0) {
+        const { data: itensData } = await supabase
+          .from('tb_vendas_itens')
+          .select('produto_nome, quantidade, total')
+          .in('venda_id', vendaIdsArray);
+        itensVendidos = itensData || [];
+      }
 
       const produtosAgrupados: Record<string, { quantidade: number; total: number }> = {};
       itensVendidos?.forEach(item => {
@@ -276,20 +310,27 @@ const Index = () => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
-      // Buscar vendas por categoria
-      const { data: vendasItensCategoria } = await supabase
-        .from('tb_vendas_itens')
-        .select('produto_id, total');
+      // Buscar vendas por categoria - filtrando por vendas da unidade
+      let vendasItensCategoria: any[] = [];
+      if (vendaIdsArray.length > 0) {
+        const { data: vendasItensData } = await supabase
+          .from('tb_vendas_itens')
+          .select('produto_id, total')
+          .in('venda_id', vendaIdsArray);
+        vendasItensCategoria = vendasItensData || [];
+      }
 
       const { data: produtosCategoria } = await supabase
         .from('tb_produtos')
         .select('id, categoria_id')
-        .eq('dominio', currentDominio);
+        .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId);
 
       const { data: categorias } = await supabase
         .from('tb_categorias')
         .select('id, nome')
-        .eq('dominio', currentDominio);
+        .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId);
 
       const vendasPorCategoriaMap: Record<string, number> = {};
       vendasItensCategoria?.forEach(item => {
@@ -304,11 +345,12 @@ const Index = () => {
         totalSold
       })).sort((a, b) => b.totalSold - a.totalSold);
 
-      // Buscar dados de estoque
+      // Buscar dados de estoque - filtrando por unidade
       const { data: produtos } = await supabase
         .from('tb_produtos')
         .select('preco_venda, preco_custo, unidade_id')
         .eq('dominio', currentDominio)
+        .eq('unidade_id', unidadeId)
         .eq('ativo', true);
 
       const custoEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0) || 0;
@@ -384,8 +426,8 @@ const Index = () => {
     }).format(value);
   };
 
-  // Show loading while checking permissions
-  if (permissionsLoading) {
+  // Show loading while checking permissions or loading unit
+  if (permissionsLoading || unidadeLoading) {
     return (
       <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
         <div className="flex items-center justify-center h-[60vh]">
