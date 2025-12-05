@@ -32,6 +32,10 @@ interface PagarmeWebhookPayload {
     status: string
     customer: PagarmeCustomer
     items?: PagarmeOrderItem[]
+    metadata?: {
+      cupom?: string
+      revenda_id?: string
+    }
   }
 }
 
@@ -289,6 +293,12 @@ Deno.serve(async (req) => {
       console.log('Processing order.paid event...')
       
       const customer = payload.data?.customer
+      const metadata = payload.data?.metadata
+      const cupom = metadata?.cupom || null
+      const revendaId = metadata?.revenda_id || null
+      
+      console.log('Metadata:', { cupom, revendaId })
+      
       if (!customer) {
         console.log('No customer data in payload')
         processResult = { warning: 'No customer data in payload' }
@@ -370,7 +380,8 @@ Deno.serve(async (req) => {
               plano: plan,
               ultimo_pagamento: today,
               proximo_pagamento: nextPayment,
-              ultima_forma_pagamento: 'Pagar.me'
+              ultima_forma_pagamento: 'Pagar.me',
+              cupom: cupom // Link customer to reseller via cupom
             })
             .select()
             .single()
@@ -381,6 +392,67 @@ Deno.serve(async (req) => {
           } else {
             console.log('New customer created:', newDominio)
             
+            // If this sale came from a reseller, create a sale record
+            if (revendaId) {
+              console.log('Creating reseller sale record...')
+              
+              // Get reseller product info to calculate profit
+              const { data: revendaProduto } = await supabase
+                .from('tb_revendas_produtos')
+                .select('*')
+                .eq('revenda_id', revendaId)
+                .single()
+              
+              const valorVenda = orderAmount / 100 // Convert from cents
+              const precoOriginal = revendaProduto?.preco_original || valorVenda
+              const lucro = valorVenda - precoOriginal
+              
+              const { error: vendaError } = await supabase
+                .from('tb_revendas_vendas')
+                .insert({
+                  revenda_id: revendaId,
+                  cliente_nome: customerName,
+                  cliente_email: customerEmail,
+                  cliente_dominio: newDominio,
+                  produto_codigo: plan.toLowerCase().replace('á', 'a'),
+                  produto_nome: plan,
+                  valor_venda: valorVenda,
+                  valor_original: precoOriginal,
+                  lucro: lucro > 0 ? lucro : 0,
+                  status: 'pago',
+                  data_pagamento: new Date().toISOString()
+                })
+              
+              if (vendaError) {
+                console.error('Error creating reseller sale:', vendaError)
+              } else {
+                console.log('Reseller sale record created')
+                
+                // Update reseller balance - fetch current and increment
+                const { data: revendaData } = await supabase
+                  .from('tb_revendas')
+                  .select('saldo, total_ganho')
+                  .eq('id', revendaId)
+                  .single()
+                
+                if (revendaData && lucro > 0) {
+                  const { error: balanceError } = await supabase
+                    .from('tb_revendas')
+                    .update({
+                      saldo: (revendaData.saldo || 0) + lucro,
+                      total_ganho: (revendaData.total_ganho || 0) + lucro
+                    })
+                    .eq('id', revendaId)
+                  
+                  if (balanceError) {
+                    console.error('Error updating reseller balance:', balanceError)
+                  } else {
+                    console.log('Reseller balance updated:', { lucro })
+                  }
+                }
+              }
+            }
+            
             // Send welcome email with link to create user
             await sendWelcomeEmail(customerEmail, customerName, newDominio)
             
@@ -388,13 +460,15 @@ Deno.serve(async (req) => {
               action: 'created', 
               email: customerEmail, 
               dominio: newDominio,
-              customer_id: newCustomer.id
+              customer_id: newCustomer.id,
+              cupom: cupom,
+              revenda_id: revendaId
             }
             processed = true
           }
         }
       }
-    } 
+    }
     // Handle refund/cancellation
     else if (eventType === 'charge.refunded' || eventType === 'subscription.canceled') {
       console.log('Processing license deactivation...')
