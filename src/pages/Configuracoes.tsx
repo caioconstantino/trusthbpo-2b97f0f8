@@ -69,6 +69,7 @@ interface ClienteSaas {
   proximo_pagamento: string | null;
   pdvs_adicionais?: number;
   empresas_adicionais?: number;
+  usuarios_adicionais?: number;
 }
 
 interface Usuario {
@@ -78,6 +79,7 @@ interface Usuario {
   status: string | null;
   created_at: string | null;
   grupo_id: string | null;
+  unidades_acesso: number[] | null;
 }
 
 interface GrupoPermissao {
@@ -149,7 +151,16 @@ export default function Configuracoes() {
   const [userEmail, setUserEmail] = useState("");
   const [userSenha, setUserSenha] = useState("");
   const [userStatus, setUserStatus] = useState("Ativo");
+  const [userUnidadesAcesso, setUserUnidadesAcesso] = useState<number[]>([]);
   const [isSavingUser, setIsSavingUser] = useState(false);
+  
+  // Usuarios adicional states
+  const [usuarioQuantidadeAdicional, setUsuarioQuantidadeAdicional] = useState(0);
+  const [isSavingUsuarios, setIsSavingUsuarios] = useState(false);
+  const PRECO_USUARIO_ADICIONAL = 10; // R$ 10,00
+  
+  // Limites de usuários por plano
+  const usuariosIncluidos = cliente?.plano?.toLowerCase()?.includes("pro") || cliente?.plano?.toLowerCase()?.includes("profissional") ? 5 : 1;
 
   // Multi-empresa states
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -218,16 +229,17 @@ export default function Configuracoes() {
         setCliente(clienteData.cliente);
         setPdvQuantidadeAdicional(clienteData.cliente.pdvs_adicionais || 0);
         setEmpresaQuantidadeAdicional(clienteData.cliente.empresas_adicionais || 0);
+        setUsuarioQuantidadeAdicional(clienteData.cliente.usuarios_adicionais || 0);
       }
 
       // Fetch users
       const { data: usuariosData } = await supabase
         .from("tb_usuarios")
-        .select("id, nome, email, status, created_at, grupo_id")
+        .select("id, nome, email, status, created_at, grupo_id, unidades_acesso")
         .eq("dominio", userData.dominio);
 
       if (usuariosData) {
-        setUsuarios(usuariosData);
+        setUsuarios(usuariosData as Usuario[]);
       }
 
       // Fetch permission groups
@@ -403,6 +415,7 @@ export default function Configuracoes() {
       setUserSenha("");
       setUserStatus(user.status || "Ativo");
       setSelectedGrupoId(user.grupo_id || "sem-grupo");
+      setUserUnidadesAcesso(user.unidades_acesso || []);
     } else {
       setEditingUser(null);
       setUserNome("");
@@ -410,6 +423,7 @@ export default function Configuracoes() {
       setUserSenha("");
       setUserStatus("Ativo");
       setSelectedGrupoId("sem-grupo");
+      setUserUnidadesAcesso([]);
     }
     setUserDialogOpen(true);
   };
@@ -420,6 +434,7 @@ export default function Configuracoes() {
     setIsSavingUser(true);
     try {
       const grupoIdToSave = selectedGrupoId === "sem-grupo" ? null : selectedGrupoId;
+      const unidadesAcessoToSave = userUnidadesAcesso.length > 0 ? userUnidadesAcesso : null;
 
       if (editingUser) {
         // Update existing user
@@ -430,6 +445,7 @@ export default function Configuracoes() {
             email: userEmail,
             status: userStatus,
             grupo_id: grupoIdToSave,
+            unidades_acesso: unidadesAcessoToSave,
           })
           .eq("id", editingUser.id);
 
@@ -470,6 +486,7 @@ export default function Configuracoes() {
           dominio: userDominio,
           status: userStatus,
           grupo_id: grupoIdToSave,
+          unidades_acesso: unidadesAcessoToSave,
         });
 
         if (usuarioError) throw usuarioError;
@@ -1405,12 +1422,20 @@ export default function Configuracoes() {
                       <Users className="h-5 w-5" />
                       Usuários
                     </CardTitle>
-                    <CardDescription>Gerencie os usuários e seus grupos de permissão</CardDescription>
+                    <CardDescription>
+                      {usuarios.length} de {usuariosIncluidos + (cliente?.usuarios_adicionais || 0)} usuário(s) utilizado(s)
+                    </CardDescription>
                   </div>
-                  <Button size="sm" className="gap-2" onClick={() => openUserDialog()}>
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Novo Usuário</span>
-                  </Button>
+                  {usuarios.length < (usuariosIncluidos + (cliente?.usuarios_adicionais || 0)) ? (
+                    <Button size="sm" className="gap-2" onClick={() => openUserDialog()}>
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Novo Usuário</span>
+                    </Button>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-600 border-amber-600">
+                      Limite atingido
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -1433,9 +1458,14 @@ export default function Configuracoes() {
                           <div>
                             <p className="font-medium">{usuario.nome}</p>
                             <p className="text-sm text-muted-foreground">{usuario.email}</p>
+                            {usuario.unidades_acesso && usuario.unidades_acesso.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Acesso a {usuario.unidades_acesso.length} loja(s)
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap justify-end">
                           <Badge variant={usuario.status === "Ativo" ? "default" : "secondary"}>
                             {usuario.status || "Ativo"}
                           </Badge>
@@ -1594,7 +1624,7 @@ export default function Configuracoes() {
 
       {/* Dialog para criar/editar usuário */}
       <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingUser ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
             <DialogDescription>
@@ -1669,6 +1699,48 @@ export default function Configuracoes() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Acesso às Lojas */}
+            {unidades.length > 0 && (
+              <div className="space-y-3">
+                <Separator />
+                <div>
+                  <Label className="text-base">Acesso às Lojas</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Selecione quais lojas o usuário pode acessar. Se nenhuma for selecionada, o usuário terá acesso a todas.
+                  </p>
+                </div>
+                <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                  {unidades.map((unidade) => (
+                    <div key={unidade.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`unidade-${unidade.id}`}
+                        checked={userUnidadesAcesso.includes(unidade.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setUserUnidadesAcesso([...userUnidadesAcesso, unidade.id]);
+                          } else {
+                            setUserUnidadesAcesso(userUnidadesAcesso.filter(id => id !== unidade.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`unidade-${unidade.id}`} className="text-sm font-normal cursor-pointer flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        {unidade.nome}
+                        {unidade.endereco_cidade && (
+                          <span className="text-xs text-muted-foreground">({unidade.endereco_cidade})</span>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {userUnidadesAcesso.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Nenhuma loja selecionada = acesso a todas as lojas
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

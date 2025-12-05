@@ -1248,6 +1248,7 @@ export type Database = {
           id: string
           nome: string
           status: string | null
+          unidades_acesso: number[] | null
           updated_at: string | null
         }
         Insert: {
@@ -1259,6 +1260,7 @@ export type Database = {
           id?: string
           nome: string
           status?: string | null
+          unidades_acesso?: number[] | null
           updated_at?: string | null
         }
         Update: {
@@ -1270,6 +1272,7 @@ export type Database = {
           id?: string
           nome?: string
           status?: string | null
+          unidades_acesso?: number[] | null
           updated_at?: string | null
         }
         Relationships: [
