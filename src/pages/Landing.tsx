@@ -537,8 +537,8 @@ export default function Landing() {
               Junte-se a mais de 300 mil empresas que já revolucionaram sua forma de trabalhar
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button size="lg" variant="secondary" className="text-lg h-14 px-8 group" onClick={() => navigate("/dashboard")}>
-                Começar teste grátis agora
+              <Button size="lg" variant="secondary" className="text-lg h-14 px-8 group" onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}>
+                Contratar agora
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
               <Button size="lg" variant="outline" className="text-lg h-14 px-8 bg-transparent text-primary-foreground border-primary-foreground/30 hover:bg-primary-foreground/10">
