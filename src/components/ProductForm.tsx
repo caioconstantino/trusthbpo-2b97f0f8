@@ -233,7 +233,6 @@ export const ProductForm = ({ onProductAdded, disabled = false }: { onProductAdd
               <SelectContent>
                 <SelectItem value="padrao">Padrão</SelectItem>
                 <SelectItem value="servico">Serviço</SelectItem>
-                <SelectItem value="materia-prima">Matéria Prima</SelectItem>
               </SelectContent>
             </Select>
           </div>
