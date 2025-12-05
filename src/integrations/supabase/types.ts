@@ -856,6 +856,7 @@ export type Database = {
           id: string
           nome: string
           saldo: number
+          slug: string | null
           status: string
           telefone: string | null
           total_ganho: number
@@ -871,6 +872,7 @@ export type Database = {
           id?: string
           nome: string
           saldo?: number
+          slug?: string | null
           status?: string
           telefone?: string | null
           total_ganho?: number
@@ -886,6 +888,7 @@ export type Database = {
           id?: string
           nome?: string
           saldo?: number
+          slug?: string | null
           status?: string
           telefone?: string | null
           total_ganho?: number
@@ -893,6 +896,109 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tb_revendas_produtos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          preco_original: number
+          preco_revenda: number
+          produto_codigo: string
+          produto_nome: string
+          revenda_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          preco_original?: number
+          preco_revenda?: number
+          produto_codigo: string
+          produto_nome: string
+          revenda_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          preco_original?: number
+          preco_revenda?: number
+          produto_codigo?: string
+          produto_nome?: string
+          revenda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_revendas_produtos_revenda_id_fkey"
+            columns: ["revenda_id"]
+            isOneToOne: false
+            referencedRelation: "tb_revendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_revendas_vendas: {
+        Row: {
+          cliente_dominio: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          lucro: number
+          produto_codigo: string
+          produto_nome: string
+          revenda_id: string
+          status: string
+          updated_at: string
+          valor_original: number
+          valor_venda: number
+        }
+        Insert: {
+          cliente_dominio?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          lucro?: number
+          produto_codigo: string
+          produto_nome: string
+          revenda_id: string
+          status?: string
+          updated_at?: string
+          valor_original?: number
+          valor_venda?: number
+        }
+        Update: {
+          cliente_dominio?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          lucro?: number
+          produto_codigo?: string
+          produto_nome?: string
+          revenda_id?: string
+          status?: string
+          updated_at?: string
+          valor_original?: number
+          valor_venda?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_revendas_vendas_revenda_id_fkey"
+            columns: ["revenda_id"]
+            isOneToOne: false
+            referencedRelation: "tb_revendas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_saques: {
         Row: {

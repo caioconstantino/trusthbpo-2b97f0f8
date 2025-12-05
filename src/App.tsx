@@ -31,6 +31,8 @@ import AdminRevendas from "./pages/admin/AdminRevendas";
 import CriarUsuario from "./pages/CriarUsuario";
 import Configuracoes from "./pages/Configuracoes";
 import CadastroAluno from "./pages/CadastroAluno";
+import RevendaLanding from "./pages/RevendaLanding";
+import RevendaDashboard from "./pages/RevendaDashboard";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +72,10 @@ const App = () => (
             
             {/* Public Registration Routes */}
             <Route path="/cadastro/aluno/:slug" element={<CadastroAluno />} />
+            
+            {/* Revenda Routes */}
+            <Route path="/revenda/dashboard" element={<RevendaDashboard />} />
+            <Route path="/revenda/:slug" element={<RevendaLanding />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
