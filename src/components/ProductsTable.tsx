@@ -12,6 +12,7 @@ import {
 import { EditProductSheet } from "./EditProductSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ interface Product {
   tipo: string | null;
   codigo_barras: string | null;
   observacao: string | null;
+  unidade_id: number | null;
 }
 
 export const ProductsTable = () => {
@@ -46,15 +48,23 @@ export const ProductsTable = () => {
 
   const fetchProducts = async () => {
     const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = getUnidadeAtivaId();
     if (!dominio) return;
 
     setLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from("tb_produtos")
       .select("*")
       .eq("dominio", dominio)
       .eq("ativo", true)
       .order("nome");
+
+    if (unidadeId) {
+      query = query.eq("unidade_id", unidadeId);
+    }
+
+    const { data, error } = await query;
 
     setLoading(false);
 
@@ -63,7 +73,7 @@ export const ProductsTable = () => {
       return;
     }
 
-    setProducts(data || []);
+    setProducts((data || []) as Product[]);
   };
 
   useEffect(() => {

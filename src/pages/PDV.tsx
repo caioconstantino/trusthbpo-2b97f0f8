@@ -74,14 +74,21 @@ const PDV = () => {
 
   const fetchProducts = async () => {
     const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
     if (!dominio) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("tb_produtos")
       .select("id, nome, preco_venda, codigo")
       .eq("dominio", dominio)
       .eq("ativo", true)
       .order("nome");
+
+    if (unidadeId) {
+      query = query.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setProducts(data);

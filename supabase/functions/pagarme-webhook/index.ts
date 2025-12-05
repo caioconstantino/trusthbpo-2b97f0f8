@@ -392,6 +392,21 @@ Deno.serve(async (req) => {
           } else {
             console.log('New customer created:', newDominio)
             
+            // Create default "Matriz" unit for the new customer
+            const { error: unidadeError } = await supabase
+              .from('tb_unidades')
+              .insert({
+                dominio: newDominio,
+                nome: 'Matriz',
+                ativo: true
+              })
+            
+            if (unidadeError) {
+              console.error('Error creating Matriz unit:', unidadeError)
+            } else {
+              console.log('Matriz unit created for:', newDominio)
+            }
+            
             // If this sale came from a reseller, create a sale record
             if (revendaId) {
               console.log('Creating reseller sale record...')

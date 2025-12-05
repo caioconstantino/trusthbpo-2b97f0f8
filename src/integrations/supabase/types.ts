@@ -107,6 +107,7 @@ export type Database = {
           dominio: string
           id: number
           nome: string
+          unidade_id: number | null
           updated_at: string | null
         }
         Insert: {
@@ -114,6 +115,7 @@ export type Database = {
           dominio: string
           id?: number
           nome: string
+          unidade_id?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -121,9 +123,18 @@ export type Database = {
           dominio?: string
           id?: number
           nome?: string
+          unidade_id?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_categorias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_categorias_contas_pagar: {
         Row: {
@@ -133,6 +144,7 @@ export type Database = {
           id: number
           nome: string | null
           parent_id: number | null
+          unidade_id: number | null
           updated_at: string | null
         }
         Insert: {
@@ -142,6 +154,7 @@ export type Database = {
           id?: number
           nome?: string | null
           parent_id?: number | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -151,9 +164,18 @@ export type Database = {
           id?: number
           nome?: string | null
           parent_id?: number | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_categorias_contas_pagar_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_categorias_contas_receber: {
         Row: {
@@ -163,6 +185,7 @@ export type Database = {
           id: number
           nome: string | null
           parent_id: number | null
+          unidade_id: number | null
           updated_at: string | null
         }
         Insert: {
@@ -172,6 +195,7 @@ export type Database = {
           id?: number
           nome?: string | null
           parent_id?: number | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -181,9 +205,18 @@ export type Database = {
           id?: number
           nome?: string | null
           parent_id?: number | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_categorias_contas_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_clientes: {
         Row: {
@@ -205,6 +238,7 @@ export type Database = {
           ultima_forma_pagamento: string | null
           ultimo_pagamento: string | null
           unidade: number
+          unidade_id: number | null
           updated_at: string | null
           usuario: number
         }
@@ -227,6 +261,7 @@ export type Database = {
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           unidade?: number
+          unidade_id?: number | null
           updated_at?: string | null
           usuario?: number
         }
@@ -249,10 +284,19 @@ export type Database = {
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           unidade?: number
+          unidade_id?: number | null
           updated_at?: string | null
           usuario?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_clientes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_clientes_saas: {
         Row: {
@@ -341,6 +385,7 @@ export type Database = {
           status: string
           total: number
           unidade: string | null
+          unidade_id: number | null
           updated_at: string
         }
         Insert: {
@@ -352,6 +397,7 @@ export type Database = {
           status?: string
           total?: number
           unidade?: string | null
+          unidade_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -363,9 +409,18 @@ export type Database = {
           status?: string
           total?: number
           unidade?: string | null
+          unidade_id?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_compras_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_compras_itens: {
         Row: {
@@ -428,6 +483,7 @@ export type Database = {
           id: string
           observacoes: string | null
           status: string
+          unidade_id: number | null
           updated_at: string
           valor: number
           vencimento: string
@@ -444,6 +500,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           valor?: number
           vencimento: string
@@ -460,6 +517,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           valor?: number
           vencimento?: string
@@ -470,6 +528,13 @@ export type Database = {
             columns: ["compra_id"]
             isOneToOne: false
             referencedRelation: "tb_compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_contas_pagar_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -486,6 +551,7 @@ export type Database = {
           id: string
           observacoes: string | null
           status: string
+          unidade_id: number | null
           updated_at: string
           valor: number
           vencimento: string
@@ -502,6 +568,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           valor?: number
           vencimento: string
@@ -518,12 +585,21 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           valor?: number
           vencimento?: string
           venda_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_contas_receber_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_escolas: {
         Row: {
@@ -758,6 +834,7 @@ export type Database = {
           preco_custo: number | null
           preco_venda: number | null
           tipo: string | null
+          unidade_id: number | null
           updated_at: string | null
         }
         Insert: {
@@ -774,6 +851,7 @@ export type Database = {
           preco_custo?: number | null
           preco_venda?: number | null
           tipo?: string | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -790,6 +868,7 @@ export type Database = {
           preco_custo?: number | null
           preco_venda?: number | null
           tipo?: string | null
+          unidade_id?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -798,6 +877,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "tb_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_produtos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -1049,6 +1135,7 @@ export type Database = {
           id: string
           observacoes: string | null
           status: string
+          unidade_id: number | null
           updated_at: string
           usuario_id: string
           usuario_nome: string
@@ -1064,6 +1151,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           usuario_id: string
           usuario_nome: string
@@ -1079,13 +1167,22 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status?: string
+          unidade_id?: number | null
           updated_at?: string
           usuario_id?: string
           usuario_nome?: string
           valor_abertura?: number
           valor_fechamento?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_sessoes_caixa_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_unidades: {
         Row: {
@@ -1188,6 +1285,7 @@ export type Database = {
           subtotal: number
           total: number
           troco: number
+          unidade_id: number | null
         }
         Insert: {
           acrescimo_percentual?: number
@@ -1200,6 +1298,7 @@ export type Database = {
           subtotal?: number
           total?: number
           troco?: number
+          unidade_id?: number | null
         }
         Update: {
           acrescimo_percentual?: number
@@ -1212,6 +1311,7 @@ export type Database = {
           subtotal?: number
           total?: number
           troco?: number
+          unidade_id?: number | null
         }
         Relationships: [
           {
@@ -1219,6 +1319,13 @@ export type Database = {
             columns: ["sessao_id"]
             isOneToOne: false
             referencedRelation: "tb_sessoes_caixa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_vendas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
             referencedColumns: ["id"]
           },
         ]

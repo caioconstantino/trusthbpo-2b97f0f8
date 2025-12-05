@@ -6,18 +6,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, User, Lock } from "lucide-react";
+import { Loader2, Building2, User, Lock, Building, MapPin } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import InadimplenteBlock from "@/components/InadimplenteBlock";
 import logo from "@/assets/logo.webp";
 
+interface Unidade {
+  id: number;
+  nome: string;
+  endereco_cidade: string | null;
+  endereco_estado: string | null;
+}
+
 const Login = () => {
-  const [step, setStep] = useState<"domain" | "credentials" | "blocked">("domain");
+  const [step, setStep] = useState<"domain" | "credentials" | "selectUnidade" | "blocked">("domain");
   const [dominio, setDominio] = useState("");
   const [nomeCliente, setNomeCliente] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [blockedData, setBlockedData] = useState<{
     dataVencimento: string;
     plano: string;
@@ -29,6 +37,7 @@ const Login = () => {
   useEffect(() => {
     const clearExpiredSession = async () => {
       await supabase.auth.signOut();
+      localStorage.removeItem("unidade_ativa_id");
     };
     clearExpiredSession();
   }, []);
@@ -131,15 +140,68 @@ const Login = () => {
         }
       }
 
+      // Salvar domínio no localStorage para uso posterior
+      localStorage.setItem("user_dominio", dominio.trim().toLowerCase());
+      localStorage.setItem("user_nome", userData.nome);
+
+      // Buscar unidades disponíveis
+      const { data: unidadesData } = await supabase
+        .from("tb_unidades")
+        .select("id, nome, endereco_cidade, endereco_estado")
+        .eq("dominio", dominio.trim().toLowerCase())
+        .eq("ativo", true)
+        .order("nome");
+
+      const unidadesList = (unidadesData || []) as Unidade[];
+
+      if (unidadesList.length === 0) {
+        // Criar Matriz automaticamente se não existir nenhuma unidade
+        const { data: novaUnidade, error: unidadeError } = await supabase
+          .from("tb_unidades")
+          .insert({
+            dominio: dominio.trim().toLowerCase(),
+            nome: "Matriz",
+            ativo: true,
+          })
+          .select("id, nome, endereco_cidade, endereco_estado")
+          .single();
+
+        if (!unidadeError && novaUnidade) {
+          await finalizarLogin(novaUnidade.id);
+        } else {
+          // Erro ao criar unidade, prosseguir sem unidade
+          await finalizarLogin(null);
+        }
+      } else if (unidadesList.length === 1) {
+        // Apenas uma unidade, selecionar automaticamente
+        await finalizarLogin(unidadesList[0].id);
+      } else {
+        // Múltiplas unidades, mostrar seleção
+        setUnidades(unidadesList);
+        setStep("selectUnidade");
+        setIsLoading(false);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message,
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const finalizarLogin = async (unidadeId: number | null) => {
+    try {
+      if (unidadeId) {
+        localStorage.setItem("unidade_ativa_id", unidadeId.toString());
+      }
+
       // Atualizar last_login_at na conta do cliente
       await supabase
         .from("tb_clientes_saas")
         .update({ last_login_at: new Date().toISOString() })
         .eq("dominio", dominio.trim().toLowerCase());
-
-      // Salvar domínio no localStorage para uso posterior
-      localStorage.setItem("user_dominio", dominio.trim().toLowerCase());
-      localStorage.setItem("user_nome", userData.nome);
 
       toast({
         title: "Login realizado com sucesso",
@@ -158,10 +220,19 @@ const Login = () => {
     }
   };
 
+  const selecionarUnidade = async (unidade: Unidade) => {
+    setIsLoading(true);
+    await finalizarLogin(unidade.id);
+  };
+
   const voltarParaDominio = () => {
     setStep("domain");
     setEmail("");
     setSenha("");
+  };
+
+  const voltarParaCredenciais = () => {
+    setStep("credentials");
   };
 
   // Mostrar tela de bloqueio para inadimplentes
@@ -188,16 +259,18 @@ const Login = () => {
             <img src={logo} alt="TrustHBPO Logo" className="h-16 object-contain" />
           </div>
           <CardTitle className="text-2xl text-center">
-            {step === "domain" ? "Entrar" : `Bem-vindo, ${nomeCliente}`}
+            {step === "domain" && "Entrar"}
+            {step === "credentials" && `Bem-vindo, ${nomeCliente}`}
+            {step === "selectUnidade" && "Selecione a Empresa"}
           </CardTitle>
           <CardDescription className="text-center">
-            {step === "domain"
-              ? "Digite o domínio"
-              : "Digite a senha"}
+            {step === "domain" && "Digite o domínio"}
+            {step === "credentials" && "Digite a senha"}
+            {step === "selectUnidade" && "Escolha qual empresa deseja acessar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === "domain" ? (
+          {step === "domain" && (
             <form onSubmit={validarDominio} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="dominio">Domínio</Label>
@@ -226,7 +299,9 @@ const Login = () => {
                 )}
               </Button>
             </form>
-          ) : (
+          )}
+
+          {step === "credentials" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
@@ -282,6 +357,43 @@ const Login = () => {
                 </Button>
               </div>
             </form>
+          )}
+
+          {step === "selectUnidade" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {unidades.map((unidade) => (
+                  <button
+                    key={unidade.id}
+                    onClick={() => selecionarUnidade(unidade)}
+                    disabled={isLoading}
+                    className="w-full flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Building className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{unidade.nome}</p>
+                      {(unidade.endereco_cidade || unidade.endereco_estado) && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[unidade.endereco_cidade, unidade.endereco_estado].filter(Boolean).join(" - ")}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={voltarParaCredenciais}
+                disabled={isLoading}
+                className="w-full"
+              >
+                Voltar
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
