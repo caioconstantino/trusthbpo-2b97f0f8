@@ -827,12 +827,20 @@ export default function Configuracoes() {
                         <Building className="h-5 w-5" />
                         Minhas Empresas
                       </CardTitle>
-                      <CardDescription>Gerencie múltiplas empresas no mesmo domínio</CardDescription>
+                      <CardDescription>
+                        {unidades.length} de {empresasIncluidas + (cliente?.empresas_adicionais || 0)} empresa(s) utilizadas
+                      </CardDescription>
                     </div>
-                    <Button size="sm" className="gap-2" onClick={() => openUnidadeDialog()}>
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Nova Empresa</span>
-                    </Button>
+                    {unidades.length < (empresasIncluidas + (cliente?.empresas_adicionais || 0)) ? (
+                      <Button size="sm" className="gap-2" onClick={() => openUnidadeDialog()}>
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Nova Empresa</span>
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="text-amber-600 border-amber-600">
+                        Limite atingido
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -905,11 +913,12 @@ export default function Configuracoes() {
                     </div>
                     <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
                       <p className="text-sm text-amber-700 dark:text-amber-400">
-                        <strong>Você tem:</strong> {unidades.length} empresa{unidades.length !== 1 ? "s" : ""} cadastrada{unidades.length !== 1 ? "s" : ""}
-                        {unidades.length > empresasIncluidas && (
-                          <span className="block mt-1">
-                            ({unidades.length - empresasIncluidas} adicional{unidades.length - empresasIncluidas !== 1 ? "is" : ""} = R$ {((unidades.length - empresasIncluidas) * 10).toFixed(2)}/mês)
-                          </span>
+                        <strong>Seu limite:</strong> {empresasIncluidas} incluída{empresasIncluidas > 1 ? "s" : ""} + {cliente?.empresas_adicionais || 0} adicional(is) = {empresasIncluidas + (cliente?.empresas_adicionais || 0)} empresa(s)
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                        <strong>Utilizando:</strong> {unidades.length} empresa{unidades.length !== 1 ? "s" : ""}
+                        {unidades.length > empresasIncluidas + (cliente?.empresas_adicionais || 0) && (
+                          <span className="text-destructive font-semibold"> (Excedeu o limite!)</span>
                         )}
                       </p>
                     </div>
@@ -1226,16 +1235,16 @@ export default function Configuracoes() {
                       Cada PDV adicional custa <span className="font-bold">R$ 10,00/mês</span>
                     </p>
                   </div>
-                  {(cliente?.pdvs_adicionais || 0) > 0 && (
-                    <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
-                      <p className="text-sm text-amber-700 dark:text-amber-400">
-                        <strong>Você tem:</strong> {cliente?.pdvs_adicionais || 0} PDV{(cliente?.pdvs_adicionais || 0) !== 1 ? "s" : ""} adicional{(cliente?.pdvs_adicionais || 0) !== 1 ? "is" : ""} contratado{(cliente?.pdvs_adicionais || 0) !== 1 ? "s" : ""}
-                        <span className="block mt-1">
-                          (Total: R$ {((cliente?.pdvs_adicionais || 0) * 10).toFixed(2)}/mês)
-                        </span>
+                  <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      <strong>Seu limite:</strong> 1 incluído + {cliente?.pdvs_adicionais || 0} adicional(is) = {1 + (cliente?.pdvs_adicionais || 0)} PDV(s)
+                    </p>
+                    {(cliente?.pdvs_adicionais || 0) > 0 && (
+                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                        <strong>Valor adicional:</strong> R$ {((cliente?.pdvs_adicionais || 0) * 10).toFixed(2)}/mês
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
