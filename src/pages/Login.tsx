@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, User, Lock } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import logo from "@/assets/logo.webp";
 
 const Login = () => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"domain" | "credentials">("domain");
   const [dominio, setDominio] = useState("");
   const [nomeCliente, setNomeCliente] = useState("");
@@ -44,27 +48,27 @@ const Login = () => {
           setNomeCliente(resultado.nome_cliente);
           setStep("credentials");
           toast({
-            title: "Domínio válido",
-            description: `Bem-vindo, ${resultado.nome_cliente}`,
+            title: t('common.success'),
+            description: `${t('dashboard.welcome')}, ${resultado.nome_cliente}`,
           });
         } else {
           toast({
             variant: "destructive",
-            title: "Domínio não encontrado",
-            description: "O domínio informado não está cadastrado ou está inativo.",
+            title: t('common.error'),
+            description: t('auth.invalidCredentials'),
           });
         }
       } else {
         toast({
           variant: "destructive",
-          title: "Domínio não encontrado",
-          description: "O domínio informado não está cadastrado ou está inativo.",
+          title: t('common.error'),
+          description: t('auth.invalidCredentials'),
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao validar domínio",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -94,7 +98,7 @@ const Login = () => {
 
       if (userError || !userData) {
         await supabase.auth.signOut();
-        throw new Error("Usuário não pertence a este domínio");
+        throw new Error(t('auth.invalidCredentials'));
       }
 
       // Salvar domínio no localStorage para uso posterior
@@ -102,15 +106,15 @@ const Login = () => {
       localStorage.setItem("user_nome", userData.nome);
 
       toast({
-        title: "Login realizado",
-        description: "Bem-vindo ao sistema!",
+        title: t('auth.loginSuccess'),
+        description: `${t('dashboard.welcome')}!`,
       });
 
       navigate("/dashboard");
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao fazer login",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -126,31 +130,37 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      {/* Top right controls */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <LanguageSelector />
+        <ThemeToggle />
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-center mb-4">
             <img src={logo} alt="TrustHBPO Logo" className="h-16 object-contain" />
           </div>
           <CardTitle className="text-2xl text-center">
-            {step === "domain" ? "Acesse sua conta" : `Bem-vindo, ${nomeCliente}`}
+            {step === "domain" ? t('auth.login') : `${t('dashboard.welcome')}, ${nomeCliente}`}
           </CardTitle>
           <CardDescription className="text-center">
             {step === "domain"
-              ? "Digite o domínio da sua empresa para continuar"
-              : "Digite suas credenciais para acessar o sistema"}
+              ? t('auth.enterDomain')
+              : t('auth.enterPassword')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {step === "domain" ? (
             <form onSubmit={validarDominio} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dominio">Domínio</Label>
+                <Label htmlFor="dominio">{t('auth.domain')}</Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="dominio"
                     type="text"
-                    placeholder="suaempresa"
+                    placeholder={t('auth.enterDomain')}
                     value={dominio}
                     onChange={(e) => setDominio(e.target.value)}
                     className="pl-10"
@@ -158,31 +168,28 @@ const Login = () => {
                     disabled={isLoading}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Digite apenas o nome do domínio (sem espaços ou caracteres especiais)
-                </p>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Validando...
+                    {t('common.loading')}
                   </>
                 ) : (
-                  "Continuar"
+                  t('common.next')
                 )}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">{t('common.email')}</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu@email.com"
+                    placeholder={t('auth.enterEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -192,7 +199,7 @@ const Login = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="senha">Senha</Label>
+                <Label htmlFor="senha">{t('auth.password')}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -215,16 +222,16 @@ const Login = () => {
                   disabled={isLoading}
                   className="flex-1"
                 >
-                  Voltar
+                  {t('common.back')}
                 </Button>
                 <Button type="submit" className="flex-1" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
+                      {t('common.loading')}
                     </>
                   ) : (
-                    "Entrar"
+                    t('auth.login')
                   )}
                 </Button>
               </div>
