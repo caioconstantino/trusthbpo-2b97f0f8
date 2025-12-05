@@ -70,6 +70,9 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Pagar.me requires amount in centavos as INTEGER
+    const amountInCentavos = Math.round(planPrice)
+
     // Construir descrição do item
     let itemDescription = planName
     const extras: string[] = []
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
         credit_card_settings: {
           operation_type: 'auth_and_capture',
           installments: [
-            { number: 1, total: planPrice }
+            { number: 1, total: amountInCentavos }
           ]
         },
         pix_settings: {
@@ -112,7 +115,7 @@ Deno.serve(async (req) => {
         items: [
           {
             name: itemDescription,
-            amount: planPrice,
+            amount: amountInCentavos,
             default_quantity: 1
           }
         ]
