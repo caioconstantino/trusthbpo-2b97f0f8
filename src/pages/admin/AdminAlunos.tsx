@@ -186,13 +186,14 @@ const AdminAlunos = () => {
             escola = escolaData;
           }
 
-          // Buscar empresa adotada pelo aluno
-          const { data: empresaData } = await supabase
+          // Buscar empresa adotada pelo aluno (pega a mais recente)
+          const { data: empresasData } = await supabase
             .from("tb_clientes_saas")
             .select("id, dominio, razao_social, status, created_at")
             .eq("aluno_id", aluno.id)
-            .maybeSingle();
-          empresa_adotada = empresaData;
+            .order("created_at", { ascending: false })
+            .limit(1);
+          empresa_adotada = empresasData?.[0] || null;
 
           // Buscar último login da empresa adotada (via edge function)
           if (empresa_adotada) {
