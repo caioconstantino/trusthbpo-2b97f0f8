@@ -36,19 +36,28 @@ export function AppSidebar() {
   useEffect(() => {
     const checkEducationalAccount = async () => {
       const dominio = localStorage.getItem("dominio");
-      if (!dominio) return;
+      console.log("AppSidebar - Verificando conta educacional para domínio:", dominio);
+      
+      if (!dominio) {
+        console.log("AppSidebar - Nenhum domínio encontrado no localStorage");
+        return;
+      }
 
       try {
+        console.log("AppSidebar - Chamando edge function get-customer-data...");
         const { data, error } = await supabase.functions.invoke("get-customer-data", {
           body: { dominio },
         });
 
+        console.log("AppSidebar - Resposta da edge function:", { data, error });
+
         if (!error && data?.cliente) {
+          console.log("AppSidebar - tipo_conta:", data.cliente.tipo_conta, "aluno_id:", data.cliente.aluno_id);
           setIsEducational(data.cliente.tipo_conta === "aluno");
           setAlunoId(data.cliente.aluno_id);
         }
       } catch (err) {
-        console.error("Erro ao verificar tipo de conta:", err);
+        console.error("AppSidebar - Erro ao verificar tipo de conta:", err);
       }
     };
 
