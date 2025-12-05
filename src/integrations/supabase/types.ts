@@ -831,6 +831,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_ofertas_produtos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          desconto_percentual: number
+          descricao: string | null
+          funcionalidades: string[] | null
+          id: string
+          imagem_url: string | null
+          link: string | null
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          desconto_percentual?: number
+          descricao?: string | null
+          funcionalidades?: string[] | null
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          desconto_percentual?: number
+          descricao?: string | null
+          funcionalidades?: string[] | null
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tb_produtos: {
         Row: {
           ativo: boolean | null
