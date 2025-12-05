@@ -30,8 +30,10 @@ import {
   GraduationCap,
   Users,
   Webhook,
-  DollarSign
+  DollarSign,
+  Upload
 } from "lucide-react";
+import { ImportClientesDialog } from "@/components/admin/ImportClientesDialog";
 
 interface SaasCliente {
   id: number;
@@ -60,6 +62,7 @@ const AdminClientes = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchClientes();
@@ -224,6 +227,10 @@ const AdminClientes = () => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Clientes SaaS</h2>
+          <Button onClick={() => setImportDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+            <Upload className="w-4 h-4 mr-2" />
+            Importar XLSX
+          </Button>
         </div>
 
         {/* Filters */}
@@ -334,6 +341,13 @@ const AdminClientes = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Import Dialog */}
+      <ImportClientesDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={fetchClientes}
+      />
     </div>
   );
 };
