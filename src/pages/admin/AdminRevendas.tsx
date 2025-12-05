@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,10 @@ import {
   Ban,
   CheckCircle,
   Loader2,
-  Handshake
+  Handshake,
+  Package,
+  Copy,
+  ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -65,11 +68,18 @@ interface Revenda {
   documento: string | null;
   telefone: string | null;
   status: string;
-  comissao_percentual: number;
-  saldo: number;
-  total_ganho: number;
-  total_sacado: number;
+  slug: string | null;
   created_at: string;
+}
+
+interface RevendaProduto {
+  id: string;
+  revenda_id: string;
+  produto_codigo: string;
+  produto_nome: string;
+  preco_original: number;
+  preco_revenda: number;
+  ativo: boolean;
 }
 
 const AdminRevendas = () => {
@@ -83,6 +93,7 @@ const AdminRevendas = () => {
   const [editRevenda, setEditRevenda] = useState<Revenda | null>(null);
   const [deleteRevenda, setDeleteRevenda] = useState<Revenda | null>(null);
   const [blockRevenda, setBlockRevenda] = useState<Revenda | null>(null);
+  const [produtosRevenda, setProdutosRevenda] = useState<Revenda | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -91,7 +102,12 @@ const AdminRevendas = () => {
     senha: "",
     documento: "",
     telefone: "",
-    comissao_percentual: "10",
+    slug: "",
+  });
+
+  const [produtosData, setProdutosData] = useState({
+    basico_preco: "49.90",
+    pro_preco: "129.90",
   });
 
   const { data: revendas = [], isLoading } = useQuery({
@@ -104,6 +120,20 @@ const AdminRevendas = () => {
       if (error) throw error;
       return data as Revenda[];
     },
+  });
+
+  const { data: produtos = [] } = useQuery({
+    queryKey: ["admin-revendas-produtos", produtosRevenda?.id],
+    queryFn: async () => {
+      if (!produtosRevenda) return [];
+      const { data, error } = await supabase
+        .from("tb_revendas_produtos")
+        .select("*")
+        .eq("revenda_id", produtosRevenda.id);
+      if (error) throw error;
+      return data as RevendaProduto[];
+    },
+    enabled: !!produtosRevenda,
   });
 
   const filteredRevendas = revendas.filter(r =>
@@ -123,8 +153,17 @@ const AdminRevendas = () => {
       senha: "",
       documento: "",
       telefone: "",
-      comissao_percentual: "10",
+      slug: "",
     });
+  };
+
+  const generateSlug = (nome: string) => {
+    return nome
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -132,6 +171,8 @@ const AdminRevendas = () => {
     setIsSubmitting(true);
 
     try {
+      const slug = formData.slug || generateSlug(formData.nome);
+
       // Criar usuário no auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -144,18 +185,38 @@ const AdminRevendas = () => {
       if (authError) throw authError;
 
       // Criar registro na tabela de revendas
-      const { error: insertError } = await supabase
+      const { data: revendaData, error: insertError } = await supabase
         .from("tb_revendas")
         .insert({
           nome: formData.nome,
           email: formData.email,
           documento: formData.documento || null,
           telefone: formData.telefone?.replace(/\D/g, "") || null,
-          comissao_percentual: parseFloat(formData.comissao_percentual) || 10,
           auth_user_id: authData.user?.id,
-        });
+          slug,
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+
+      // Criar produtos padrão para a revenda
+      await supabase.from("tb_revendas_produtos").insert([
+        {
+          revenda_id: revendaData.id,
+          produto_codigo: "basico",
+          produto_nome: "Plano Básico",
+          preco_original: 39.90,
+          preco_revenda: 49.90,
+        },
+        {
+          revenda_id: revendaData.id,
+          produto_codigo: "pro",
+          produto_nome: "Plano Pro",
+          preco_original: 99.90,
+          preco_revenda: 129.90,
+        },
+      ]);
 
       toast({
         title: "Sucesso",
@@ -188,7 +249,7 @@ const AdminRevendas = () => {
           nome: formData.nome,
           documento: formData.documento || null,
           telefone: formData.telefone?.replace(/\D/g, "") || null,
-          comissao_percentual: parseFloat(formData.comissao_percentual) || 10,
+          slug: formData.slug || generateSlug(formData.nome),
         })
         .eq("id", editRevenda.id);
 
@@ -271,6 +332,46 @@ const AdminRevendas = () => {
     }
   };
 
+  const handleSaveProdutos = async () => {
+    if (!produtosRevenda) return;
+    setIsSubmitting(true);
+
+    try {
+      // Upsert produtos
+      await supabase.from("tb_revendas_produtos").upsert([
+        {
+          revenda_id: produtosRevenda.id,
+          produto_codigo: "basico",
+          produto_nome: "Plano Básico",
+          preco_original: 39.90,
+          preco_revenda: parseFloat(produtosData.basico_preco) || 49.90,
+        },
+        {
+          revenda_id: produtosRevenda.id,
+          produto_codigo: "pro",
+          produto_nome: "Plano Pro",
+          preco_original: 99.90,
+          preco_revenda: parseFloat(produtosData.pro_preco) || 129.90,
+        },
+      ], { onConflict: 'revenda_id,produto_codigo' });
+
+      toast({
+        title: "Sucesso",
+        description: "Preços atualizados com sucesso!",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["admin-revendas-produtos"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const openEditDialog = (revenda: Revenda) => {
     setFormData({
       nome: revenda.nome,
@@ -278,16 +379,30 @@ const AdminRevendas = () => {
       senha: "",
       documento: revenda.documento || "",
       telefone: revenda.telefone || "",
-      comissao_percentual: revenda.comissao_percentual.toString(),
+      slug: revenda.slug || "",
     });
     setEditRevenda(revenda);
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  const openProdutosDialog = (revenda: Revenda) => {
+    setProdutosRevenda(revenda);
+    const basicoProduto = produtos.find(p => p.produto_codigo === "basico");
+    const proProduto = produtos.find(p => p.produto_codigo === "pro");
+    setProdutosData({
+      basico_preco: basicoProduto?.preco_revenda?.toString() || "49.90",
+      pro_preco: proProduto?.preco_revenda?.toString() || "129.90",
+    });
   };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado!",
+      description: "Link copiado para a área de transferência.",
+    });
+  };
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -409,22 +524,20 @@ const AdminRevendas = () => {
                   <TableHead className="text-slate-400">Nome</TableHead>
                   <TableHead className="text-slate-400">Email</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Comissão</TableHead>
-                  <TableHead className="text-slate-400">Saldo</TableHead>
-                  <TableHead className="text-slate-400">Total Ganho</TableHead>
+                  <TableHead className="text-slate-400">Landing Page</TableHead>
                   <TableHead className="text-slate-400 text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-500">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : filteredRevendas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-500">
                       Nenhuma revenda encontrada
                     </TableCell>
                   </TableRow>
@@ -442,9 +555,31 @@ const AdminRevendas = () => {
                           {revenda.status}
                         </span>
                       </TableCell>
-                      <TableCell className="text-slate-300">{revenda.comissao_percentual}%</TableCell>
-                      <TableCell className="text-green-400 font-medium">{formatCurrency(revenda.saldo)}</TableCell>
-                      <TableCell className="text-blue-400 font-medium">{formatCurrency(revenda.total_ganho)}</TableCell>
+                      <TableCell>
+                        {revenda.slug && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm truncate max-w-[200px]">
+                              /revenda/{revenda.slug}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-slate-400 hover:text-white"
+                              onClick={() => copyToClipboard(`${window.location.origin}/revenda/${revenda.slug}`)}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-slate-400 hover:text-white"
+                              onClick={() => window.open(`/revenda/${revenda.slug}`, '_blank')}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center">
                           <DropdownMenu>
@@ -458,6 +593,13 @@ const AdminRevendas = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                              <DropdownMenuItem 
+                                className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                                onClick={() => openProdutosDialog(revenda)}
+                              >
+                                <Package className="w-4 h-4 mr-2" />
+                                Configurar Preços
+                              </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
                                 onClick={() => openEditDialog(revenda)}
@@ -504,71 +646,73 @@ const AdminRevendas = () => {
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Nova Revenda</DialogTitle>
+            <DialogTitle>Nova Revenda</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label className="text-slate-300">Nome *</Label>
               <Input
+                required
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                required
                 className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="Nome da revenda"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label className="text-slate-300">Email *</Label>
               <Input
+                required
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
                 className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="email@revenda.com"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label className="text-slate-300">Senha *</Label>
               <Input
+                required
                 type="password"
                 value={formData.senha}
                 onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                required
+                className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="Mínimo 6 caracteres"
                 minLength={6}
-                className="bg-slate-700/50 border-slate-600 text-white"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-slate-300">CPF/CNPJ</Label>
-                <Input
-                  value={formData.documento}
-                  onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-slate-300">Telefone</Label>
-                <Input
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-slate-300">Comissão (%)</Label>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Documento (CPF/CNPJ)</Label>
               <Input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.comissao_percentual}
-                onChange={(e) => setFormData({ ...formData, comissao_percentual: e.target.value })}
+                value={formData.documento}
+                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
                 className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="00.000.000/0000-00"
               />
             </div>
-            <div className="flex gap-3 pt-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Telefone</Label>
+              <Input
+                value={formData.telefone}
+                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Slug da Landing Page</Label>
+              <Input
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="minha-revenda (auto-gerado se vazio)"
+              />
+              <p className="text-xs text-slate-500">URL: /revenda/{formData.slug || generateSlug(formData.nome) || "..."}</p>
+            </div>
+            <div className="flex gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -577,7 +721,7 @@ const AdminRevendas = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
+              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary hover:bg-primary/90">
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cadastrar"}
               </Button>
             </div>
@@ -587,59 +731,53 @@ const AdminRevendas = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editRevenda} onOpenChange={() => { setEditRevenda(null); resetForm(); }}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Editar Revenda</DialogTitle>
+            <DialogTitle>Editar Revenda</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label className="text-slate-300">Nome *</Label>
               <Input
+                required
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                required
                 className="bg-slate-700/50 border-slate-600 text-white"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label className="text-slate-300">Email</Label>
               <Input
-                value={formData.email}
                 disabled
-                className="bg-slate-700/50 border-slate-600 text-slate-400"
+                value={formData.email}
+                className="bg-slate-700/50 border-slate-600 text-slate-500"
               />
-              <p className="text-xs text-slate-500 mt-1">O email não pode ser alterado</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-slate-300">CPF/CNPJ</Label>
-                <Input
-                  value={formData.documento}
-                  onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-slate-300">Telefone</Label>
-                <Input
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-slate-300">Comissão (%)</Label>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Documento (CPF/CNPJ)</Label>
               <Input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.comissao_percentual}
-                onChange={(e) => setFormData({ ...formData, comissao_percentual: e.target.value })}
+                value={formData.documento}
+                onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
                 className="bg-slate-700/50 border-slate-600 text-white"
               />
             </div>
-            <div className="flex gap-3 pt-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Telefone</Label>
+              <Input
+                value={formData.telefone}
+                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300">Slug da Landing Page</Label>
+              <Input
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -648,11 +786,95 @@ const AdminRevendas = () => {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
+              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary hover:bg-primary/90">
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Produtos/Preços Dialog */}
+      <Dialog open={!!produtosRevenda} onOpenChange={() => setProdutosRevenda(null)}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar Preços de Revenda</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <Card className="bg-slate-700/50 border-slate-600">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-white">Plano Básico</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Preço Original:</span>
+                  <span className="text-white font-medium">R$ 39,90</span>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Preço de Revenda (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={produtosData.basico_preco}
+                    onChange={(e) => setProdutosData({ ...produtosData, basico_preco: e.target.value })}
+                    className="bg-slate-600/50 border-slate-500 text-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-600">
+                  <span className="text-sm text-slate-400">Lucro por venda:</span>
+                  <span className="text-green-400 font-medium">
+                    R$ {((parseFloat(produtosData.basico_preco) || 0) - 39.90).toFixed(2)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-700/50 border-slate-600">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-white">Plano Pro</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Preço Original:</span>
+                  <span className="text-white font-medium">R$ 99,90</span>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Preço de Revenda (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={produtosData.pro_preco}
+                    onChange={(e) => setProdutosData({ ...produtosData, pro_preco: e.target.value })}
+                    className="bg-slate-600/50 border-slate-500 text-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-600">
+                  <span className="text-sm text-slate-400">Lucro por venda:</span>
+                  <span className="text-green-400 font-medium">
+                    R$ {((parseFloat(produtosData.pro_preco) || 0) - 99.90).toFixed(2)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setProdutosRevenda(null)}
+                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSaveProdutos} 
+                disabled={isSubmitting} 
+                className="flex-1 bg-primary hover:bg-primary/90"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Preços"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -664,20 +886,14 @@ const AdminRevendas = () => {
               {blockRevenda?.status === "Inativo" ? "Ativar" : "Bloquear"} Revenda
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              {blockRevenda?.status === "Inativo" 
-                ? `Deseja ativar a revenda "${blockRevenda?.nome}"?`
-                : `Deseja bloquear a revenda "${blockRevenda?.nome}"?`
-              }
+              Tem certeza que deseja {blockRevenda?.status === "Inativo" ? "ativar" : "bloquear"} a revenda "{blockRevenda?.nome}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBlockToggle}
-              className={blockRevenda?.status === "Inativo" ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}
-            >
+            <AlertDialogAction onClick={handleBlockToggle} className="bg-amber-500 hover:bg-amber-600">
               {blockRevenda?.status === "Inativo" ? "Ativar" : "Bloquear"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -694,10 +910,10 @@ const AdminRevendas = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600">
+            <AlertDialogCancel className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
