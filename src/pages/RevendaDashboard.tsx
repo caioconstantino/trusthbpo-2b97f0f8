@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { 
   LogOut,
   LayoutDashboard,
@@ -22,9 +23,12 @@ import {
   Package,
   Copy,
   ExternalLink,
-  Loader2
+  Loader2,
+  Wallet,
+  Calendar,
+  Briefcase
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addMonths, setDate, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   LineChart,
@@ -45,17 +49,33 @@ interface Revenda {
   email: string;
   slug: string | null;
   status: string;
+  saldo: number;
+  total_ganho: number;
+  total_sacado: number;
+  comissao_percentual: number;
 }
 
 interface Venda {
   id: string;
   cliente_nome: string;
   cliente_email: string | null;
+  cliente_dominio: string | null;
   produto_nome: string;
   valor_venda: number;
   lucro: number;
   status: string;
   created_at: string;
+}
+
+interface Cliente {
+  id: number;
+  razao_social: string;
+  email: string | null;
+  telefone: string | null;
+  dominio: string;
+  status: string;
+  plano: string | null;
+  created_at: string | null;
 }
 
 const RevendaDashboard = () => {
@@ -124,6 +144,22 @@ const RevendaDashboard = () => {
       return data;
     },
     enabled: !!revenda,
+  });
+
+  // Buscar clientes da carteira da revenda (pelo cupom/slug)
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["revenda-clientes", revenda?.slug],
+    queryFn: async () => {
+      if (!revenda?.slug) return [];
+      const { data, error } = await supabase
+        .from("tb_clientes_saas")
+        .select("*")
+        .eq("cupom", revenda.slug)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Cliente[];
+    },
+    enabled: !!revenda?.slug,
   });
 
   const handleLogout = async () => {
@@ -197,6 +233,27 @@ const RevendaDashboard = () => {
 
   const landingUrl = revenda.slug ? `${window.location.origin}/revenda/${revenda.slug}` : null;
 
+  // Calcular próximas datas de pagamento
+  // Fecha fatura dia 30, Pagamos dia 5
+  const hoje = new Date();
+  let proximoFechamento = setDate(hoje, 30);
+  if (isBefore(proximoFechamento, hoje)) {
+    proximoFechamento = setDate(addMonths(hoje, 1), 30);
+  }
+  
+  let proximoPagamento = setDate(addMonths(proximoFechamento, 1), 5);
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'ativo': return 'bg-green-500/20 text-green-400';
+      case 'inativo': return 'bg-slate-500/20 text-slate-400';
+      case 'lead': return 'bg-blue-500/20 text-blue-400';
+      case 'suspenso': return 'bg-red-500/20 text-red-400';
+      case 'cancelado': return 'bg-red-500/20 text-red-400';
+      default: return 'bg-slate-500/20 text-slate-400';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900">
       {/* Header */}
@@ -254,6 +311,51 @@ const RevendaDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Saldo Disponível */}
+        <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30 mb-6">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <Wallet className="w-7 h-7 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Saldo Disponível</p>
+                  <p className="text-3xl font-bold text-green-400">{formatCurrency(revenda.saldo || 0)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Fechamento da Fatura</p>
+                  <p className="text-xl font-semibold text-white">
+                    Dia 30 - {format(proximoFechamento, "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Próximo Pagamento</p>
+                  <p className="text-xl font-semibold text-white">
+                    Dia 5 - {format(proximoPagamento, "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-green-500/20 flex items-center justify-between">
+              <div className="text-sm text-slate-400">
+                <span className="text-green-400 font-medium">Total Ganho:</span> {formatCurrency(revenda.total_ganho || 0)} | 
+                <span className="text-amber-400 font-medium ml-2">Total Sacado:</span> {formatCurrency(revenda.total_sacado || 0)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -415,7 +517,7 @@ const RevendaDashboard = () => {
         </Card>
 
         {/* Últimas Vendas */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-slate-800 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white">Últimas Vendas</CardTitle>
           </CardHeader>
@@ -456,6 +558,61 @@ const RevendaDashboard = () => {
                         }`}>
                           {venda.status === "pago" ? "Pago" : "Pendente"}
                         </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Carteira de Clientes */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-5 h-5 text-primary" />
+              <CardTitle className="text-white">Carteira de Clientes</CardTitle>
+            </div>
+            <Badge variant="secondary" className="bg-primary/20 text-primary">
+              {clientes.length} clientes
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-slate-700/50">
+                  <TableHead className="text-slate-400">Empresa</TableHead>
+                  <TableHead className="text-slate-400">Email</TableHead>
+                  <TableHead className="text-slate-400">Telefone</TableHead>
+                  <TableHead className="text-slate-400">Domínio</TableHead>
+                  <TableHead className="text-slate-400">Plano</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Data Cadastro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clientes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                      Nenhum cliente na carteira ainda. Compartilhe sua landing page para começar a receber clientes!
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  clientes.map((cliente) => (
+                    <TableRow key={cliente.id} className="border-slate-700 hover:bg-slate-700/50">
+                      <TableCell className="text-white font-medium">{cliente.razao_social}</TableCell>
+                      <TableCell className="text-slate-300">{cliente.email || '-'}</TableCell>
+                      <TableCell className="text-slate-300">{cliente.telefone || '-'}</TableCell>
+                      <TableCell className="text-primary">{cliente.dominio}</TableCell>
+                      <TableCell className="text-slate-300">{cliente.plano || '-'}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cliente.status)}`}>
+                          {cliente.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-slate-300">
+                        {cliente.created_at ? format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}
                       </TableCell>
                     </TableRow>
                   ))
