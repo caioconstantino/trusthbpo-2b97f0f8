@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 interface Session {
   id: string;
   dominio: string;
+  unidade_id: number | null;
   usuario_id: string;
   usuario_nome: string;
   caixa_nome: string;
@@ -21,6 +23,7 @@ export const usePdvSession = () => {
 
   const dominio = localStorage.getItem("user_dominio") || "";
   const usuarioNome = localStorage.getItem("user_nome") || "Usuário";
+  const unidadeId = getUnidadeAtivaId();
 
   useEffect(() => {
     checkOpenSession();
@@ -39,22 +42,27 @@ export const usePdvSession = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("tb_sessoes_caixa")
         .select("*")
         .eq("dominio", dominio)
         .eq("usuario_id", authData.user.id)
         .eq("status", "aberto")
         .order("data_abertura", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
+
+      const { data, error } = await query.single();
 
       if (error && error.code !== "PGRST116") {
         console.error("Error checking session:", error);
       }
 
       if (data) {
-        setSession(data);
+        setSession(data as Session);
         setNeedsSession(false);
       } else {
         setNeedsSession(true);
@@ -82,6 +90,7 @@ export const usePdvSession = () => {
         .from("tb_sessoes_caixa")
         .insert({
           dominio,
+          unidade_id: unidadeId,
           usuario_id: authData.user.id,
           usuario_nome: usuarioNome,
           caixa_nome: caixaNome,
@@ -100,7 +109,7 @@ export const usePdvSession = () => {
         return false;
       }
 
-      setSession(data);
+      setSession(data as Session);
       setNeedsSession(false);
       toast({
         title: "Caixa aberto!",

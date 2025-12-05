@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 interface CartItem {
   id: string;
@@ -28,6 +29,7 @@ interface SaleData {
 export const useSales = () => {
   const { toast } = useToast();
   const dominio = localStorage.getItem("user_dominio") || "";
+  const unidadeId = getUnidadeAtivaId();
 
   const saveSale = async (saleData: SaleData): Promise<boolean> => {
     try {
@@ -36,6 +38,7 @@ export const useSales = () => {
         .from("tb_vendas")
         .insert({
           dominio,
+          unidade_id: unidadeId,
           sessao_id: saleData.sessionId,
           cliente_nome: saleData.customerName || null,
           subtotal: saleData.subtotal,

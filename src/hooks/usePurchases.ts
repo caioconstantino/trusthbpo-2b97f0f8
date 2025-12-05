@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 export interface Purchase {
   id: string;
   dominio: string;
   fornecedor: string | null;
   unidade: string;
+  unidade_id: number | null;
   status: string;
   total: number;
   observacoes: string | null;
@@ -32,6 +34,7 @@ export const usePurchases = () => {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const dominio = localStorage.getItem("user_dominio") || "";
+  const unidadeId = getUnidadeAtivaId();
 
   useEffect(() => {
     fetchPurchases();
@@ -40,14 +43,21 @@ export const usePurchases = () => {
   const fetchPurchases = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("tb_compras")
         .select("*")
         .eq("dominio", dominio)
         .order("created_at", { ascending: false });
 
+      // Filter by unidade if available
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      setPurchases(data || []);
+      setPurchases((data || []) as Purchase[]);
     } catch (error) {
       console.error("Error fetching purchases:", error);
     } finally {
@@ -67,12 +77,17 @@ export const usePurchases = () => {
       // Get stock for each product
       const itemsWithStock: PurchaseItemWithStock[] = [];
       for (const item of items || []) {
-        const { data: stockData } = await supabase
+        let stockQuery = supabase
           .from("tb_estq_unidades")
           .select("quantidade")
           .eq("produto_id", item.produto_id)
-          .eq("dominio", dominio)
-          .maybeSingle();
+          .eq("dominio", dominio);
+        
+        if (unidadeId) {
+          stockQuery = stockQuery.eq("unidade_id", unidadeId);
+        }
+
+        const { data: stockData } = await stockQuery.maybeSingle();
 
         itemsWithStock.push({
           ...item,
@@ -95,6 +110,7 @@ export const usePurchases = () => {
         .from("tb_compras")
         .insert({
           dominio,
+          unidade_id: unidadeId,
           unidade: "Matriz",
           status: "pendente",
           total
@@ -184,13 +200,17 @@ export const usePurchases = () => {
       // Update stock for each item
       for (const item of items || []) {
         // Check if stock record exists
-        const { data: existing } = await supabase
+        let existingQuery = supabase
           .from("tb_estq_unidades")
           .select("id, quantidade")
           .eq("produto_id", item.produto_id)
-          .eq("dominio", dominio)
-          .eq("unidade_id", 1)
-          .maybeSingle();
+          .eq("dominio", dominio);
+        
+        if (unidadeId) {
+          existingQuery = existingQuery.eq("unidade_id", unidadeId);
+        }
+
+        const { data: existing } = await existingQuery.maybeSingle();
 
         if (existing) {
           // Update existing stock
@@ -205,7 +225,7 @@ export const usePurchases = () => {
             .insert({
               dominio,
               produto_id: item.produto_id,
-              unidade_id: 1,
+              unidade_id: unidadeId || 1,
               quantidade: item.quantidade,
               quantidade_minima: 0
             });

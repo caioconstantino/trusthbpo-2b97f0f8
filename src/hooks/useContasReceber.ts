@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 export interface ContaReceber {
   id: string;
   dominio: string;
+  unidade_id: number | null;
   categoria: string | null;
   descricao: string;
   valor: number;
@@ -23,6 +25,7 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
   const dominio = localStorage.getItem("user_dominio") || "";
+  const unidadeId = getUnidadeAtivaId();
 
   useEffect(() => {
     fetchContas(initialFilters);
@@ -37,6 +40,10 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
         .eq("dominio", dominio)
         .order("vencimento", { ascending: true });
 
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
+
       if (filters?.startDate) {
         query = query.gte("vencimento", filters.startDate);
       }
@@ -50,7 +57,7 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
       const { data, error } = await query;
 
       if (error) throw error;
-      setContas(data || []);
+      setContas((data || []) as ContaReceber[]);
     } catch (error) {
       console.error("Error fetching contas a receber:", error);
     } finally {
@@ -71,6 +78,7 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
         .from("tb_contas_receber")
         .insert({
           dominio,
+          unidade_id: unidadeId,
           categoria: conta.categoria || null,
           descricao: conta.descricao,
           valor: conta.valor,
