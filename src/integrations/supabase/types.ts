@@ -306,10 +306,12 @@ export type Database = {
           cupom: string | null
           dominio: string
           email: string | null
+          empresas_adicionais: number
           id: number
           last_login_at: string | null
           multiempresa: string | null
           observacoes: string | null
+          pdvs_adicionais: number
           plano: string | null
           proximo_pagamento: string | null
           razao_social: string
@@ -328,10 +330,12 @@ export type Database = {
           cupom?: string | null
           dominio: string
           email?: string | null
+          empresas_adicionais?: number
           id?: number
           last_login_at?: string | null
           multiempresa?: string | null
           observacoes?: string | null
+          pdvs_adicionais?: number
           plano?: string | null
           proximo_pagamento?: string | null
           razao_social: string
@@ -350,10 +354,12 @@ export type Database = {
           cupom?: string | null
           dominio?: string
           email?: string | null
+          empresas_adicionais?: number
           id?: number
           last_login_at?: string | null
           multiempresa?: string | null
           observacoes?: string | null
+          pdvs_adicionais?: number
           plano?: string | null
           proximo_pagamento?: string | null
           razao_social?: string

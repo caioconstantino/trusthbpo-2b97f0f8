@@ -68,6 +68,8 @@ interface ClienteSaas {
   status: string;
   ultimo_pagamento: string | null;
   proximo_pagamento: string | null;
+  pdvs_adicionais?: number;
+  empresas_adicionais?: number;
 }
 
 interface Usuario {
@@ -178,6 +180,15 @@ export default function Configuracoes() {
   const [isGeneratingPdvLink, setIsGeneratingPdvLink] = useState(false);
   const [pdvPaymentLink, setPdvPaymentLink] = useState<string | null>(null);
   const PRECO_PDV_ADICIONAL = 1000; // R$ 10,00 em centavos
+
+  // Empresa adicional states
+  const [empresaQuantidade, setEmpresaQuantidade] = useState(1);
+  const [isGeneratingEmpresaLink, setIsGeneratingEmpresaLink] = useState(false);
+  const [empresaPaymentLink, setEmpresaPaymentLink] = useState<string | null>(null);
+  const PRECO_EMPRESA_ADICIONAL = 1000; // R$ 10,00 em centavos
+
+  // Calcular empresas incluídas no plano
+  const empresasIncluidas = cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? 2 : 1;
 
   useEffect(() => {
     fetchData();
@@ -863,6 +874,186 @@ export default function Configuracoes() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Contratar Empresas Adicionais */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5 text-primary" />
+                      Empresas Incluídas no Plano
+                    </CardTitle>
+                    <CardDescription>Seu plano atual inclui {empresasIncluidas} empresa{empresasIncluidas > 1 ? "s" : ""}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 bg-muted/50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">Plano Básico (R$ 39,90/mês)</h4>
+                      <p className="text-sm text-muted-foreground">Inclui 1 empresa</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">Plano Pro (R$ 99,90/mês)</h4>
+                      <p className="text-sm text-muted-foreground">Inclui 2 empresas</p>
+                    </div>
+                    <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+                      <h4 className="font-semibold text-primary mb-2">Empresa Adicional</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Cada empresa adicional custa <span className="font-bold">R$ 10,00/mês</span>
+                      </p>
+                    </div>
+                    <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        <strong>Você tem:</strong> {unidades.length} empresa{unidades.length !== 1 ? "s" : ""} cadastrada{unidades.length !== 1 ? "s" : ""}
+                        {unidades.length > empresasIncluidas && (
+                          <span className="block mt-1">
+                            ({unidades.length - empresasIncluidas} adicional{unidades.length - empresasIncluidas !== 1 ? "is" : ""} = R$ {((unidades.length - empresasIncluidas) * 10).toFixed(2)}/mês)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Contratar Empresas Adicionais</CardTitle>
+                    <CardDescription>Selecione a quantidade de empresas adicionais</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>Quantidade de Empresas Adicionais</Label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            if (empresaQuantidade > 1) {
+                              setEmpresaQuantidade(empresaQuantidade - 1);
+                              setEmpresaPaymentLink(null);
+                            }
+                          }}
+                          disabled={empresaQuantidade <= 1}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={empresaQuantidade}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            if (!isNaN(value) && value >= 1) {
+                              setEmpresaQuantidade(value);
+                              setEmpresaPaymentLink(null);
+                            }
+                          }}
+                          className="w-20 text-center"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setEmpresaQuantidade(empresaQuantidade + 1);
+                            setEmpresaPaymentLink(null);
+                          }}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Total mensal:</span>
+                        <span className="text-2xl font-bold text-primary">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((empresaQuantidade * PRECO_EMPRESA_ADICIONAL) / 100)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {empresaQuantidade} empresa{empresaQuantidade > 1 ? "s" : ""} adicional{empresaQuantidade > 1 ? "is" : ""} × R$ 10,00
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={async () => {
+                        setIsGeneratingEmpresaLink(true);
+                        setEmpresaPaymentLink(null);
+                        try {
+                          const totalCentavos = empresaQuantidade * PRECO_EMPRESA_ADICIONAL;
+                          const planName = empresaQuantidade === 1 
+                            ? "Empresa Adicional - TrustHBPO" 
+                            : `${empresaQuantidade}x Empresa Adicional - TrustHBPO`;
+
+                          const { data, error } = await supabase.functions.invoke("pagarme-create-link", {
+                            body: { 
+                              planName, 
+                              planPrice: totalCentavos,
+                              dominio: userDominio,
+                              tipo: 'empresa_adicional',
+                              quantidade: empresaQuantidade
+                            }
+                          });
+
+                          if (error) throw error;
+                          if (data?.paymentLink) {
+                            setEmpresaPaymentLink(data.paymentLink);
+                            toast({ title: "Link gerado!", description: "Link de pagamento gerado com sucesso." });
+                          } else {
+                            throw new Error("Link não retornado pela API");
+                          }
+                        } catch (error) {
+                          console.error("Erro ao gerar link:", error);
+                          toast({ title: "Erro", description: "Erro ao gerar link de pagamento", variant: "destructive" });
+                        } finally {
+                          setIsGeneratingEmpresaLink(false);
+                        }
+                      }}
+                      disabled={isGeneratingEmpresaLink}
+                      className="w-full"
+                    >
+                      {isGeneratingEmpresaLink ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Gerando link...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Gerar Link de Pagamento
+                        </>
+                      )}
+                    </Button>
+
+                    {empresaPaymentLink && (
+                      <div className="space-y-3">
+                        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                          <p className="text-sm text-green-600 font-medium mb-2">Link gerado com sucesso!</p>
+                          <p className="text-xs text-muted-foreground break-all">{empresaPaymentLink}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(empresaPaymentLink);
+                              toast({ title: "Copiado!", description: "Link copiado para a área de transferência." });
+                            }}
+                            className="flex-1"
+                          >
+                            Copiar Link
+                          </Button>
+                          <Button
+                            variant="default"
+                            onClick={() => window.open(empresaPaymentLink, "_blank")}
+                            className="flex-1"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Abrir Link
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           )}
 
@@ -976,6 +1167,16 @@ export default function Configuracoes() {
                       Cada PDV adicional custa <span className="font-bold">R$ 10,00/mês</span>
                     </p>
                   </div>
+                  {(cliente?.pdvs_adicionais || 0) > 0 && (
+                    <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        <strong>Você tem:</strong> {cliente?.pdvs_adicionais || 0} PDV{(cliente?.pdvs_adicionais || 0) !== 1 ? "s" : ""} adicional{(cliente?.pdvs_adicionais || 0) !== 1 ? "is" : ""} contratado{(cliente?.pdvs_adicionais || 0) !== 1 ? "s" : ""}
+                        <span className="block mt-1">
+                          (Total: R$ {((cliente?.pdvs_adicionais || 0) * 10).toFixed(2)}/mês)
+                        </span>
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1051,7 +1252,13 @@ export default function Configuracoes() {
                           : `${pdvQuantidade}x PDV Adicional - TrustHBPO`;
 
                         const { data, error } = await supabase.functions.invoke("pagarme-create-link", {
-                          body: { planName, planPrice: totalCentavos }
+                          body: { 
+                            planName, 
+                            planPrice: totalCentavos,
+                            dominio: userDominio,
+                            tipo: 'pdv_adicional',
+                            quantidade: pdvQuantidade
+                          }
                         });
 
                         if (error) throw error;
