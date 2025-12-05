@@ -111,10 +111,13 @@ export const CustomerForm = ({ onCustomerAdded }: { onCustomerAdded: () => void 
     setIsLoading(true);
 
     try {
+      const unidadeId = localStorage.getItem("unidade_ativa_id");
+      
       const { error } = await supabase
         .from("tb_clientes")
         .insert({
           dominio,
+          unidade_id: unidadeId ? parseInt(unidadeId) : null,
           cpf_cnpj: formData.document,
           razao_social: formData.socialName,
           status: formData.status,

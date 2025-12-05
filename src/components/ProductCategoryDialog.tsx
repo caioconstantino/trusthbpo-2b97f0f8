@@ -34,13 +34,20 @@ export const ProductCategoryDialog = ({
 
   const fetchCategories = async () => {
     const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
     if (!dominio) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("tb_categorias")
       .select("id, nome")
       .eq("dominio", dominio)
       .order("nome");
+
+    if (unidadeId) {
+      query = query.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Erro ao buscar categorias:", error);
@@ -77,9 +84,12 @@ export const ProductCategoryDialog = ({
     }
 
     setLoading(true);
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
+    
     const { error } = await supabase.from("tb_categorias").insert({
       nome: newCategoryName.toUpperCase(),
       dominio,
+      unidade_id: unidadeId ? parseInt(unidadeId) : null,
     });
 
     setLoading(false);

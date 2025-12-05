@@ -3,18 +3,20 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductsTable } from "@/components/ProductsTable";
 import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
+import { CopyProductsDialog } from "@/components/CopyProductsDialog";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeftRight, Loader2 } from "lucide-react";
+import { ShoppingCart, ArrowLeftRight, Loader2, Copy } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 
 const Produtos = () => {
   const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const handleProductAdded = () => {
-    // Callback quando um produto é adicionado
-    console.log("Produto adicionado");
+    setRefreshKey(prev => prev + 1);
   };
 
   // Show loading while checking permissions
@@ -44,6 +46,14 @@ const Produtos = () => {
           <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
           <div className="flex gap-3">
             <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setShowCopyDialog(true)}
+            >
+              <Copy className="w-4 h-4" />
+              COPIAR DE OUTRA EMPRESA
+            </Button>
+            <Button 
               variant="secondary" 
               className="gap-2 bg-slate-700 hover:bg-slate-800 text-white"
               onClick={() => setShowPurchaseDialog(true)}
@@ -62,13 +72,19 @@ const Produtos = () => {
         <ProductForm onProductAdded={handleProductAdded} />
 
         {/* Tabela de Produtos */}
-        <ProductsTable />
+        <ProductsTable key={refreshKey} />
       </div>
 
       {/* Modais */}
       <PurchaseOrderDialog
         open={showPurchaseDialog}
         onOpenChange={setShowPurchaseDialog}
+      />
+      
+      <CopyProductsDialog
+        open={showCopyDialog}
+        onOpenChange={setShowCopyDialog}
+        onSuccess={handleProductAdded}
       />
     </DashboardLayout>
   );

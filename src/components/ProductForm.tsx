@@ -39,13 +39,20 @@ export const ProductForm = ({ onProductAdded }: { onProductAdded: () => void }) 
 
   const fetchCategories = async () => {
     const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
     if (!dominio) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("tb_categorias")
       .select("id, nome")
       .eq("dominio", dominio)
       .order("nome");
+
+    if (unidadeId) {
+      query = query.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setCategories(data);
@@ -148,8 +155,11 @@ export const ProductForm = ({ onProductAdded }: { onProductAdded: () => void }) 
       imagemUrl = await uploadImage(formData.image);
     }
 
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
+
     const { error } = await supabase.from("tb_produtos").insert({
       dominio,
+      unidade_id: unidadeId ? parseInt(unidadeId) : null,
       codigo: formData.code || null,
       nome: formData.name,
       tipo: formData.type,
