@@ -55,7 +55,6 @@ import {
   MapPin,
   Monitor,
   Minus,
-  ExternalLink,
 } from "lucide-react";
 
 interface ClienteSaas {
@@ -176,16 +175,18 @@ export default function Configuracoes() {
   });
 
   // PDV states
-  const [pdvQuantidade, setPdvQuantidade] = useState(1);
-  const [isGeneratingPdvLink, setIsGeneratingPdvLink] = useState(false);
-  const [pdvPaymentLink, setPdvPaymentLink] = useState<string | null>(null);
-  const PRECO_PDV_ADICIONAL = 1000; // R$ 10,00 em centavos
+  const [pdvQuantidadeAdicional, setPdvQuantidadeAdicional] = useState(0);
+  const [isSavingPdvs, setIsSavingPdvs] = useState(false);
+  const PRECO_PDV_ADICIONAL = 10; // R$ 10,00
 
   // Empresa adicional states
-  const [empresaQuantidade, setEmpresaQuantidade] = useState(1);
-  const [isGeneratingEmpresaLink, setIsGeneratingEmpresaLink] = useState(false);
-  const [empresaPaymentLink, setEmpresaPaymentLink] = useState<string | null>(null);
-  const PRECO_EMPRESA_ADICIONAL = 1000; // R$ 10,00 em centavos
+  const [empresaQuantidadeAdicional, setEmpresaQuantidadeAdicional] = useState(0);
+  const [isSavingEmpresas, setIsSavingEmpresas] = useState(false);
+  const PRECO_EMPRESA_ADICIONAL = 10; // R$ 10,00
+
+  // Preços dos planos
+  const PRECO_BASICO = 39.90;
+  const PRECO_PRO = 99.90;
 
   // Calcular empresas incluídas no plano
   const empresasIncluidas = cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? 2 : 1;
@@ -215,6 +216,8 @@ export default function Configuracoes() {
 
       if (clienteData?.cliente) {
         setCliente(clienteData.cliente);
+        setPdvQuantidadeAdicional(clienteData.cliente.pdvs_adicionais || 0);
+        setEmpresaQuantidadeAdicional(clienteData.cliente.empresas_adicionais || 0);
       }
 
       // Fetch users
@@ -916,7 +919,7 @@ export default function Configuracoes() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Contratar Empresas Adicionais</CardTitle>
-                    <CardDescription>Selecione a quantidade de empresas adicionais</CardDescription>
+                    <CardDescription>Será cobrado na próxima fatura</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
@@ -925,25 +928,19 @@ export default function Configuracoes() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => {
-                            if (empresaQuantidade > 1) {
-                              setEmpresaQuantidade(empresaQuantidade - 1);
-                              setEmpresaPaymentLink(null);
-                            }
-                          }}
-                          disabled={empresaQuantidade <= 1}
+                          onClick={() => empresaQuantidadeAdicional > 0 && setEmpresaQuantidadeAdicional(empresaQuantidadeAdicional - 1)}
+                          disabled={empresaQuantidadeAdicional <= 0}
                         >
                           <Minus className="w-4 h-4" />
                         </Button>
                         <Input
                           type="number"
-                          min={1}
-                          value={empresaQuantidade}
+                          min={0}
+                          value={empresaQuantidadeAdicional}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);
-                            if (!isNaN(value) && value >= 1) {
-                              setEmpresaQuantidade(value);
-                              setEmpresaPaymentLink(null);
+                            if (!isNaN(value) && value >= 0) {
+                              setEmpresaQuantidadeAdicional(value);
                             }
                           }}
                           className="w-20 text-center"
@@ -951,10 +948,7 @@ export default function Configuracoes() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => {
-                            setEmpresaQuantidade(empresaQuantidade + 1);
-                            setEmpresaPaymentLink(null);
-                          }}
+                          onClick={() => setEmpresaQuantidadeAdicional(empresaQuantidadeAdicional + 1)}
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
@@ -963,94 +957,56 @@ export default function Configuracoes() {
 
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total mensal:</span>
+                        <span className="text-muted-foreground">Valor mensal adicional:</span>
                         <span className="text-2xl font-bold text-primary">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((empresaQuantidade * PRECO_EMPRESA_ADICIONAL) / 100)}
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(empresaQuantidadeAdicional * PRECO_EMPRESA_ADICIONAL)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {empresaQuantidade} empresa{empresaQuantidade > 1 ? "s" : ""} adicional{empresaQuantidade > 1 ? "is" : ""} × R$ 10,00
+                        {empresaQuantidadeAdicional} empresa{empresaQuantidadeAdicional !== 1 ? "s" : ""} adicional{empresaQuantidadeAdicional !== 1 ? "is" : ""} × R$ 10,00
                       </p>
                     </div>
 
                     <Button
                       onClick={async () => {
-                        setIsGeneratingEmpresaLink(true);
-                        setEmpresaPaymentLink(null);
+                        setIsSavingEmpresas(true);
                         try {
-                          const totalCentavos = empresaQuantidade * PRECO_EMPRESA_ADICIONAL;
-                          const planName = empresaQuantidade === 1 
-                            ? "Empresa Adicional - TrustHBPO" 
-                            : `${empresaQuantidade}x Empresa Adicional - TrustHBPO`;
-
-                          const { data, error } = await supabase.functions.invoke("pagarme-create-link", {
+                          const { error } = await supabase.functions.invoke("get-customer-data", {
                             body: { 
-                              planName, 
-                              planPrice: totalCentavos,
                               dominio: userDominio,
-                              tipo: 'empresa_adicional',
-                              quantidade: empresaQuantidade
+                              action: "update_empresas",
+                              empresas_adicionais: empresaQuantidadeAdicional
                             }
                           });
-
                           if (error) throw error;
-                          if (data?.paymentLink) {
-                            setEmpresaPaymentLink(data.paymentLink);
-                            toast({ title: "Link gerado!", description: "Link de pagamento gerado com sucesso." });
-                          } else {
-                            throw new Error("Link não retornado pela API");
-                          }
+                          toast({ 
+                            title: "Salvo!", 
+                            description: `${empresaQuantidadeAdicional} empresa(s) adicional(is) configurada(s). Será cobrado na próxima fatura.` 
+                          });
+                          fetchData();
                         } catch (error) {
-                          console.error("Erro ao gerar link:", error);
-                          toast({ title: "Erro", description: "Erro ao gerar link de pagamento", variant: "destructive" });
+                          console.error("Erro ao salvar:", error);
+                          toast({ title: "Erro", description: "Erro ao salvar configuração", variant: "destructive" });
                         } finally {
-                          setIsGeneratingEmpresaLink(false);
+                          setIsSavingEmpresas(false);
                         }
                       }}
-                      disabled={isGeneratingEmpresaLink}
+                      disabled={isSavingEmpresas || empresaQuantidadeAdicional === (cliente?.empresas_adicionais || 0)}
                       className="w-full"
                     >
-                      {isGeneratingEmpresaLink ? (
+                      {isSavingEmpresas ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Gerando link...
+                          Salvando...
                         </>
                       ) : (
-                        <>
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Gerar Link de Pagamento
-                        </>
+                        "Salvar Alterações"
                       )}
                     </Button>
 
-                    {empresaPaymentLink && (
-                      <div className="space-y-3">
-                        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                          <p className="text-sm text-green-600 font-medium mb-2">Link gerado com sucesso!</p>
-                          <p className="text-xs text-muted-foreground break-all">{empresaPaymentLink}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(empresaPaymentLink);
-                              toast({ title: "Copiado!", description: "Link copiado para a área de transferência." });
-                            }}
-                            className="flex-1"
-                          >
-                            Copiar Link
-                          </Button>
-                          <Button
-                            variant="default"
-                            onClick={() => window.open(empresaPaymentLink, "_blank")}
-                            className="flex-1"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Abrir Link
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-xs text-center text-muted-foreground">
+                      O valor será adicionado à sua próxima fatura automaticamente.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -1059,6 +1015,77 @@ export default function Configuracoes() {
 
           {/* Billing Tab */}
           <TabsContent value="billing" className="space-y-4">
+            {/* Próxima Fatura Card */}
+            <Card className="border-primary/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  Próxima Fatura
+                </CardTitle>
+                <CardDescription>Detalhamento do valor a ser cobrado</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {/* Plano Base */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div>
+                      <p className="font-medium">Plano {cliente?.plano || "Básico"}</p>
+                      <p className="text-sm text-muted-foreground">Assinatura mensal</p>
+                    </div>
+                    <span className="font-semibold">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                        cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO
+                      )}
+                    </span>
+                  </div>
+
+                  {/* PDVs Adicionais */}
+                  {(cliente?.pdvs_adicionais || 0) > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <p className="font-medium">PDVs Adicionais</p>
+                        <p className="text-sm text-muted-foreground">{cliente?.pdvs_adicionais} × R$ 10,00</p>
+                      </div>
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Empresas Adicionais */}
+                  {(cliente?.empresas_adicionais || 0) > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <p className="font-medium">Empresas Adicionais</p>
+                        <p className="text-sm text-muted-foreground">{cliente?.empresas_adicionais} × R$ 10,00</p>
+                      </div>
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL)}
+                      </span>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10 border border-primary/30">
+                    <div>
+                      <p className="font-bold text-lg">Total da Fatura</p>
+                      <p className="text-sm text-muted-foreground">Vencimento: {formatDate(cliente?.proximo_pagamento || null)}</p>
+                    </div>
+                    <span className="text-2xl font-bold text-primary">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                        (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
+                        ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
+                        ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Resumo da Assinatura */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1078,6 +1105,31 @@ export default function Configuracoes() {
                   </Badge>
                 </div>
 
+                {/* Recursos Contratados */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="flex items-center gap-3 p-4 rounded-lg border">
+                    <Monitor className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">PDVs</p>
+                      <p className="font-medium">1 + {cliente?.pdvs_adicionais || 0} adicional(is)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 rounded-lg border">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Empresas</p>
+                      <p className="font-medium">{empresasIncluidas} + {cliente?.empresas_adicionais || 0} adicional(is)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 rounded-lg border">
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Próximo Vencimento</p>
+                      <p className="font-medium">{formatDate(cliente?.proximo_pagamento || null)}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex items-center gap-3 p-4 rounded-lg border">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -1087,10 +1139,16 @@ export default function Configuracoes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-4 rounded-lg border">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    <CreditCard className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Próximo Vencimento</p>
-                      <p className="font-medium">{formatDate(cliente?.proximo_pagamento || null)}</p>
+                      <p className="text-sm text-muted-foreground">Valor Mensal</p>
+                      <p className="font-medium">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                          (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
+                          ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
+                          ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL)
+                        )}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1109,7 +1167,8 @@ export default function Configuracoes() {
                         <p className="text-2xl font-bold">R$ 39,90<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
                         <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                           <li>• 1 usuário</li>
-                          <li>• PDV completo</li>
+                          <li>• 1 PDV incluído</li>
+                          <li>• 1 empresa incluída</li>
                           <li>• Gestão de estoque</li>
                           <li>• Relatórios básicos</li>
                         </ul>
@@ -1127,8 +1186,8 @@ export default function Configuracoes() {
                         <p className="text-2xl font-bold">R$ 99,90<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
                         <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                           <li>• Usuários ilimitados</li>
-                          <li>• Tudo do Básico</li>
-                          <li>• Multi-empresa</li>
+                          <li>• 1 PDV incluído</li>
+                          <li>• 2 empresas incluídas</li>
                           <li>• Relatórios avançados</li>
                           <li>• Suporte prioritário</li>
                         </ul>
@@ -1184,7 +1243,7 @@ export default function Configuracoes() {
               <Card>
                 <CardHeader>
                   <CardTitle>Contratar PDVs Adicionais</CardTitle>
-                  <CardDescription>Selecione a quantidade de PDVs adicionais</CardDescription>
+                  <CardDescription>Será cobrado na próxima fatura</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
@@ -1193,25 +1252,19 @@ export default function Configuracoes() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => {
-                          if (pdvQuantidade > 1) {
-                            setPdvQuantidade(pdvQuantidade - 1);
-                            setPdvPaymentLink(null);
-                          }
-                        }}
-                        disabled={pdvQuantidade <= 1}
+                        onClick={() => pdvQuantidadeAdicional > 0 && setPdvQuantidadeAdicional(pdvQuantidadeAdicional - 1)}
+                        disabled={pdvQuantidadeAdicional <= 0}
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
                       <Input
                         type="number"
-                        min={1}
-                        value={pdvQuantidade}
+                        min={0}
+                        value={pdvQuantidadeAdicional}
                         onChange={(e) => {
                           const value = parseInt(e.target.value);
-                          if (!isNaN(value) && value >= 1) {
-                            setPdvQuantidade(value);
-                            setPdvPaymentLink(null);
+                          if (!isNaN(value) && value >= 0) {
+                            setPdvQuantidadeAdicional(value);
                           }
                         }}
                         className="w-20 text-center"
@@ -1219,10 +1272,7 @@ export default function Configuracoes() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => {
-                          setPdvQuantidade(pdvQuantidade + 1);
-                          setPdvPaymentLink(null);
-                        }}
+                        onClick={() => setPdvQuantidadeAdicional(pdvQuantidadeAdicional + 1)}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -1231,94 +1281,56 @@ export default function Configuracoes() {
 
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Total mensal:</span>
+                      <span className="text-muted-foreground">Valor mensal adicional:</span>
                       <span className="text-2xl font-bold text-primary">
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((pdvQuantidade * PRECO_PDV_ADICIONAL) / 100)}
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(pdvQuantidadeAdicional * PRECO_PDV_ADICIONAL)}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {pdvQuantidade} PDV{pdvQuantidade > 1 ? "s" : ""} adicional{pdvQuantidade > 1 ? "is" : ""} × R$ 10,00
+                      {pdvQuantidadeAdicional} PDV{pdvQuantidadeAdicional !== 1 ? "s" : ""} adicional{pdvQuantidadeAdicional !== 1 ? "is" : ""} × R$ 10,00
                     </p>
                   </div>
 
                   <Button
                     onClick={async () => {
-                      setIsGeneratingPdvLink(true);
-                      setPdvPaymentLink(null);
+                      setIsSavingPdvs(true);
                       try {
-                        const totalCentavos = pdvQuantidade * PRECO_PDV_ADICIONAL;
-                        const planName = pdvQuantidade === 1 
-                          ? "PDV Adicional - TrustHBPO" 
-                          : `${pdvQuantidade}x PDV Adicional - TrustHBPO`;
-
-                        const { data, error } = await supabase.functions.invoke("pagarme-create-link", {
+                        const { error } = await supabase.functions.invoke("get-customer-data", {
                           body: { 
-                            planName, 
-                            planPrice: totalCentavos,
                             dominio: userDominio,
-                            tipo: 'pdv_adicional',
-                            quantidade: pdvQuantidade
+                            action: "update_pdvs",
+                            pdvs_adicionais: pdvQuantidadeAdicional
                           }
                         });
-
                         if (error) throw error;
-                        if (data?.paymentLink) {
-                          setPdvPaymentLink(data.paymentLink);
-                          toast({ title: "Link gerado!", description: "Link de pagamento gerado com sucesso." });
-                        } else {
-                          throw new Error("Link não retornado pela API");
-                        }
+                        toast({ 
+                          title: "Salvo!", 
+                          description: `${pdvQuantidadeAdicional} PDV(s) adicional(is) configurado(s). Será cobrado na próxima fatura.` 
+                        });
+                        fetchData();
                       } catch (error) {
-                        console.error("Erro ao gerar link:", error);
-                        toast({ title: "Erro", description: "Erro ao gerar link de pagamento", variant: "destructive" });
+                        console.error("Erro ao salvar:", error);
+                        toast({ title: "Erro", description: "Erro ao salvar configuração", variant: "destructive" });
                       } finally {
-                        setIsGeneratingPdvLink(false);
+                        setIsSavingPdvs(false);
                       }
                     }}
-                    disabled={isGeneratingPdvLink}
+                    disabled={isSavingPdvs || pdvQuantidadeAdicional === (cliente?.pdvs_adicionais || 0)}
                     className="w-full"
                   >
-                    {isGeneratingPdvLink ? (
+                    {isSavingPdvs ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Gerando link...
+                        Salvando...
                       </>
                     ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Gerar Link de Pagamento
-                      </>
+                      "Salvar Alterações"
                     )}
                   </Button>
 
-                  {pdvPaymentLink && (
-                    <div className="space-y-3">
-                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                        <p className="text-sm text-green-600 font-medium mb-2">Link gerado com sucesso!</p>
-                        <p className="text-xs text-muted-foreground break-all">{pdvPaymentLink}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            navigator.clipboard.writeText(pdvPaymentLink);
-                            toast({ title: "Copiado!", description: "Link copiado para a área de transferência." });
-                          }}
-                          className="flex-1"
-                        >
-                          Copiar Link
-                        </Button>
-                        <Button
-                          variant="default"
-                          onClick={() => window.open(pdvPaymentLink, "_blank")}
-                          className="flex-1"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Abrir Link
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-center text-muted-foreground">
+                    O valor será adicionado à sua próxima fatura automaticamente.
+                  </p>
                 </CardContent>
               </Card>
             </div>
