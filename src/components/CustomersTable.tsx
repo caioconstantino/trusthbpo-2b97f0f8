@@ -36,14 +36,21 @@ export const CustomersTable = () => {
 
   const fetchCustomers = async () => {
     const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
     if (!dominio) return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("tb_clientes")
         .select("id, razao_social, cpf_cnpj, email, telefone, status, observacoes, detalhes_cnpj")
         .eq("dominio", dominio)
         .order("id", { ascending: false });
+
+      if (unidadeId) {
+        query = query.eq("unidade_id", parseInt(unidadeId));
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCustomers(data || []);

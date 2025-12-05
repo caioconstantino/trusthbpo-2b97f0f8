@@ -80,27 +80,46 @@ const CentralContas = () => {
     const months = parseInt(period);
     const endDate = endOfMonth(new Date());
     const startDate = startOfMonth(subMonths(new Date(), months - 1));
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
 
-    const { data: receitasData } = await supabase
+    let receitasQuery = supabase
       .from("tb_contas_receber")
       .select("valor, vencimento, status")
       .eq("dominio", dominio)
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+    
+    if (unidadeId) {
+      receitasQuery = receitasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
 
-    const { data: vendasData } = await supabase
+    const { data: receitasData } = await receitasQuery;
+
+    let vendasQuery = supabase
       .from("tb_vendas")
       .select("total, created_at")
       .eq("dominio", dominio)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
+    
+    if (unidadeId) {
+      vendasQuery = vendasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
 
-    const { data: despesasData } = await supabase
+    const { data: vendasData } = await vendasQuery;
+
+    let despesasQuery = supabase
       .from("tb_contas_pagar")
       .select("valor, vencimento, status")
       .eq("dominio", dominio)
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+    
+    if (unidadeId) {
+      despesasQuery = despesasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data: despesasData } = await despesasQuery;
 
     const monthlyMap = new Map<string, { receitas: number; despesas: number }>();
     
@@ -165,12 +184,19 @@ const CentralContas = () => {
 
   const fetchSalesHeatmap = async () => {
     const startDate = subMonths(new Date(), 3);
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
     
-    const { data: vendasData } = await supabase
+    let query = supabase
       .from("tb_vendas")
       .select("total, created_at")
       .eq("dominio", dominio)
       .gte("created_at", startDate.toISOString());
+    
+    if (unidadeId) {
+      query = query.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data: vendasData } = await query;
 
     const heatmapData: SalesByHour[] = [];
     
@@ -200,13 +226,20 @@ const CentralContas = () => {
   const fetchCategoryData = async () => {
     const startDate = startOfMonth(subMonths(new Date(), 2));
     const endDate = endOfMonth(new Date());
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
 
-    const { data: despesasData } = await supabase
+    let despesasQuery = supabase
       .from("tb_contas_pagar")
       .select("categoria, valor")
       .eq("dominio", dominio)
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+    
+    if (unidadeId) {
+      despesasQuery = despesasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data: despesasData } = await despesasQuery;
 
     const expenseMap = new Map<string, number>();
     despesasData?.forEach(item => {
@@ -221,12 +254,18 @@ const CentralContas = () => {
         .slice(0, 5)
     );
 
-    const { data: receitasData } = await supabase
+    let receitasQuery = supabase
       .from("tb_contas_receber")
       .select("categoria, valor")
       .eq("dominio", dominio)
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+    
+    if (unidadeId) {
+      receitasQuery = receitasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data: receitasData } = await receitasQuery;
 
     const revenueMap = new Map<string, number>();
     receitasData?.forEach(item => {

@@ -33,15 +33,23 @@ export const ManageContasPagarCategoryDialog = ({
   const [parentId, setParentId] = useState<string>("");
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const dominio = localStorage.getItem("user_domain") || "";
+  const dominio = localStorage.getItem("user_dominio") || "";
 
   const fetchCategories = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
+    
+    let query = supabase
       .from("tb_categorias_contas_pagar")
       .select("*")
       .eq("dominio", dominio)
       .order("nome");
+    
+    if (unidadeId) {
+      query = query.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast.error("Erro ao carregar categorias");
@@ -90,9 +98,11 @@ export const ManageContasPagarCategoryDialog = ({
         resetForm();
       }
     } else {
+      const unidadeId = localStorage.getItem("unidade_ativa_id");
       const { error } = await supabase.from("tb_categorias_contas_pagar").insert({
         nome: nome.toUpperCase(),
         dominio,
+        unidade_id: unidadeId ? parseInt(unidadeId) : null,
         parent_id: tipo === "subcategoria" ? parseInt(parentId) : null,
       });
 
