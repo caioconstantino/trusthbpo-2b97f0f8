@@ -72,6 +72,22 @@ const PDV = () => {
   const [showProductSearch, setShowProductSearch] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchProducts = async () => {
+    const dominio = localStorage.getItem("user_dominio");
+    if (!dominio) return;
+
+    const { data, error } = await supabase
+      .from("tb_produtos")
+      .select("id, nome, preco_venda, codigo")
+      .eq("dominio", dominio)
+      .eq("ativo", true)
+      .order("nome");
+
+    if (!error && data) {
+      setProducts(data);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -95,22 +111,6 @@ const PDV = () => {
       </DashboardLayout>
     );
   }
-
-  const fetchProducts = async () => {
-    const dominio = localStorage.getItem("user_dominio");
-    if (!dominio) return;
-
-    const { data, error } = await supabase
-      .from("tb_produtos")
-      .select("id, nome, preco_venda, codigo")
-      .eq("dominio", dominio)
-      .eq("ativo", true)
-      .order("nome");
-
-    if (!error && data) {
-      setProducts(data);
-    }
-  };
 
   useEffect(() => {
     if (searchProduct.length > 0) {
