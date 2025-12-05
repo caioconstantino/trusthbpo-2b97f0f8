@@ -400,22 +400,21 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Card Extra - Suporte */}
+            {/* Card Extra - Integrações */}
             <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent border border-border hover:border-cyan-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-500/10 animate-fade-in" style={{ animationDelay: '600ms' }}>
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative p-6 h-full min-h-[200px] flex flex-col">
                 <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-6 h-6 text-cyan-500" />
+                  <Zap className="w-6 h-6 text-cyan-500" />
                 </div>
-                <h3 className="text-xl font-bold mb-2 group-hover:text-cyan-500 transition-colors">Suporte 24/7</h3>
-                <p className="text-sm text-muted-foreground flex-1">Equipe dedicada para ajudar você</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-cyan-500/30 border-2 border-background" />
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">+10 atendentes</span>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-cyan-500 transition-colors">Integrações</h3>
+                <p className="text-sm text-muted-foreground flex-1">Conecte com suas ferramentas favoritas</p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {['WhatsApp', 'NFe', 'Bancos'].map((name, i) => (
+                    <div key={i} className="px-2 py-2 rounded-lg bg-cyan-500/20 text-xs text-cyan-500 text-center font-medium">
+                      {name}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
