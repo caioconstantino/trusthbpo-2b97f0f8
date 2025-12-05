@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, GraduationCap, Settings, LogOut, User, Users } from "lucide-react";
+import { Bell, GraduationCap, Settings, LogOut, User, Users, Building2, ChevronDown, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
@@ -21,6 +21,7 @@ import {
 } from "./ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
 
 interface DashboardHeaderProps {
   onTutorialClick?: () => void;
@@ -37,6 +38,7 @@ interface Notification {
 export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { unidadeAtiva, unidades, selecionarUnidade } = useUnidadeAtiva();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
 
@@ -77,6 +79,50 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
     <header className="sticky top-0 z-30 h-14 md:h-16 border-b border-border bg-card px-3 md:px-6 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 md:gap-3">
         <SidebarTrigger />
+        
+        {/* Company Selector */}
+        {unidades.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 max-w-[200px]">
+                <Building2 className="w-4 h-4 shrink-0" />
+                <span className="truncate hidden sm:inline">{unidadeAtiva?.nome || "Selecionar"}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuLabel>Trocar Empresa</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {unidades.map((unidade) => (
+                <DropdownMenuItem
+                  key={unidade.id}
+                  onClick={() => {
+                    selecionarUnidade(unidade);
+                    toast({
+                      title: "Empresa alterada",
+                      description: `Agora você está em: ${unidade.nome}`,
+                    });
+                    window.location.reload();
+                  }}
+                  className="cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{unidade.nome}</span>
+                    {unidade.endereco_cidade && (
+                      <span className="text-xs text-muted-foreground">
+                        {unidade.endereco_cidade}{unidade.endereco_estado ? `, ${unidade.endereco_estado}` : ''}
+                      </span>
+                    )}
+                  </div>
+                  {unidadeAtiva?.id === unidade.id && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={onTutorialClick}>
           <GraduationCap className="w-4 h-4" />
           <span className="hidden md:inline">Tutorial</span>
