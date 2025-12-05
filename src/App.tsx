@@ -34,6 +34,7 @@ import CadastroAluno from "./pages/CadastroAluno";
 import RevendaLanding from "./pages/RevendaLanding";
 import RevendaDashboard from "./pages/RevendaDashboard";
 import RevendaLogin from "./pages/RevendaLogin";
+import Checkout from "./pages/Checkout";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/educacao" element={<Educacao />} />
             <Route path="/fabrica-software" element={<FabricaSoftware />} />
             <Route path="/login" element={<Login />} />

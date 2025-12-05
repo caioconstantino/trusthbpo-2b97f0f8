@@ -322,6 +322,7 @@ export type Database = {
           ultima_forma_pagamento: string | null
           ultimo_pagamento: string | null
           updated_at: string | null
+          usuarios_adicionais: number
         }
         Insert: {
           aluno_id?: string | null
@@ -346,6 +347,7 @@ export type Database = {
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           updated_at?: string | null
+          usuarios_adicionais?: number
         }
         Update: {
           aluno_id?: string | null
@@ -370,6 +372,7 @@ export type Database = {
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           updated_at?: string | null
+          usuarios_adicionais?: number
         }
         Relationships: [
           {
