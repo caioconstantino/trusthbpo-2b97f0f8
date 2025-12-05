@@ -36,6 +36,11 @@ interface UnidadeData {
   custo: number;
 }
 
+interface UnidadeInfo {
+  id: number;
+  nome: string;
+}
+
 interface EstoqueData {
   totalPecas: number;
   valorEstoque: number;
@@ -59,6 +64,7 @@ interface DashboardData {
   vendasPorCategoria: { name: string; totalSold: number }[];
   topProdutos: { nome: string; quantidade: number; total: number }[];
   vendasPorUnidade: Record<string, UnidadeData>;
+  estoquePorUnidade: Record<string, EstoqueData>;
   estoque: EstoqueData;
 }
 
@@ -69,6 +75,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unidadesAcessiveis, setUnidadesAcessiveis] = useState<UnidadeInfo[]>([]);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
     custoHoje: 0,
@@ -83,9 +90,8 @@ const Index = () => {
     vendasPorFormaPagamento: [],
     vendasPorCategoria: [],
     topProdutos: [],
-    vendasPorUnidade: {
-      MATRIZ: { vendas: 0, produtos: 0, total: 0, custo: 0 }
-    },
+    vendasPorUnidade: {},
+    estoquePorUnidade: {},
     estoque: {
       totalPecas: 0,
       valorEstoque: 0,
@@ -106,7 +112,7 @@ const Index = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    const currentDominio = localStorage.getItem("dominio");
+    const currentDominio = localStorage.getItem("user_dominio");
     if (!currentDominio) {
       setLoading(false);
       return;
@@ -114,6 +120,26 @@ const Index = () => {
     
     setLoading(true);
     try {
+      // Get user's accessible units
+      const unidadesAcessoStr = localStorage.getItem("user_unidades_acesso");
+      const unidadesAcesso = unidadesAcessoStr ? JSON.parse(unidadesAcessoStr) as number[] : null;
+      
+      // Fetch accessible units
+      let unidadesQuery = supabase
+        .from('tb_unidades')
+        .select('id, nome')
+        .eq('dominio', currentDominio)
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (unidadesAcesso && unidadesAcesso.length > 0) {
+        unidadesQuery = unidadesQuery.in('id', unidadesAcesso);
+      }
+      
+      const { data: unidadesData } = await unidadesQuery;
+      const unidades = (unidadesData || []) as UnidadeInfo[];
+      setUnidadesAcessiveis(unidades);
+      
       const hoje = new Date();
       const inicioHoje = format(hoje, 'yyyy-MM-dd 00:00:00');
       const fimHoje = format(hoje, 'yyyy-MM-dd 23:59:59');
@@ -281,13 +307,44 @@ const Index = () => {
       // Buscar dados de estoque
       const { data: produtos } = await supabase
         .from('tb_produtos')
-        .select('preco_venda, preco_custo')
+        .select('preco_venda, preco_custo, unidade_id')
         .eq('dominio', currentDominio)
         .eq('ativo', true);
 
       const custoEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0) || 0;
       const valorEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0) || 0;
       const lucroEsperado = valorEstoque - custoEstoque;
+
+      // Calculate data per unit
+      const vendasPorUnidadeMap: Record<string, UnidadeData> = {};
+      const estoquePorUnidadeMap: Record<string, EstoqueData> = {};
+      
+      for (const unidade of unidades) {
+        // Vendas por unidade
+        const vendasUnidade = vendasHoje?.filter(v => (v as any).unidade_id === unidade.id) || [];
+        const totalUnidade = vendasUnidade.reduce((acc, v) => acc + Number(v.total), 0);
+        const custoUnidade = vendasUnidade.reduce((acc, v) => acc + Number(v.subtotal) * 0.7, 0);
+        
+        vendasPorUnidadeMap[unidade.nome] = {
+          vendas: vendasUnidade.length,
+          produtos: 0,
+          total: totalUnidade,
+          custo: custoUnidade
+        };
+        
+        // Estoque por unidade
+        const produtosUnidade = produtos?.filter(p => (p as any).unidade_id === unidade.id) || [];
+        const custoEstoqueUnidade = produtosUnidade.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0);
+        const valorEstoqueUnidade = produtosUnidade.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0);
+        
+        estoquePorUnidadeMap[unidade.nome] = {
+          totalPecas: produtosUnidade.length,
+          valorEstoque: valorEstoqueUnidade,
+          custoEstoque: custoEstoqueUnidade,
+          lucroEsperado: valorEstoqueUnidade - custoEstoqueUnidade,
+          produtosAtencao: 0
+        };
+      }
 
       setDashboardData({
         vendasHoje: totalVendasHoje,
@@ -303,14 +360,8 @@ const Index = () => {
         vendasPorFormaPagamento,
         vendasPorCategoria,
         topProdutos,
-        vendasPorUnidade: {
-          MATRIZ: {
-            vendas: vendasHoje?.length || 0,
-            produtos: itensVendidos?.length || 0,
-            total: totalVendasHoje,
-            custo: custoVendasHoje
-          }
-        },
+        vendasPorUnidade: vendasPorUnidadeMap,
+        estoquePorUnidade: estoquePorUnidadeMap,
         estoque: {
           totalPecas: totalProdutos || 0,
           valorEstoque,
@@ -596,35 +647,41 @@ const Index = () => {
         {activeTab === "operacional" && (
           <div id="branches-section">
             <Accordion type="multiple" className="space-y-3">
-              <OperationalSection 
-                branch={{
-                  name: "MATRIZ",
-                  sales: dashboardData.vendasPorUnidade?.MATRIZ?.vendas || 0,
-                  products: dashboardData.vendasPorUnidade?.MATRIZ?.produtos || 0,
-                  total: dashboardData.vendasPorUnidade?.MATRIZ?.total || 0,
-                  cost: dashboardData.vendasPorUnidade?.MATRIZ?.custo || 0,
-                  categories: dashboardData.vendasPorCategoria || []
-                }}
-                value="matriz"
-              />
+              {unidadesAcessiveis.map((unidade) => (
+                <OperationalSection 
+                  key={unidade.id}
+                  branch={{
+                    name: unidade.nome.toUpperCase(),
+                    sales: dashboardData.vendasPorUnidade?.[unidade.nome]?.vendas || 0,
+                    products: dashboardData.vendasPorUnidade?.[unidade.nome]?.produtos || 0,
+                    total: dashboardData.vendasPorUnidade?.[unidade.nome]?.total || 0,
+                    cost: dashboardData.vendasPorUnidade?.[unidade.nome]?.custo || 0,
+                    categories: dashboardData.vendasPorCategoria || []
+                  }}
+                  value={`unidade-${unidade.id}`}
+                />
+              ))}
             </Accordion>
           </div>
         )}
 
         {activeTab === "estoque" && (
           <Accordion type="multiple" className="space-y-3">
-            <StockSection 
-              stock={{
-                name: "MATRIZ",
-                pieces: dashboardData.estoque?.totalPecas || 0,
-                stockValue: dashboardData.estoque?.valorEstoque || 0,
-                stockCost: dashboardData.estoque?.custoEstoque || 0,
-                units: dashboardData.totalProdutos,
-                expectedProfit: dashboardData.estoque?.lucroEsperado || 0,
-                hasAlert: (dashboardData.estoque?.produtosAtencao || 0) > 0
-              }}
-              value="matriz-stock"
-            />
+            {unidadesAcessiveis.map((unidade) => (
+              <StockSection 
+                key={unidade.id}
+                stock={{
+                  name: unidade.nome.toUpperCase(),
+                  pieces: dashboardData.estoquePorUnidade?.[unidade.nome]?.totalPecas || 0,
+                  stockValue: dashboardData.estoquePorUnidade?.[unidade.nome]?.valorEstoque || 0,
+                  stockCost: dashboardData.estoquePorUnidade?.[unidade.nome]?.custoEstoque || 0,
+                  units: dashboardData.estoquePorUnidade?.[unidade.nome]?.totalPecas || 0,
+                  expectedProfit: dashboardData.estoquePorUnidade?.[unidade.nome]?.lucroEsperado || 0,
+                  hasAlert: (dashboardData.estoquePorUnidade?.[unidade.nome]?.produtosAtencao || 0) > 0
+                }}
+                value={`estoque-${unidade.id}`}
+              />
+            ))}
           </Accordion>
         )}
 

@@ -102,7 +102,7 @@ const Login = () => {
       // Verificar se o usuário pertence ao domínio
       const { data: userData, error: userError } = await supabase
         .from("tb_usuarios")
-        .select("*")
+        .select("*, unidades_acesso")
         .eq("auth_user_id", authData.user.id)
         .eq("dominio", dominio)
         .single();
@@ -143,14 +143,28 @@ const Login = () => {
       // Salvar domínio no localStorage para uso posterior
       localStorage.setItem("user_dominio", dominio.trim().toLowerCase());
       localStorage.setItem("user_nome", userData.nome);
+      
+      // Salvar unidades_acesso no localStorage
+      if (userData.unidades_acesso && userData.unidades_acesso.length > 0) {
+        localStorage.setItem("user_unidades_acesso", JSON.stringify(userData.unidades_acesso));
+      } else {
+        localStorage.removeItem("user_unidades_acesso");
+      }
 
-      // Buscar unidades disponíveis
-      const { data: unidadesData } = await supabase
+      // Buscar unidades disponíveis (filtradas pelo acesso do usuário)
+      let unidadesQuery = supabase
         .from("tb_unidades")
         .select("id, nome, endereco_cidade, endereco_estado")
         .eq("dominio", dominio.trim().toLowerCase())
         .eq("ativo", true)
         .order("nome");
+      
+      // Se o usuário tem restrição de acesso, filtrar
+      if (userData.unidades_acesso && userData.unidades_acesso.length > 0) {
+        unidadesQuery = unidadesQuery.in("id", userData.unidades_acesso);
+      }
+
+      const { data: unidadesData } = await unidadesQuery;
 
       const unidadesList = (unidadesData || []) as Unidade[];
 
