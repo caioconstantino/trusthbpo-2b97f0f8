@@ -17,9 +17,11 @@ export type Database = {
       tb_alunos: {
         Row: {
           ativo: boolean
+          auth_user_id: string | null
           cpf: string | null
           created_at: string
           data_nascimento: string | null
+          dominio: string | null
           email: string
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -32,14 +34,17 @@ export type Database = {
           id: string
           nome: string
           professor_id: string
+          senha_temp: string | null
           telefone: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          auth_user_id?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          dominio?: string | null
           email: string
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -52,14 +57,17 @@ export type Database = {
           id?: string
           nome: string
           professor_id: string
+          senha_temp?: string | null
           telefone?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          auth_user_id?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          dominio?: string | null
           email?: string
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -72,6 +80,7 @@ export type Database = {
           id?: string
           nome?: string
           professor_id?: string
+          senha_temp?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -247,6 +256,7 @@ export type Database = {
       }
       tb_clientes_saas: {
         Row: {
+          aluno_id: string | null
           cpf_cnpj: string | null
           created_at: string | null
           cupom: string | null
@@ -261,11 +271,13 @@ export type Database = {
           responsavel: string | null
           status: string
           telefone: string | null
+          tipo_conta: string | null
           ultima_forma_pagamento: string | null
           ultimo_pagamento: string | null
           updated_at: string | null
         }
         Insert: {
+          aluno_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           cupom?: string | null
@@ -280,11 +292,13 @@ export type Database = {
           responsavel?: string | null
           status?: string
           telefone?: string | null
+          tipo_conta?: string | null
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           updated_at?: string | null
         }
         Update: {
+          aluno_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           cupom?: string | null
@@ -299,11 +313,20 @@ export type Database = {
           responsavel?: string | null
           status?: string
           telefone?: string | null
+          tipo_conta?: string | null
           ultima_forma_pagamento?: string | null
           ultimo_pagamento?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tb_clientes_saas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "tb_alunos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tb_compras: {
         Row: {
