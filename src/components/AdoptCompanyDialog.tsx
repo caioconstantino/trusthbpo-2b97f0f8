@@ -27,6 +27,7 @@ import { Loader2, Building2, Check, X } from "lucide-react";
 const formSchema = z.object({
   razao_social: z.string().min(2, "Nome da empresa é obrigatório"),
   dominio: z.string().min(3, "Domínio deve ter no mínimo 3 caracteres").regex(/^[a-z0-9-]+$/, "Domínio deve conter apenas letras minúsculas, números e hífens"),
+  senha: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
   cpf_cnpj: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefone: z.string().optional(),
@@ -53,6 +54,7 @@ export function AdoptCompanyDialog({ open, onOpenChange, alunoId }: AdoptCompany
     defaultValues: {
       razao_social: "",
       dominio: "",
+      senha: "",
       cpf_cnpj: "",
       email: "",
       telefone: "",
@@ -101,6 +103,7 @@ export function AdoptCompanyDialog({ open, onOpenChange, alunoId }: AdoptCompany
           aluno_id: alunoId,
           razao_social: values.razao_social,
           dominio: values.dominio,
+          senha: values.senha,
           cpf_cnpj: values.cpf_cnpj || null,
           email: values.email || null,
           telefone: values.telefone || null,
@@ -202,6 +205,23 @@ export function AdoptCompanyDialog({ open, onOpenChange, alunoId }: AdoptCompany
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     Este será o identificador único da empresa para login
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="senha"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha de Acesso *</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Esta será a senha para acessar a empresa
                   </p>
                   <FormMessage />
                 </FormItem>
