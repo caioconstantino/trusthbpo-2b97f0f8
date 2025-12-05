@@ -22,12 +22,22 @@ export function useUnidadeAtiva() {
     }
 
     try {
-      const { data, error } = await supabase
+      // Get user's unit access permissions
+      const unidadesAcessoStr = localStorage.getItem("user_unidades_acesso");
+      const unidadesAcesso: number[] = unidadesAcessoStr ? JSON.parse(unidadesAcessoStr) : [];
+
+      let query = supabase
         .from("tb_unidades")
         .select("id, nome, dominio, endereco_cidade, endereco_estado")
         .eq("dominio", dominio)
-        .eq("ativo", true)
-        .order("nome");
+        .eq("ativo", true);
+
+      // Filter by user's accessible units if they have restrictions
+      if (unidadesAcesso.length > 0) {
+        query = query.in("id", unidadesAcesso);
+      }
+
+      const { data, error } = await query.order("nome");
 
       if (error) throw error;
 

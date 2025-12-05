@@ -63,8 +63,7 @@ export const useProductLimit = () => {
       let query = supabase
         .from("tb_produtos")
         .select("id", { count: "exact", head: true })
-        .eq("dominio", dominio)
-        .eq("ativo", true);
+        .eq("dominio", dominio);
 
       if (unidadeId) {
         query = query.eq("unidade_id", parseInt(unidadeId));
