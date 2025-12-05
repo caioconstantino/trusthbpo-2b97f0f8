@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
   Zap, 
@@ -24,14 +25,17 @@ interface Produto {
   produto_codigo: string;
   produto_nome: string;
   preco_revenda: number;
+  preco_original: number;
 }
 
 const RevendaLanding = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [revenda, setRevenda] = useState<Revenda | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,7 +59,7 @@ const RevendaLanding = () => {
         // Buscar produtos da revenda
         const { data: produtosData } = await supabase
           .from("tb_revendas_produtos")
-          .select("produto_codigo, produto_nome, preco_revenda")
+          .select("produto_codigo, produto_nome, preco_revenda, preco_original")
           .eq("revenda_id", revendaData.id)
           .eq("ativo", true);
 
@@ -71,9 +75,53 @@ const RevendaLanding = () => {
   }, [slug]);
 
   const handleContratarPlano = async (produto: Produto) => {
-    // TODO: Integrar com Pagar.me para gerar link de pagamento
-    // Por enquanto, redirecionar para contato
-    window.open(`https://wa.me/?text=Olá! Gostaria de contratar o ${produto.produto_nome} por R$ ${produto.preco_revenda.toFixed(2).replace('.', ',')} através da revenda ${revenda?.nome}`, '_blank');
+    if (!revenda) return;
+    
+    setLoadingCheckout(produto.produto_codigo);
+    
+    try {
+      // Criar link de pagamento via Pagar.me
+      const priceInCents = Math.round(produto.preco_revenda * 100);
+      
+      const { data, error } = await supabase.functions.invoke('pagarme-create-link', {
+        body: {
+          planName: `${produto.produto_nome} - via ${revenda.nome}`,
+          planPrice: priceInCents,
+          cupom: revenda.slug,
+          revendaId: revenda.id
+        }
+      });
+
+      if (error) {
+        console.error('Error creating payment link:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível gerar o link de pagamento. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.paymentLink) {
+        // Redirecionar para o checkout do Pagar.me
+        window.location.href = data.paymentLink;
+      } else {
+        toast({
+          title: "Erro",
+          description: "Link de pagamento não foi gerado. Tente novamente.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao processar. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingCheckout(null);
+    }
   };
 
   if (loading) {
@@ -220,8 +268,14 @@ const RevendaLanding = () => {
                 <Button 
                   className="w-full mt-6 bg-primary hover:bg-primary/90"
                   onClick={() => basicoProduto && handleContratarPlano(basicoProduto)}
+                  disabled={loadingCheckout === 'basico'}
                 >
-                  Contratar Agora
+                  {loadingCheckout === 'basico' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : 'Contratar Agora'}
                 </Button>
               </CardContent>
             </Card>
@@ -270,8 +324,14 @@ const RevendaLanding = () => {
                 <Button 
                   className="w-full mt-6 bg-white text-slate-900 hover:bg-slate-100"
                   onClick={() => proProduto && handleContratarPlano(proProduto)}
+                  disabled={loadingCheckout === 'pro'}
                 >
-                  Contratar Agora
+                  {loadingCheckout === 'pro' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : 'Contratar Agora'}
                 </Button>
               </CardContent>
             </Card>

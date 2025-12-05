@@ -6,6 +6,8 @@ const corsHeaders = {
 interface CreateLinkRequest {
   planName: string
   planPrice: number // em centavos
+  cupom?: string // código da revenda
+  revendaId?: string // ID da revenda
 }
 
 Deno.serve(async (req) => {
@@ -25,9 +27,9 @@ Deno.serve(async (req) => {
     }
 
     const body: CreateLinkRequest = await req.json()
-    const { planName, planPrice } = body
+    const { planName, planPrice, cupom, revendaId } = body
 
-    console.log('Creating payment link for:', { planName, planPrice })
+    console.log('Creating payment link for:', { planName, planPrice, cupom, revendaId })
 
     if (!planName || !planPrice) {
       return new Response(
@@ -37,7 +39,7 @@ Deno.serve(async (req) => {
     }
 
     // Payload com PIX e Cartão de Crédito
-    const pagarmePayload = {
+    const pagarmePayload: Record<string, unknown> = {
       name: planName,
       type: 'order',
       payment_settings: {
@@ -60,6 +62,14 @@ Deno.serve(async (req) => {
             default_quantity: 1
           }
         ]
+      }
+    }
+
+    // Add metadata if cupom/revenda is provided
+    if (cupom || revendaId) {
+      pagarmePayload.metadata = {
+        cupom: cupom || '',
+        revenda_id: revendaId || ''
       }
     }
 
