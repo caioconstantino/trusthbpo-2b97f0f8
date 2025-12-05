@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, GraduationCap, CheckCircle } from "lucide-react";
+import { Loader2, GraduationCap, CheckCircle, Eye, EyeOff, Building2 } from "lucide-react";
 
 const formSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -31,6 +31,13 @@ const formSchema = z.object({
   endereco_bairro: z.string().min(2, "Bairro é obrigatório"),
   endereco_cidade: z.string().min(2, "Cidade é obrigatória"),
   endereco_estado: z.string().length(2, "Estado deve ter 2 caracteres"),
+  // Campos da empresa
+  nome_empresa: z.string().min(2, "Nome da empresa deve ter pelo menos 2 caracteres"),
+  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  confirmar_senha: z.string().min(6, "Confirme a senha"),
+}).refine((data) => data.senha === data.confirmar_senha, {
+  message: "As senhas não coincidem",
+  path: ["confirmar_senha"],
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -53,6 +60,9 @@ export default function CadastroAluno() {
   const [loadingData, setLoadingData] = useState(true);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [success, setSuccess] = useState(false);
+  const [createdDomain, setCreatedDomain] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -69,6 +79,9 @@ export default function CadastroAluno() {
       endereco_bairro: "",
       endereco_cidade: "",
       endereco_estado: "",
+      nome_empresa: "",
+      senha: "",
+      confirmar_senha: "",
     },
   });
 
@@ -160,27 +173,34 @@ export default function CadastroAluno() {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase
-        .from("tb_alunos")
-        .insert({
+      const { data: result, error } = await supabase.functions.invoke("create-aluno-empresa", {
+        body: {
           professor_id: professor.id,
           escola_id: professor.escola_id,
           nome: data.nome,
           email: data.email,
-          telefone: data.telefone.replace(/\D/g, ""),
-          cpf: data.cpf.replace(/\D/g, ""),
+          telefone: data.telefone,
+          cpf: data.cpf,
           data_nascimento: data.data_nascimento,
-          endereco_cep: data.endereco_cep.replace(/\D/g, ""),
+          endereco_cep: data.endereco_cep,
           endereco_logradouro: data.endereco_logradouro,
           endereco_numero: data.endereco_numero,
-          endereco_complemento: data.endereco_complemento || null,
+          endereco_complemento: data.endereco_complemento,
           endereco_bairro: data.endereco_bairro,
           endereco_cidade: data.endereco_cidade,
-          endereco_estado: data.endereco_estado.toUpperCase(),
-        });
+          endereco_estado: data.endereco_estado,
+          nome_empresa: data.nome_empresa,
+          senha: data.senha,
+        },
+      });
 
       if (error) throw error;
 
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      setCreatedDomain(result.dominio);
       setSuccess(true);
       toast.success("Cadastro realizado com sucesso!");
     } catch (error: any) {
@@ -206,11 +226,23 @@ export default function CadastroAluno() {
           <CardContent className="pt-8 pb-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Cadastro Realizado!</h2>
-            <p className="text-slate-400 mb-6">
-              Seu cadastro foi realizado com sucesso. Em breve você receberá mais informações.
+            <p className="text-slate-400 mb-4">
+              Sua conta foi criada com sucesso. Você já pode fazer login e começar a usar o sistema.
             </p>
-            <Button onClick={() => navigate("/")} variant="outline" className="border-slate-600 text-slate-300">
-              Voltar ao Início
+            <div className="bg-slate-700 rounded-lg p-4 mb-6">
+              <p className="text-slate-300 text-sm mb-2">Seu domínio de acesso:</p>
+              <p className="text-xl font-bold text-primary">{createdDomain}</p>
+              <p className="text-slate-400 text-xs mt-2">
+                Use este domínio junto com seu email e senha para fazer login
+              </p>
+            </div>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
+              <p className="text-amber-400 text-sm">
+                <strong>Licença Educacional:</strong> Sua empresa tem acesso gratuito por 1 ano como parte do programa educacional.
+              </p>
+            </div>
+            <Button onClick={() => navigate("/login")} className="w-full">
+              Ir para Login
             </Button>
           </CardContent>
         </Card>
@@ -242,43 +274,30 @@ export default function CadastroAluno() {
           <CardHeader>
             <CardTitle className="text-white">Cadastro de Aluno</CardTitle>
             <CardDescription className="text-slate-400">
-              Preencha seus dados para se cadastrar
+              Preencha seus dados e crie sua empresa para praticar no sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-300">Nome Completo</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="bg-slate-700 border-slate-600 text-white"
-                          placeholder="Seu nome completo"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Dados Pessoais */}
+                <div className="space-y-4">
+                  <h3 className="text-white font-medium flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5" />
+                    Dados Pessoais
+                  </h3>
+                  
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="nome"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-300">Email</FormLabel>
+                        <FormLabel className="text-slate-300">Nome Completo</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            type="email"
                             className="bg-slate-700 border-slate-600 text-white"
-                            placeholder="seu@email.com"
+                            placeholder="Seu nome completo"
                           />
                         </FormControl>
                         <FormMessage />
@@ -286,67 +305,89 @@ export default function CadastroAluno() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="telefone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">Telefone</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="bg-slate-700 border-slate-600 text-white"
-                            placeholder="(00) 00000-0000"
-                            onChange={(e) => field.onChange(formatPhone(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              className="bg-slate-700 border-slate-600 text-white"
+                              placeholder="seu@email.com"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">Telefone</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              className="bg-slate-700 border-slate-600 text-white"
+                              placeholder="(00) 00000-0000"
+                              onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="cpf"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">CPF</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              className="bg-slate-700 border-slate-600 text-white"
+                              placeholder="000.000.000-00"
+                              onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="data_nascimento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">Data de Nascimento</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="date"
+                              className="bg-slate-700 border-slate-600 text-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="cpf"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">CPF</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="bg-slate-700 border-slate-600 text-white"
-                            placeholder="000.000.000-00"
-                            onChange={(e) => field.onChange(formatCPF(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="data_nascimento"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">Data de Nascimento</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="date"
-                            className="bg-slate-700 border-slate-600 text-white"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="border-t border-slate-700 pt-4 mt-4">
-                  <h3 className="text-white font-medium mb-4">Endereço</h3>
+                {/* Endereço */}
+                <div className="border-t border-slate-700 pt-4 space-y-4">
+                  <h3 className="text-white font-medium">Endereço</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
@@ -391,7 +432,7 @@ export default function CadastroAluno() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="endereco_numero"
@@ -429,7 +470,7 @@ export default function CadastroAluno() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="endereco_bairro"
@@ -476,7 +517,7 @@ export default function CadastroAluno() {
                             <Input
                               {...field}
                               className="bg-slate-700 border-slate-600 text-white"
-                              placeholder="UF"
+                              placeholder="SP"
                               maxLength={2}
                               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                             />
@@ -488,18 +529,102 @@ export default function CadastroAluno() {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 mt-6"
-                  disabled={isLoading}
-                >
+                {/* Dados da Empresa */}
+                <div className="border-t border-slate-700 pt-4 space-y-4">
+                  <h3 className="text-white font-medium flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Dados da Empresa (para praticar)
+                  </h3>
+                  <p className="text-slate-400 text-sm">
+                    Crie uma empresa fictícia ou use dados de uma empresa real para praticar no sistema.
+                    Você receberá acesso gratuito por 1 ano.
+                  </p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="nome_empresa"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-300">Nome da Empresa</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="bg-slate-700 border-slate-600 text-white"
+                            placeholder="Ex: Loja do João, Mercado Teste, etc."
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="senha"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">Senha de Acesso</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showPassword ? "text" : "password"}
+                                className="bg-slate-700 border-slate-600 text-white pr-10"
+                                placeholder="Mínimo 6 caracteres"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                              >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="confirmar_senha"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-300">Confirmar Senha</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showConfirmPassword ? "text" : "password"}
+                                className="bg-slate-700 border-slate-600 text-white pr-10"
+                                placeholder="Repita a senha"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                              >
+                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Cadastrando...
                     </>
                   ) : (
-                    "Realizar Cadastro"
+                    "Criar Conta e Empresa"
                   )}
                 </Button>
               </form>

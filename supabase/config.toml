@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.update-customer-domain]
 verify_jwt = false
+
+[functions.create-aluno-empresa]
+verify_jwt = false
+
+[functions.create-professor-user]
+verify_jwt = false
+
+[functions.create-escola-user]
+verify_jwt = false
