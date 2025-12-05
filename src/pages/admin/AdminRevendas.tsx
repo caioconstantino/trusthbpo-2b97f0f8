@@ -193,6 +193,10 @@ const AdminRevendas = () => {
       }
 
       if (response.data?.error) {
+        if (response.data.error.includes("email address has already been registered") || 
+            response.data.error.includes("email_exists")) {
+          throw new Error("Este email já está cadastrado no sistema. Use outro email.");
+        }
         throw new Error(response.data.error);
       }
 
