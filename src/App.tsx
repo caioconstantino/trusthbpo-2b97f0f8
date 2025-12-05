@@ -28,7 +28,6 @@ import AdminEscolas from "./pages/admin/AdminEscolas";
 import AdminAlunos from "./pages/admin/AdminAlunos";
 import AdminFinanceiro from "./pages/admin/AdminFinanceiro";
 import AdminRevendas from "./pages/admin/AdminRevendas";
-import AdminPdvs from "./pages/admin/AdminPdvs";
 import CriarUsuario from "./pages/CriarUsuario";
 import Configuracoes from "./pages/Configuracoes";
 import CadastroAluno from "./pages/CadastroAluno";
@@ -71,7 +70,6 @@ const App = () => (
             <Route path="/admin/alunos" element={<AdminProtectedRoute><AdminAlunos /></AdminProtectedRoute>} />
             <Route path="/admin/financeiro" element={<AdminProtectedRoute><AdminFinanceiro /></AdminProtectedRoute>} />
             <Route path="/admin/revendas" element={<AdminProtectedRoute><AdminRevendas /></AdminProtectedRoute>} />
-            <Route path="/admin/pdvs" element={<AdminProtectedRoute><AdminPdvs /></AdminProtectedRoute>} />
             
             {/* Public Registration Routes */}
             <Route path="/cadastro/aluno/:slug" element={<CadastroAluno />} />

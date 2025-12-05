@@ -53,6 +53,9 @@ import {
   Trash,
   Building,
   MapPin,
+  Monitor,
+  Minus,
+  ExternalLink,
 } from "lucide-react";
 
 interface ClienteSaas {
@@ -169,6 +172,12 @@ export default function Configuracoes() {
     categoriasContasReceber: false,
     clientes: false,
   });
+
+  // PDV states
+  const [pdvQuantidade, setPdvQuantidade] = useState(1);
+  const [isGeneratingPdvLink, setIsGeneratingPdvLink] = useState(false);
+  const [pdvPaymentLink, setPdvPaymentLink] = useState<string | null>(null);
+  const PRECO_PDV_ADICIONAL = 1000; // R$ 10,00 em centavos
 
   useEffect(() => {
     fetchData();
@@ -720,7 +729,7 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="empresa" className="gap-2 py-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Empresa</span>
@@ -734,6 +743,10 @@ export default function Configuracoes() {
             <TabsTrigger value="billing" className="gap-2 py-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Assinatura</span>
+            </TabsTrigger>
+            <TabsTrigger value="pdvs" className="gap-2 py-2">
+              <Monitor className="h-4 w-4" />
+              <span className="hidden sm:inline">PDVs</span>
             </TabsTrigger>
             <TabsTrigger value="permissoes" className="gap-2 py-2">
               <Shield className="h-4 w-4" />
@@ -934,6 +947,174 @@ export default function Configuracoes() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* PDVs Tab */}
+          <TabsContent value="pdvs" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Monitor className="h-5 w-5 text-primary" />
+                    Informações sobre PDVs
+                  </CardTitle>
+                  <CardDescription>Cada plano inclui 1 PDV por padrão</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-2">Plano Básico (R$ 39,90/mês)</h4>
+                    <p className="text-sm text-muted-foreground">Inclui 1 PDV</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-2">Plano Pro (R$ 99,90/mês)</h4>
+                    <p className="text-sm text-muted-foreground">Inclui 1 PDV</p>
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+                    <h4 className="font-semibold text-primary mb-2">PDV Adicional</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Cada PDV adicional custa <span className="font-bold">R$ 10,00/mês</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generator Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contratar PDVs Adicionais</CardTitle>
+                  <CardDescription>Selecione a quantidade de PDVs adicionais</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Quantidade de PDVs Adicionais</Label>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          if (pdvQuantidade > 1) {
+                            setPdvQuantidade(pdvQuantidade - 1);
+                            setPdvPaymentLink(null);
+                          }
+                        }}
+                        disabled={pdvQuantidade <= 1}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={pdvQuantidade}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!isNaN(value) && value >= 1) {
+                            setPdvQuantidade(value);
+                            setPdvPaymentLink(null);
+                          }
+                        }}
+                        className="w-20 text-center"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setPdvQuantidade(pdvQuantidade + 1);
+                          setPdvPaymentLink(null);
+                        }}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total mensal:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((pdvQuantidade * PRECO_PDV_ADICIONAL) / 100)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {pdvQuantidade} PDV{pdvQuantidade > 1 ? "s" : ""} adicional{pdvQuantidade > 1 ? "is" : ""} × R$ 10,00
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      setIsGeneratingPdvLink(true);
+                      setPdvPaymentLink(null);
+                      try {
+                        const totalCentavos = pdvQuantidade * PRECO_PDV_ADICIONAL;
+                        const planName = pdvQuantidade === 1 
+                          ? "PDV Adicional - TrustHBPO" 
+                          : `${pdvQuantidade}x PDV Adicional - TrustHBPO`;
+
+                        const { data, error } = await supabase.functions.invoke("pagarme-create-link", {
+                          body: { planName, planPrice: totalCentavos }
+                        });
+
+                        if (error) throw error;
+                        if (data?.paymentLink) {
+                          setPdvPaymentLink(data.paymentLink);
+                          toast({ title: "Link gerado!", description: "Link de pagamento gerado com sucesso." });
+                        } else {
+                          throw new Error("Link não retornado pela API");
+                        }
+                      } catch (error) {
+                        console.error("Erro ao gerar link:", error);
+                        toast({ title: "Erro", description: "Erro ao gerar link de pagamento", variant: "destructive" });
+                      } finally {
+                        setIsGeneratingPdvLink(false);
+                      }
+                    }}
+                    disabled={isGeneratingPdvLink}
+                    className="w-full"
+                  >
+                    {isGeneratingPdvLink ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Gerando link...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Gerar Link de Pagamento
+                      </>
+                    )}
+                  </Button>
+
+                  {pdvPaymentLink && (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <p className="text-sm text-green-600 font-medium mb-2">Link gerado com sucesso!</p>
+                        <p className="text-xs text-muted-foreground break-all">{pdvPaymentLink}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(pdvPaymentLink);
+                            toast({ title: "Copiado!", description: "Link copiado para a área de transferência." });
+                          }}
+                          className="flex-1"
+                        >
+                          Copiar Link
+                        </Button>
+                        <Button
+                          variant="default"
+                          onClick={() => window.open(pdvPaymentLink, "_blank")}
+                          className="flex-1"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Abrir Link
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Permissões Tab */}
