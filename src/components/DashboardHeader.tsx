@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Bell, GraduationCap, Settings, LogOut, User, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -38,6 +39,7 @@ interface Notification {
 export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
 
@@ -65,8 +67,8 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
     try {
       await supabase.auth.signOut();
       toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
+        title: t('auth.logoutSuccess'),
+        description: t('auth.logoutSuccess'),
       });
       navigate("/login");
     } catch (error) {
@@ -92,8 +94,8 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           onClick={() => setReferralOpen(true)}
         >
           <Users className="w-4 h-4" />
-          <span className="hidden lg:inline">Indique e Ganhe</span>
-          <span className="lg:hidden">Indicar</span>
+          <span className="hidden lg:inline">{t('referral.title')}</span>
+          <span className="lg:hidden">{t('referral.title')}</span>
         </Button>
         <LanguageSelector />
         <ThemeToggle />
@@ -161,20 +163,20 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('settings.company')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/configuracoes")} className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
-              Meu Perfil
+              {t('settings.company')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/configuracoes?tab=billing")} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
-              Configurações
+              {t('nav.settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              Sair
+              {t('auth.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
