@@ -76,6 +76,182 @@ const CentralContas = () => {
   const [lastMonthDespesas, setLastMonthDespesas] = useState(0);
   const [forecastReceitas, setForecastReceitas] = useState(0);
 
+  const fetchMonthlyData = async () => {
+    const months = parseInt(period);
+    const endDate = endOfMonth(new Date());
+    const startDate = startOfMonth(subMonths(new Date(), months - 1));
+
+    const { data: receitasData } = await supabase
+      .from("tb_contas_receber")
+      .select("valor, vencimento, status")
+      .eq("dominio", dominio)
+      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
+      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+
+    const { data: vendasData } = await supabase
+      .from("tb_vendas")
+      .select("total, created_at")
+      .eq("dominio", dominio)
+      .gte("created_at", startDate.toISOString())
+      .lte("created_at", endDate.toISOString());
+
+    const { data: despesasData } = await supabase
+      .from("tb_contas_pagar")
+      .select("valor, vencimento, status")
+      .eq("dominio", dominio)
+      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
+      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+
+    const monthlyMap = new Map<string, { receitas: number; despesas: number }>();
+    
+    for (let i = 0; i < months; i++) {
+      const date = subMonths(new Date(), i);
+      const key = format(date, "yyyy-MM");
+      monthlyMap.set(key, { receitas: 0, despesas: 0 });
+    }
+
+    receitasData?.forEach(item => {
+      const key = item.vencimento.substring(0, 7);
+      if (monthlyMap.has(key)) {
+        const current = monthlyMap.get(key)!;
+        current.receitas += Number(item.valor);
+      }
+    });
+
+    vendasData?.forEach(item => {
+      const key = format(parseISO(item.created_at), "yyyy-MM");
+      if (monthlyMap.has(key)) {
+        const current = monthlyMap.get(key)!;
+        current.receitas += Number(item.total);
+      }
+    });
+
+    despesasData?.forEach(item => {
+      const key = item.vencimento.substring(0, 7);
+      if (monthlyMap.has(key)) {
+        const current = monthlyMap.get(key)!;
+        current.despesas += Number(item.valor);
+      }
+    });
+
+    const result: MonthlyData[] = Array.from(monthlyMap.entries())
+      .map(([key, value]) => ({
+        month: format(parseISO(`${key}-01`), "MMM/yy", { locale: ptBR }),
+        receitas: value.receitas,
+        despesas: value.despesas,
+        saldo: value.receitas - value.despesas
+      }))
+      .reverse();
+
+    setMonthlyData(result);
+
+    const currentKey = format(new Date(), "yyyy-MM");
+    const lastKey = format(subMonths(new Date(), 1), "yyyy-MM");
+    
+    setCurrentMonthReceitas(monthlyMap.get(currentKey)?.receitas || 0);
+    setCurrentMonthDespesas(monthlyMap.get(currentKey)?.despesas || 0);
+    setLastMonthReceitas(monthlyMap.get(lastKey)?.receitas || 0);
+    setLastMonthDespesas(monthlyMap.get(lastKey)?.despesas || 0);
+
+    const receitasArray = Array.from(monthlyMap.values()).map(v => v.receitas).reverse();
+    if (receitasArray.length >= 2) {
+      const lastThree = receitasArray.slice(-3);
+      const avgGrowth = lastThree.length > 1 
+        ? (lastThree[lastThree.length - 1] - lastThree[0]) / lastThree.length
+        : 0;
+      setForecastReceitas(Math.max(0, receitasArray[receitasArray.length - 1] + avgGrowth));
+    }
+  };
+
+  const fetchSalesHeatmap = async () => {
+    const startDate = subMonths(new Date(), 3);
+    
+    const { data: vendasData } = await supabase
+      .from("tb_vendas")
+      .select("total, created_at")
+      .eq("dominio", dominio)
+      .gte("created_at", startDate.toISOString());
+
+    const heatmapData: SalesByHour[] = [];
+    
+    for (let day = 0; day < 7; day++) {
+      for (const hour of hours) {
+        heatmapData.push({ day, hour, total: 0, count: 0 });
+      }
+    }
+
+    vendasData?.forEach(venda => {
+      const date = parseISO(venda.created_at);
+      const day = getDay(date);
+      const hour = getHours(date);
+      
+      if (hour >= 7 && hour <= 20) {
+        const cell = heatmapData.find(c => c.day === day && c.hour === hour);
+        if (cell) {
+          cell.total += Number(venda.total);
+          cell.count += 1;
+        }
+      }
+    });
+
+    setSalesHeatmap(heatmapData);
+  };
+
+  const fetchCategoryData = async () => {
+    const startDate = startOfMonth(subMonths(new Date(), 2));
+    const endDate = endOfMonth(new Date());
+
+    const { data: despesasData } = await supabase
+      .from("tb_contas_pagar")
+      .select("categoria, valor")
+      .eq("dominio", dominio)
+      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
+      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+
+    const expenseMap = new Map<string, number>();
+    despesasData?.forEach(item => {
+      const cat = item.categoria || "Sem Categoria";
+      expenseMap.set(cat, (expenseMap.get(cat) || 0) + Number(item.valor));
+    });
+
+    setExpenseCategories(
+      Array.from(expenseMap.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5)
+    );
+
+    const { data: receitasData } = await supabase
+      .from("tb_contas_receber")
+      .select("categoria, valor")
+      .eq("dominio", dominio)
+      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
+      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+
+    const revenueMap = new Map<string, number>();
+    receitasData?.forEach(item => {
+      const cat = item.categoria || "Vendas";
+      revenueMap.set(cat, (revenueMap.get(cat) || 0) + Number(item.valor));
+    });
+
+    setRevenueCategories(
+      Array.from(revenueMap.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5)
+    );
+  };
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchMonthlyData(),
+      fetchSalesHeatmap(),
+      fetchCategoryData()
+    ]);
+    setLoading(false);
+  };
+
   useEffect(() => {
     fetchAllData();
   }, [period, dominio]);
@@ -99,195 +275,6 @@ const CentralContas = () => {
       </DashboardLayout>
     );
   }
-
-  const fetchAllData = async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchMonthlyData(),
-      fetchSalesHeatmap(),
-      fetchCategoryData()
-    ]);
-    setLoading(false);
-  };
-
-  const fetchMonthlyData = async () => {
-    const months = parseInt(period);
-    const endDate = endOfMonth(new Date());
-    const startDate = startOfMonth(subMonths(new Date(), months - 1));
-
-    // Fetch receitas (contas receber + vendas)
-    const { data: receitasData } = await supabase
-      .from("tb_contas_receber")
-      .select("valor, vencimento, status")
-      .eq("dominio", dominio)
-      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
-      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
-
-    const { data: vendasData } = await supabase
-      .from("tb_vendas")
-      .select("total, created_at")
-      .eq("dominio", dominio)
-      .gte("created_at", startDate.toISOString())
-      .lte("created_at", endDate.toISOString());
-
-    // Fetch despesas
-    const { data: despesasData } = await supabase
-      .from("tb_contas_pagar")
-      .select("valor, vencimento, status")
-      .eq("dominio", dominio)
-      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
-      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
-
-    // Group by month
-    const monthlyMap = new Map<string, { receitas: number; despesas: number }>();
-    
-    for (let i = 0; i < months; i++) {
-      const date = subMonths(new Date(), i);
-      const key = format(date, "yyyy-MM");
-      monthlyMap.set(key, { receitas: 0, despesas: 0 });
-    }
-
-    // Add receitas from contas receber
-    receitasData?.forEach(item => {
-      const key = item.vencimento.substring(0, 7);
-      if (monthlyMap.has(key)) {
-        const current = monthlyMap.get(key)!;
-        current.receitas += Number(item.valor);
-      }
-    });
-
-    // Add receitas from vendas
-    vendasData?.forEach(item => {
-      const key = format(parseISO(item.created_at), "yyyy-MM");
-      if (monthlyMap.has(key)) {
-        const current = monthlyMap.get(key)!;
-        current.receitas += Number(item.total);
-      }
-    });
-
-    // Add despesas
-    despesasData?.forEach(item => {
-      const key = item.vencimento.substring(0, 7);
-      if (monthlyMap.has(key)) {
-        const current = monthlyMap.get(key)!;
-        current.despesas += Number(item.valor);
-      }
-    });
-
-    // Convert to array and sort
-    const result: MonthlyData[] = Array.from(monthlyMap.entries())
-      .map(([key, value]) => ({
-        month: format(parseISO(`${key}-01`), "MMM/yy", { locale: ptBR }),
-        receitas: value.receitas,
-        despesas: value.despesas,
-        saldo: value.receitas - value.despesas
-      }))
-      .reverse();
-
-    setMonthlyData(result);
-
-    // Current and last month for comparison
-    const currentKey = format(new Date(), "yyyy-MM");
-    const lastKey = format(subMonths(new Date(), 1), "yyyy-MM");
-    
-    setCurrentMonthReceitas(monthlyMap.get(currentKey)?.receitas || 0);
-    setCurrentMonthDespesas(monthlyMap.get(currentKey)?.despesas || 0);
-    setLastMonthReceitas(monthlyMap.get(lastKey)?.receitas || 0);
-    setLastMonthDespesas(monthlyMap.get(lastKey)?.despesas || 0);
-
-    // Calculate forecast based on average growth
-    const receitasArray = Array.from(monthlyMap.values()).map(v => v.receitas).reverse();
-    if (receitasArray.length >= 2) {
-      const lastThree = receitasArray.slice(-3);
-      const avgGrowth = lastThree.length > 1 
-        ? (lastThree[lastThree.length - 1] - lastThree[0]) / lastThree.length
-        : 0;
-      setForecastReceitas(Math.max(0, receitasArray[receitasArray.length - 1] + avgGrowth));
-    }
-  };
-
-  const fetchSalesHeatmap = async () => {
-    const startDate = subMonths(new Date(), 3);
-    
-    const { data: vendasData } = await supabase
-      .from("tb_vendas")
-      .select("total, created_at")
-      .eq("dominio", dominio)
-      .gte("created_at", startDate.toISOString());
-
-    const heatmapData: SalesByHour[] = [];
-    
-    // Initialize all cells
-    for (let day = 0; day < 7; day++) {
-      for (const hour of hours) {
-        heatmapData.push({ day, hour, total: 0, count: 0 });
-      }
-    }
-
-    // Aggregate sales data
-    vendasData?.forEach(venda => {
-      const date = parseISO(venda.created_at);
-      const day = getDay(date);
-      const hour = getHours(date);
-      
-      if (hour >= 7 && hour <= 20) {
-        const cell = heatmapData.find(c => c.day === day && c.hour === hour);
-        if (cell) {
-          cell.total += Number(venda.total);
-          cell.count += 1;
-        }
-      }
-    });
-
-    setSalesHeatmap(heatmapData);
-  };
-
-  const fetchCategoryData = async () => {
-    const startDate = startOfMonth(subMonths(new Date(), 2));
-    const endDate = endOfMonth(new Date());
-
-    // Fetch expense categories
-    const { data: despesasData } = await supabase
-      .from("tb_contas_pagar")
-      .select("categoria, valor")
-      .eq("dominio", dominio)
-      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
-      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
-
-    const expenseMap = new Map<string, number>();
-    despesasData?.forEach(item => {
-      const cat = item.categoria || "Sem Categoria";
-      expenseMap.set(cat, (expenseMap.get(cat) || 0) + Number(item.valor));
-    });
-
-    setExpenseCategories(
-      Array.from(expenseMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 5)
-    );
-
-    // Fetch revenue categories
-    const { data: receitasData } = await supabase
-      .from("tb_contas_receber")
-      .select("categoria, valor")
-      .eq("dominio", dominio)
-      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
-      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
-
-    const revenueMap = new Map<string, number>();
-    receitasData?.forEach(item => {
-      const cat = item.categoria || "Vendas";
-      revenueMap.set(cat, (revenueMap.get(cat) || 0) + Number(item.valor));
-    });
-
-    setRevenueCategories(
-      Array.from(revenueMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 5)
-    );
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { 
