@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -20,6 +20,7 @@ import logo from "@/assets/logo.webp";
 import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { AdoptCompanyDialog } from "./AdoptCompanyDialog";
+import { OfertasEspeciaisDialog } from "./OfertasEspeciaisDialog";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -29,6 +30,7 @@ export function AppSidebar() {
   const [isEducational, setIsEducational] = useState(false);
   const [alunoId, setAlunoId] = useState<string | null>(null);
   const [adoptDialogOpen, setAdoptDialogOpen] = useState(false);
+  const [ofertasDialogOpen, setOfertasDialogOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
 
@@ -135,9 +137,22 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Botão Adote uma Empresa para contas educacionais */}
-      {isEducational && alunoId && (
-        <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
+        {/* Botão Ofertas Especiais para todos */}
+        <Button
+          onClick={() => setOfertasDialogOpen(true)}
+          variant="outline"
+          className={`w-full border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-300 ${
+            isCollapsed ? "p-2" : "gap-2"
+          }`}
+          size={isCollapsed ? "icon" : "default"}
+        >
+          <Gift className="h-4 w-4" />
+          {!isCollapsed && <span className="font-medium">Ofertas Especiais</span>}
+        </Button>
+
+        {/* Botão Adote uma Empresa para contas educacionais */}
+        {isEducational && alunoId && (
           <Button
             onClick={() => setAdoptDialogOpen(true)}
             className={`w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 ${
@@ -148,13 +163,18 @@ export function AppSidebar() {
             <Sparkles className="h-4 w-4" />
             {!isCollapsed && <span className="font-semibold">Adote uma Empresa</span>}
           </Button>
-        </SidebarFooter>
-      )}
+        )}
+      </SidebarFooter>
 
       <AdoptCompanyDialog
         open={adoptDialogOpen}
         onOpenChange={setAdoptDialogOpen}
         alunoId={alunoId || ""}
+      />
+
+      <OfertasEspeciaisDialog
+        open={ofertasDialogOpen}
+        onOpenChange={setOfertasDialogOpen}
       />
     </Sidebar>
   );
