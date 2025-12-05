@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -31,26 +48,36 @@ import {
   Users,
   Webhook,
   DollarSign,
-  Upload
+  Upload,
+  MoreHorizontal,
+  Ban,
+  CheckCircle,
+  Trash2
 } from "lucide-react";
 import { ImportClientesDialog } from "@/components/admin/ImportClientesDialog";
+import { ViewClienteDialog } from "@/components/admin/ViewClienteDialog";
+import { EditClienteSheet } from "@/components/admin/EditClienteSheet";
 
 interface SaasCliente {
   id: number;
   dominio: string;
   razao_social: string;
-  cpf_cnpj: string;
-  email: string;
-  telefone: string;
+  cpf_cnpj: string | null;
+  email: string | null;
+  telefone: string | null;
   status: string;
   plano: string | null;
-  responsavel: string;
+  responsavel: string | null;
   multiempresa: string | null;
   proximo_pagamento: string | null;
   ultimo_pagamento: string | null;
   ultima_forma_pagamento: string | null;
   cupom: string | null;
   total_vendas?: number;
+  created_at: string | null;
+  tipo_conta: string | null;
+  last_login_at: string | null;
+  observacoes: string | null;
 }
 
 const AdminClientes = () => {
@@ -63,6 +90,12 @@ const AdminClientes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  
+  // Estados para dialogs
+  const [viewCliente, setViewCliente] = useState<SaasCliente | null>(null);
+  const [editCliente, setEditCliente] = useState<SaasCliente | null>(null);
+  const [deleteCliente, setDeleteCliente] = useState<SaasCliente | null>(null);
+  const [blockCliente, setBlockCliente] = useState<SaasCliente | null>(null);
 
   useEffect(() => {
     fetchClientes();
@@ -118,7 +151,7 @@ const AdminClientes = () => {
       filtered = filtered.filter(c =>
         c.dominio.toLowerCase().includes(term) ||
         c.razao_social.toLowerCase().includes(term) ||
-        c.email.toLowerCase().includes(term)
+        (c.email && c.email.toLowerCase().includes(term))
       );
     }
 
@@ -134,6 +167,64 @@ const AdminClientes = () => {
     navigate("/admin/login");
   };
 
+  const handleBlockToggle = async () => {
+    if (!blockCliente) return;
+
+    const newStatus = blockCliente.status === "Suspenso" ? "Ativo" : "Suspenso";
+
+    try {
+      const { error } = await supabase
+        .from("tb_clientes_saas")
+        .update({ status: newStatus })
+        .eq("id", blockCliente.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: `Cliente ${newStatus === "Suspenso" ? "bloqueado" : "desbloqueado"} com sucesso!`,
+      });
+
+      fetchClientes();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBlockCliente(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteCliente) return;
+
+    try {
+      const { error } = await supabase
+        .from("tb_clientes_saas")
+        .delete()
+        .eq("id", deleteCliente.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Cliente excluído com sucesso!",
+      });
+
+      fetchClientes();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteCliente(null);
+    }
+  };
+
   const isActive = (path: string) => location.pathname === path;
 
   const getStatusBadge = (status: string) => {
@@ -141,6 +232,9 @@ const AdminClientes = () => {
       Ativo: "bg-green-500/20 text-green-400",
       Inativo: "bg-red-500/20 text-red-400",
       Lead: "bg-blue-500/20 text-blue-400",
+      Suspenso: "bg-amber-500/20 text-amber-400",
+      Cancelado: "bg-red-500/20 text-red-400",
+      Inadimplente: "bg-orange-500/20 text-orange-400",
     };
     return styles[status] || "bg-slate-500/20 text-slate-400";
   };
@@ -255,6 +349,9 @@ const AdminClientes = () => {
                   <SelectItem value="Ativo">Ativos</SelectItem>
                   <SelectItem value="Inativo">Inativos</SelectItem>
                   <SelectItem value="Lead">Leads</SelectItem>
+                  <SelectItem value="Suspenso">Suspensos</SelectItem>
+                  <SelectItem value="Cancelado">Cancelados</SelectItem>
+                  <SelectItem value="Inadimplente">Inadimplentes</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -316,21 +413,58 @@ const AdminClientes = () => {
                         }
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-600"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-600"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                        <div className="flex items-center justify-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-600"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                              <DropdownMenuItem 
+                                className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                                onClick={() => setViewCliente(cliente)}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                Ver Detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
+                                onClick={() => setEditCliente(cliente)}
+                              >
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-slate-700" />
+                              <DropdownMenuItem 
+                                className="text-amber-400 hover:text-amber-300 hover:bg-slate-700 cursor-pointer"
+                                onClick={() => setBlockCliente(cliente)}
+                              >
+                                {cliente.status === "Suspenso" ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Desbloquear
+                                  </>
+                                ) : (
+                                  <>
+                                    <Ban className="w-4 h-4 mr-2" />
+                                    Bloquear
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-400 hover:text-red-300 hover:bg-slate-700 cursor-pointer"
+                                onClick={() => setDeleteCliente(cliente)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -342,12 +476,77 @@ const AdminClientes = () => {
         </Card>
       </main>
 
-      {/* Import Dialog */}
+      {/* Dialogs */}
       <ImportClientesDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onSuccess={fetchClientes}
       />
+
+      <ViewClienteDialog
+        open={!!viewCliente}
+        onOpenChange={() => setViewCliente(null)}
+        cliente={viewCliente}
+      />
+
+      <EditClienteSheet
+        open={!!editCliente}
+        onOpenChange={() => setEditCliente(null)}
+        cliente={editCliente}
+        onSuccess={fetchClientes}
+      />
+
+      {/* Block Confirmation Dialog */}
+      <AlertDialog open={!!blockCliente} onOpenChange={() => setBlockCliente(null)}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              {blockCliente?.status === "Suspenso" ? "Desbloquear" : "Bloquear"} Cliente
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {blockCliente?.status === "Suspenso" 
+                ? `Tem certeza que deseja desbloquear o cliente "${blockCliente?.razao_social}"? O acesso ao sistema será restaurado.`
+                : `Tem certeza que deseja bloquear o cliente "${blockCliente?.razao_social}"? O acesso ao sistema será suspenso.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBlockToggle}
+              className={blockCliente?.status === "Suspenso" ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}
+            >
+              {blockCliente?.status === "Suspenso" ? "Desbloquear" : "Bloquear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteCliente} onOpenChange={() => setDeleteCliente(null)}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Excluir Cliente</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Tem certeza que deseja excluir o cliente "{deleteCliente?.razao_social}"? 
+              Esta ação não pode ser desfeita e todos os dados associados serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
