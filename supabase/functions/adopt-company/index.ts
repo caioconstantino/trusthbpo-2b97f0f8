@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
         responsavel: responsavel || alunoData.nome,
         observacoes: observacoes || `Empresa adotada pelo aluno: ${alunoData.nome}`,
         status: "Ativo",
-        tipo_conta: "aluno",
+        tipo_conta: "empresa_adotada",
         aluno_id: aluno_id,
         plano: "Básico",
         ultimo_pagamento: hoje.toISOString().split("T")[0],
