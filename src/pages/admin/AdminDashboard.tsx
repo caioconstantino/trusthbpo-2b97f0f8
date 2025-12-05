@@ -12,8 +12,7 @@ import {
   LayoutDashboard,
   Webhook,
   GraduationCap,
-  Handshake,
-  Monitor
+  Handshake
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
@@ -201,14 +200,6 @@ const AdminDashboard = () => {
           >
             <Handshake className="w-4 h-4 mr-2" />
             Revendas
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={isActive("/admin/pdvs") ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-slate-400 hover:text-white hover:bg-slate-700"}
-            onClick={() => navigate("/admin/pdvs")}
-          >
-            <Monitor className="w-4 h-4 mr-2" />
-            PDVs
           </Button>
           <Button 
             variant="ghost" 
