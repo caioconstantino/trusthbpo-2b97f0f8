@@ -11,6 +11,11 @@ interface CreateLinkRequest {
   dominio?: string // domínio do cliente (para adicionais)
   tipo?: string // tipo de compra: 'plano', 'pdv_adicional', 'empresa_adicional'
   quantidade?: number // quantidade de adicionais
+  // Novos campos para checkout completo
+  billingPeriod?: 'mensal' | 'anual'
+  additionalUsers?: number
+  additionalCompanies?: number
+  additionalPdvs?: number
 }
 
 Deno.serve(async (req) => {
@@ -30,9 +35,33 @@ Deno.serve(async (req) => {
     }
 
     const body: CreateLinkRequest = await req.json()
-    const { planName, planPrice, cupom, revendaId, dominio, tipo, quantidade } = body
+    const { 
+      planName, 
+      planPrice, 
+      cupom, 
+      revendaId, 
+      dominio, 
+      tipo, 
+      quantidade,
+      billingPeriod,
+      additionalUsers,
+      additionalCompanies,
+      additionalPdvs
+    } = body
 
-    console.log('Creating payment link for:', { planName, planPrice, cupom, revendaId, dominio, tipo, quantidade })
+    console.log('Creating payment link for:', { 
+      planName, 
+      planPrice, 
+      cupom, 
+      revendaId, 
+      dominio, 
+      tipo, 
+      quantidade,
+      billingPeriod,
+      additionalUsers,
+      additionalCompanies,
+      additionalPdvs
+    })
 
     if (!planName || !planPrice) {
       return new Response(
@@ -41,9 +70,31 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Construir descrição do item
+    let itemDescription = planName
+    const extras: string[] = []
+    
+    if (additionalUsers && additionalUsers > 0) {
+      extras.push(`+${additionalUsers} usuário(s)`)
+    }
+    if (additionalCompanies && additionalCompanies > 0) {
+      extras.push(`+${additionalCompanies} empresa(s)`)
+    }
+    if (additionalPdvs && additionalPdvs > 0) {
+      extras.push(`+${additionalPdvs} PDV(s)`)
+    }
+    
+    if (extras.length > 0) {
+      itemDescription = `${planName} (${extras.join(', ')})`
+    }
+    
+    if (billingPeriod === 'anual') {
+      itemDescription = `${itemDescription} - Anual (18% desc.)`
+    }
+
     // Payload com PIX e Cartão de Crédito
     const pagarmePayload: Record<string, unknown> = {
-      name: planName,
+      name: itemDescription,
       type: 'order',
       payment_settings: {
         accepted_payment_methods: ['credit_card', 'pix'],
@@ -60,7 +111,7 @@ Deno.serve(async (req) => {
       cart_settings: {
         items: [
           {
-            name: planName,
+            name: itemDescription,
             amount: planPrice,
             default_quantity: 1
           }
@@ -68,15 +119,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Add metadata if cupom/revenda is provided
-    if (cupom || revendaId || dominio || tipo) {
-      pagarmePayload.metadata = {
-        cupom: cupom || '',
-        revenda_id: revendaId || '',
-        dominio: dominio || '',
-        tipo: tipo || 'plano',
-        quantidade: quantidade || 1
-      }
+    // Add metadata for processing
+    pagarmePayload.metadata = {
+      cupom: cupom || '',
+      revenda_id: revendaId || '',
+      dominio: dominio || '',
+      tipo: tipo || 'plano',
+      quantidade: quantidade || 1,
+      plan_name: planName,
+      billing_period: billingPeriod || 'mensal',
+      additional_users: additionalUsers || 0,
+      additional_companies: additionalCompanies || 0,
+      additional_pdvs: additionalPdvs || 0
     }
 
     console.log('Payload:', JSON.stringify(pagarmePayload, null, 2))
