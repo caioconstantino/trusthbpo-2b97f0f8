@@ -171,52 +171,30 @@ const AdminRevendas = () => {
     setIsSubmitting(true);
 
     try {
-      const slug = formData.slug || generateSlug(formData.nome);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Sessão não encontrada. Faça login novamente.");
+      }
 
-      // Criar usuário no auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.senha,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
+      const response = await supabase.functions.invoke("create-revenda", {
+        body: {
+          nome: formData.nome,
+          email: formData.email,
+          senha: formData.senha,
+          documento: formData.documento || null,
+          telefone: formData.telefone || null,
+          slug: formData.slug || generateSlug(formData.nome),
         },
       });
 
-      if (authError) throw authError;
+      if (response.error) {
+        throw new Error(response.error.message || "Erro ao criar revenda");
+      }
 
-      // Criar registro na tabela de revendas
-      const { data: revendaData, error: insertError } = await supabase
-        .from("tb_revendas")
-        .insert({
-          nome: formData.nome,
-          email: formData.email,
-          documento: formData.documento || null,
-          telefone: formData.telefone?.replace(/\D/g, "") || null,
-          auth_user_id: authData.user?.id,
-          slug,
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Criar produtos padrão para a revenda
-      await supabase.from("tb_revendas_produtos").insert([
-        {
-          revenda_id: revendaData.id,
-          produto_codigo: "basico",
-          produto_nome: "Plano Básico",
-          preco_original: 39.90,
-          preco_revenda: 49.90,
-        },
-        {
-          revenda_id: revendaData.id,
-          produto_codigo: "pro",
-          produto_nome: "Plano Pro",
-          preco_original: 99.90,
-          preco_revenda: 129.90,
-        },
-      ]);
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
 
       toast({
         title: "Sucesso",
