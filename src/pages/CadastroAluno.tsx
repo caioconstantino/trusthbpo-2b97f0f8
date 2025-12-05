@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, GraduationCap, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, GraduationCap, CheckCircle, Mail } from "lucide-react";
 
 const formSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -31,11 +31,6 @@ const formSchema = z.object({
   endereco_bairro: z.string().min(2, "Bairro é obrigatório"),
   endereco_cidade: z.string().min(2, "Cidade é obrigatória"),
   endereco_estado: z.string().length(2, "Estado deve ter 2 caracteres"),
-  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmar_senha: z.string().min(6, "Confirme a senha"),
-}).refine((data) => data.senha === data.confirmar_senha, {
-  message: "As senhas não coincidem",
-  path: ["confirmar_senha"],
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -58,8 +53,7 @@ export default function CadastroAluno() {
   const [loadingData, setLoadingData] = useState(true);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -76,8 +70,6 @@ export default function CadastroAluno() {
       endereco_bairro: "",
       endereco_cidade: "",
       endereco_estado: "",
-      senha: "",
-      confirmar_senha: "",
     },
   });
 
@@ -185,7 +177,6 @@ export default function CadastroAluno() {
           endereco_bairro: data.endereco_bairro,
           endereco_cidade: data.endereco_cidade,
           endereco_estado: data.endereco_estado,
-          senha: data.senha,
         },
       });
 
@@ -195,6 +186,7 @@ export default function CadastroAluno() {
         throw new Error(result.error);
       }
 
+      setUserEmail(data.email);
       setSuccess(true);
       toast.success("Cadastro realizado com sucesso!");
     } catch (error: any) {
@@ -218,17 +210,28 @@ export default function CadastroAluno() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-slate-800 border-slate-700">
           <CardContent className="pt-8 pb-8 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Cadastro Realizado!</h2>
-            <p className="text-slate-400 mb-6">
-              Sua conta foi criada com sucesso. Faça login para acessar o sistema e criar sua empresa para praticar.
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-green-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Verifique seu Email!</h2>
+            <p className="text-slate-400 mb-4">
+              Enviamos um email para <strong className="text-white">{userEmail}</strong> com as instruções para criar sua conta.
             </p>
+            <div className="bg-slate-700 rounded-lg p-4 mb-6 text-left">
+              <p className="text-slate-300 text-sm mb-2">O que fazer agora:</p>
+              <ol className="text-slate-400 text-sm space-y-2">
+                <li>1. Abra seu email</li>
+                <li>2. Clique no link "Criar Minha Conta"</li>
+                <li>3. Defina sua senha de acesso</li>
+                <li>4. Pronto! Você já pode usar o sistema</li>
+              </ol>
+            </div>
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
               <p className="text-amber-400 text-sm">
-                <strong>Programa Educacional:</strong> Após o login, você poderá criar uma empresa e terá acesso gratuito durante todo o período do seu curso.
+                <strong>Licença Educacional:</strong> Você terá acesso gratuito durante todo o período do seu curso.
               </p>
             </div>
-            <Button onClick={() => navigate("/login")} className="w-full">
+            <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
               Ir para Login
             </Button>
           </CardContent>
@@ -261,7 +264,7 @@ export default function CadastroAluno() {
           <CardHeader>
             <CardTitle className="text-white">Cadastro de Aluno</CardTitle>
             <CardDescription className="text-slate-400">
-              Preencha seus dados para criar sua conta no sistema
+              Preencha seus dados para receber o acesso ao sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -508,73 +511,6 @@ export default function CadastroAluno() {
                               maxLength={2}
                               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Senha */}
-                <div className="border-t border-slate-700 pt-4 space-y-4">
-                  <h3 className="text-white font-medium">Senha de Acesso</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="senha"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-slate-300">Senha</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showPassword ? "text" : "password"}
-                                className="bg-slate-700 border-slate-600 text-white pr-10"
-                                placeholder="Mínimo 6 caracteres"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="confirmar_senha"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-slate-300">Confirmar Senha</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showConfirmPassword ? "text" : "password"}
-                                className="bg-slate-700 border-slate-600 text-white pr-10"
-                                placeholder="Repita a senha"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              >
-                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </Button>
-                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>

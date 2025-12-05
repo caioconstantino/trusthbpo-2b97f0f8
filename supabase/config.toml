@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.create-escola-user]
 verify_jwt = false
+
+[functions.update-aluno-auth]
+verify_jwt = false

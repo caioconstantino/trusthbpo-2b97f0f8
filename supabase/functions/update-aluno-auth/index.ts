@@ -16,31 +16,32 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { dominio } = await req.json()
+    const { aluno_id, auth_user_id } = await req.json()
 
-    if (!dominio) {
+    if (!aluno_id || !auth_user_id) {
       return new Response(
-        JSON.stringify({ error: 'Domínio é obrigatório' }),
+        JSON.stringify({ error: 'aluno_id e auth_user_id são obrigatórios' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { data: cliente, error } = await supabase
-      .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id')
-      .eq('dominio', dominio)
-      .maybeSingle()
+    console.log('Updating aluno auth_user_id:', { aluno_id, auth_user_id })
+
+    const { error } = await supabase
+      .from('tb_alunos')
+      .update({ auth_user_id })
+      .eq('id', aluno_id)
 
     if (error) {
-      console.error('Error fetching customer:', error)
+      console.error('Error updating aluno:', error)
       return new Response(
-        JSON.stringify({ error: 'Erro ao buscar dados' }),
+        JSON.stringify({ error: 'Erro ao atualizar aluno' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
-      JSON.stringify({ cliente }),
+      JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
