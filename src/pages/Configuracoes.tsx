@@ -51,6 +51,8 @@ import {
   Eye,
   Edit,
   Trash,
+  Building,
+  MapPin,
 } from "lucide-react";
 
 interface ClienteSaas {
@@ -88,6 +90,19 @@ interface ModuloPermissao {
   visualizar: boolean;
   editar: boolean;
   excluir: boolean;
+}
+
+interface Unidade {
+  id: number;
+  dominio: string;
+  nome: string;
+  endereco_logradouro: string | null;
+  endereco_numero: string | null;
+  endereco_bairro: string | null;
+  endereco_cidade: string | null;
+  endereco_estado: string | null;
+  endereco_cep: string | null;
+  ativo: boolean;
 }
 
 const MODULOS = [
@@ -131,6 +146,19 @@ export default function Configuracoes() {
   const [userSenha, setUserSenha] = useState("");
   const [userStatus, setUserStatus] = useState("Ativo");
   const [isSavingUser, setIsSavingUser] = useState(false);
+
+  // Multi-empresa states
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [unidadeDialogOpen, setUnidadeDialogOpen] = useState(false);
+  const [editingUnidade, setEditingUnidade] = useState<Unidade | null>(null);
+  const [unidadeNome, setUnidadeNome] = useState("");
+  const [unidadeLogradouro, setUnidadeLogradouro] = useState("");
+  const [unidadeNumero, setUnidadeNumero] = useState("");
+  const [unidadeBairro, setUnidadeBairro] = useState("");
+  const [unidadeCidade, setUnidadeCidade] = useState("");
+  const [unidadeEstado, setUnidadeEstado] = useState("");
+  const [unidadeCep, setUnidadeCep] = useState("");
+  const [isSavingUnidade, setIsSavingUnidade] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -186,6 +214,17 @@ export default function Configuracoes() {
 
       if (permissoesData) {
         setPermissoesModulos(permissoesData);
+      }
+
+      // Fetch unidades (multi-empresa)
+      const { data: unidadesData } = await supabase
+        .from("tb_unidades")
+        .select("*")
+        .eq("dominio", userData.dominio)
+        .order("nome");
+
+      if (unidadesData) {
+        setUnidades(unidadesData as Unidade[]);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -461,6 +500,108 @@ export default function Configuracoes() {
     return grupo?.nome || "—";
   };
 
+  // Multi-empresa functions
+  const openUnidadeDialog = (unidade?: Unidade) => {
+    if (unidade) {
+      setEditingUnidade(unidade);
+      setUnidadeNome(unidade.nome);
+      setUnidadeLogradouro(unidade.endereco_logradouro || "");
+      setUnidadeNumero(unidade.endereco_numero || "");
+      setUnidadeBairro(unidade.endereco_bairro || "");
+      setUnidadeCidade(unidade.endereco_cidade || "");
+      setUnidadeEstado(unidade.endereco_estado || "");
+      setUnidadeCep(unidade.endereco_cep || "");
+    } else {
+      setEditingUnidade(null);
+      setUnidadeNome("");
+      setUnidadeLogradouro("");
+      setUnidadeNumero("");
+      setUnidadeBairro("");
+      setUnidadeCidade("");
+      setUnidadeEstado("");
+      setUnidadeCep("");
+    }
+    setUnidadeDialogOpen(true);
+  };
+
+  const saveUnidade = async () => {
+    if (!unidadeNome.trim() || !userDominio) return;
+
+    setIsSavingUnidade(true);
+    try {
+      const unidadeData = {
+        nome: unidadeNome,
+        dominio: userDominio,
+        endereco_logradouro: unidadeLogradouro || null,
+        endereco_numero: unidadeNumero || null,
+        endereco_bairro: unidadeBairro || null,
+        endereco_cidade: unidadeCidade || null,
+        endereco_estado: unidadeEstado || null,
+        endereco_cep: unidadeCep || null,
+      };
+
+      if (editingUnidade) {
+        const { error } = await supabase
+          .from("tb_unidades")
+          .update(unidadeData)
+          .eq("id", editingUnidade.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("tb_unidades")
+          .insert(unidadeData);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: editingUnidade ? "Empresa atualizada" : "Empresa cadastrada",
+        description: `A empresa "${unidadeNome}" foi ${editingUnidade ? "atualizada" : "cadastrada"} com sucesso.`,
+      });
+
+      setUnidadeDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      console.error("Erro ao salvar empresa:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar empresa.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingUnidade(false);
+    }
+  };
+
+  const deleteUnidade = async (unidade: Unidade) => {
+    if (!confirm(`Deseja excluir a empresa "${unidade.nome}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("tb_unidades")
+        .delete()
+        .eq("id", unidade.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Empresa excluída",
+        description: `A empresa "${unidade.nome}" foi excluída.`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir empresa.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isPro = cliente?.plano?.toLowerCase()?.includes("pro") || cliente?.plano?.toLowerCase()?.includes("profissional");
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -483,11 +624,17 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 h-auto gap-1">
+          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="empresa" className="gap-2 py-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Empresa</span>
             </TabsTrigger>
+            {isPro && (
+              <TabsTrigger value="multiempresa" className="gap-2 py-2">
+                <Building className="h-4 w-4" />
+                <span className="hidden sm:inline">Multi-Empresa</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="billing" className="gap-2 py-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Assinatura</span>
@@ -545,6 +692,70 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Multi-Empresa Tab */}
+          {isPro && (
+            <TabsContent value="multiempresa" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5" />
+                        Minhas Empresas
+                      </CardTitle>
+                      <CardDescription>Gerencie múltiplas empresas no mesmo domínio</CardDescription>
+                    </div>
+                    <Button size="sm" className="gap-2" onClick={() => openUnidadeDialog()}>
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Nova Empresa</span>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {unidades.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">Nenhuma empresa cadastrada</p>
+                      <p className="text-sm">Cadastre empresas para gerenciar múltiplos negócios</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {unidades.map((unidade) => (
+                        <div key={unidade.id} className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Building className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{unidade.nome}</p>
+                              {(unidade.endereco_cidade || unidade.endereco_estado) && (
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {[unidade.endereco_cidade, unidade.endereco_estado].filter(Boolean).join(" - ")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={unidade.ativo ? "default" : "secondary"}>
+                              {unidade.ativo ? "Ativa" : "Inativa"}
+                            </Badge>
+                            <Button variant="ghost" size="icon" onClick={() => openUnidadeDialog(unidade)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteUnidade(unidade)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Billing Tab */}
           <TabsContent value="billing" className="space-y-4">
@@ -964,6 +1175,116 @@ export default function Configuracoes() {
               disabled={isSavingUser || !userNome.trim() || !userEmail.trim() || (!editingUser && !userSenha)}
             >
               {isSavingUser ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para criar/editar empresa */}
+      <Dialog open={unidadeDialogOpen} onOpenChange={setUnidadeDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingUnidade ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
+            <DialogDescription>
+              {editingUnidade
+                ? "Atualize os dados da empresa"
+                : "Preencha os dados para cadastrar uma nova empresa"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="unidadeNome">Nome da Empresa *</Label>
+              <Input
+                id="unidadeNome"
+                value={unidadeNome}
+                onChange={(e) => setUnidadeNome(e.target.value)}
+                placeholder="Nome da empresa"
+              />
+            </div>
+
+            <Separator />
+
+            <p className="text-sm text-muted-foreground">Endereço (opcional)</p>
+
+            <div className="grid gap-4 grid-cols-3">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="unidadeLogradouro">Logradouro</Label>
+                <Input
+                  id="unidadeLogradouro"
+                  value={unidadeLogradouro}
+                  onChange={(e) => setUnidadeLogradouro(e.target.value)}
+                  placeholder="Rua, Avenida..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unidadeNumero">Número</Label>
+                <Input
+                  id="unidadeNumero"
+                  value={unidadeNumero}
+                  onChange={(e) => setUnidadeNumero(e.target.value)}
+                  placeholder="123"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="unidadeBairro">Bairro</Label>
+                <Input
+                  id="unidadeBairro"
+                  value={unidadeBairro}
+                  onChange={(e) => setUnidadeBairro(e.target.value)}
+                  placeholder="Bairro"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unidadeCep">CEP</Label>
+                <Input
+                  id="unidadeCep"
+                  value={unidadeCep}
+                  onChange={(e) => setUnidadeCep(e.target.value)}
+                  placeholder="00000-000"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="unidadeCidade">Cidade</Label>
+                <Input
+                  id="unidadeCidade"
+                  value={unidadeCidade}
+                  onChange={(e) => setUnidadeCidade(e.target.value)}
+                  placeholder="Cidade"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unidadeEstado">Estado</Label>
+                <Input
+                  id="unidadeEstado"
+                  value={unidadeEstado}
+                  onChange={(e) => setUnidadeEstado(e.target.value)}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnidadeDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveUnidade} disabled={isSavingUnidade || !unidadeNome.trim()}>
+              {isSavingUnidade ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Salvando...
