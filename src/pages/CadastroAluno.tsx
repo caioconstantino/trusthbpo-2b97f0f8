@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, GraduationCap, CheckCircle, Eye, EyeOff, Building2 } from "lucide-react";
+import { Loader2, GraduationCap, CheckCircle, Eye, EyeOff } from "lucide-react";
 
 const formSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -31,8 +31,6 @@ const formSchema = z.object({
   endereco_bairro: z.string().min(2, "Bairro é obrigatório"),
   endereco_cidade: z.string().min(2, "Cidade é obrigatória"),
   endereco_estado: z.string().length(2, "Estado deve ter 2 caracteres"),
-  // Campos da empresa
-  nome_empresa: z.string().min(2, "Nome da empresa deve ter pelo menos 2 caracteres"),
   senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   confirmar_senha: z.string().min(6, "Confirme a senha"),
 }).refine((data) => data.senha === data.confirmar_senha, {
@@ -60,7 +58,6 @@ export default function CadastroAluno() {
   const [loadingData, setLoadingData] = useState(true);
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [success, setSuccess] = useState(false);
-  const [createdDomain, setCreatedDomain] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -79,7 +76,6 @@ export default function CadastroAluno() {
       endereco_bairro: "",
       endereco_cidade: "",
       endereco_estado: "",
-      nome_empresa: "",
       senha: "",
       confirmar_senha: "",
     },
@@ -189,7 +185,6 @@ export default function CadastroAluno() {
           endereco_bairro: data.endereco_bairro,
           endereco_cidade: data.endereco_cidade,
           endereco_estado: data.endereco_estado,
-          nome_empresa: data.nome_empresa,
           senha: data.senha,
         },
       });
@@ -200,7 +195,6 @@ export default function CadastroAluno() {
         throw new Error(result.error);
       }
 
-      setCreatedDomain(result.dominio);
       setSuccess(true);
       toast.success("Cadastro realizado com sucesso!");
     } catch (error: any) {
@@ -226,19 +220,12 @@ export default function CadastroAluno() {
           <CardContent className="pt-8 pb-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Cadastro Realizado!</h2>
-            <p className="text-slate-400 mb-4">
-              Sua conta foi criada com sucesso. Você já pode fazer login e começar a usar o sistema.
+            <p className="text-slate-400 mb-6">
+              Sua conta foi criada com sucesso. Faça login para acessar o sistema e criar sua empresa para praticar.
             </p>
-            <div className="bg-slate-700 rounded-lg p-4 mb-6">
-              <p className="text-slate-300 text-sm mb-2">Seu domínio de acesso:</p>
-              <p className="text-xl font-bold text-primary">{createdDomain}</p>
-              <p className="text-slate-400 text-xs mt-2">
-                Use este domínio junto com seu email e senha para fazer login
-              </p>
-            </div>
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
               <p className="text-amber-400 text-sm">
-                <strong>Licença Educacional:</strong> Sua empresa tem acesso gratuito por 1 ano como parte do programa educacional.
+                <strong>Programa Educacional:</strong> Após o login, você poderá criar uma empresa e terá acesso gratuito durante todo o período do seu curso.
               </p>
             </div>
             <Button onClick={() => navigate("/login")} className="w-full">
@@ -274,7 +261,7 @@ export default function CadastroAluno() {
           <CardHeader>
             <CardTitle className="text-white">Cadastro de Aluno</CardTitle>
             <CardDescription className="text-slate-400">
-              Preencha seus dados e crie sua empresa para praticar no sistema
+              Preencha seus dados para criar sua conta no sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -529,42 +516,17 @@ export default function CadastroAluno() {
                   </div>
                 </div>
 
-                {/* Dados da Empresa */}
+                {/* Senha */}
                 <div className="border-t border-slate-700 pt-4 space-y-4">
-                  <h3 className="text-white font-medium flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    Dados da Empresa (para praticar)
-                  </h3>
-                  <p className="text-slate-400 text-sm">
-                    Crie uma empresa fictícia ou use dados de uma empresa real para praticar no sistema.
-                    Você receberá acesso gratuito por 1 ano.
-                  </p>
+                  <h3 className="text-white font-medium">Senha de Acesso</h3>
                   
-                  <FormField
-                    control={form.control}
-                    name="nome_empresa"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">Nome da Empresa</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="bg-slate-700 border-slate-600 text-white"
-                            placeholder="Ex: Loja do João, Mercado Teste, etc."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="senha"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-300">Senha de Acesso</FormLabel>
+                          <FormLabel className="text-slate-300">Senha</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -573,13 +535,15 @@ export default function CadastroAluno() {
                                 className="bg-slate-700 border-slate-600 text-white pr-10"
                                 placeholder="Mínimo 6 caracteres"
                               />
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                               >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
+                              </Button>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -601,13 +565,15 @@ export default function CadastroAluno() {
                                 className="bg-slate-700 border-slate-600 text-white pr-10"
                                 placeholder="Repita a senha"
                               />
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                               >
                                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
+                              </Button>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -624,7 +590,7 @@ export default function CadastroAluno() {
                       Cadastrando...
                     </>
                   ) : (
-                    "Criar Conta e Empresa"
+                    "Cadastrar"
                   )}
                 </Button>
               </form>
