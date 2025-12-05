@@ -92,7 +92,12 @@ Deno.serve(async (req) => {
     }
     
     if (billingPeriod === 'anual') {
-      itemDescription = `${itemDescription} - Anual (18% desc.)`
+      itemDescription = `${itemDescription} - Anual`
+    }
+    
+    // Pagar.me has a 64 character limit for name
+    if (itemDescription.length > 64) {
+      itemDescription = itemDescription.substring(0, 64)
     }
 
     // Payload com PIX e Cartão de Crédito
