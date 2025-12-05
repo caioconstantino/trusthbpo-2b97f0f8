@@ -70,6 +70,7 @@ interface ClienteSaas {
   pdvs_adicionais?: number;
   empresas_adicionais?: number;
   usuarios_adicionais?: number;
+  produtos_adicionais?: number;
 }
 
 interface Usuario {
@@ -760,7 +761,7 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="empresa" className="gap-2 py-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Empresa</span>
@@ -778,6 +779,10 @@ export default function Configuracoes() {
             <TabsTrigger value="pdvs" className="gap-2 py-2">
               <Monitor className="h-4 w-4" />
               <span className="hidden sm:inline">PDVs</span>
+            </TabsTrigger>
+            <TabsTrigger value="usuarios-adicionais" className="gap-2 py-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
             <TabsTrigger value="permissoes" className="gap-2 py-2">
               <Shield className="h-4 w-4" />
@@ -1091,6 +1096,19 @@ export default function Configuracoes() {
                     </div>
                   )}
 
+                  {/* Usuários Adicionais */}
+                  {(cliente?.usuarios_adicionais || 0) > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <p className="font-medium">Usuários Adicionais</p>
+                        <p className="text-sm text-muted-foreground">{cliente?.usuarios_adicionais} × R$ 10,00</p>
+                      </div>
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL)}
+                      </span>
+                    </div>
+                  )}
+
                   <Separator />
 
                   {/* Total */}
@@ -1103,7 +1121,8 @@ export default function Configuracoes() {
                       {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
                         (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
                         ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
-                        ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL)
+                        ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL) +
+                        ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL)
                       )}
                     </span>
                   </div>
@@ -1172,7 +1191,8 @@ export default function Configuracoes() {
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
                           (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
                           ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
-                          ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL)
+                          ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL) +
+                          ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL)
                         )}
                       </p>
                     </div>
@@ -1345,6 +1365,143 @@ export default function Configuracoes() {
                     className="w-full"
                   >
                     {isSavingPdvs ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar Alterações"
+                    )}
+                  </Button>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    O valor será adicionado à sua próxima fatura automaticamente.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Usuários Adicionais Tab */}
+          <TabsContent value="usuarios-adicionais" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    Informações sobre Usuários
+                  </CardTitle>
+                  <CardDescription>Quantidade de usuários incluídos em cada plano</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-2">Plano Básico (R$ 39,90/mês)</h4>
+                    <p className="text-sm text-muted-foreground">Inclui 1 usuário</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-2">Plano Pro (R$ 99,90/mês)</h4>
+                    <p className="text-sm text-muted-foreground">Inclui 5 usuários</p>
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+                    <h4 className="font-semibold text-primary mb-2">Usuário Adicional</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Cada usuário adicional custa <span className="font-bold">R$ 10,00/mês</span>
+                    </p>
+                  </div>
+                  <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      <strong>Seu limite:</strong> {usuariosIncluidos} incluído(s) + {cliente?.usuarios_adicionais || 0} adicional(is) = {usuariosIncluidos + (cliente?.usuarios_adicionais || 0)} usuário(s)
+                    </p>
+                    {(cliente?.usuarios_adicionais || 0) > 0 && (
+                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                        <strong>Valor adicional:</strong> R$ {((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL).toFixed(2)}/mês
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generator Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contratar Usuários Adicionais</CardTitle>
+                  <CardDescription>Será cobrado na próxima fatura</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Quantidade de Usuários Adicionais</Label>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => usuarioQuantidadeAdicional > 0 && setUsuarioQuantidadeAdicional(usuarioQuantidadeAdicional - 1)}
+                        disabled={usuarioQuantidadeAdicional <= 0}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={usuarioQuantidadeAdicional}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!isNaN(value) && value >= 0) {
+                            setUsuarioQuantidadeAdicional(value);
+                          }
+                        }}
+                        className="w-20 text-center"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setUsuarioQuantidadeAdicional(usuarioQuantidadeAdicional + 1)}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Valor mensal adicional:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(usuarioQuantidadeAdicional * PRECO_USUARIO_ADICIONAL)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {usuarioQuantidadeAdicional} usuário{usuarioQuantidadeAdicional !== 1 ? "s" : ""} adicional{usuarioQuantidadeAdicional !== 1 ? "is" : ""} × R$ 10,00
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      setIsSavingUsuarios(true);
+                      try {
+                        const { error } = await supabase.functions.invoke("get-customer-data", {
+                          body: { 
+                            dominio: userDominio,
+                            action: "update_usuarios",
+                            usuarios_adicionais: usuarioQuantidadeAdicional
+                          }
+                        });
+                        if (error) throw error;
+                        toast({ 
+                          title: "Salvo!", 
+                          description: `${usuarioQuantidadeAdicional} usuário(s) adicional(is) configurado(s). Será cobrado na próxima fatura.` 
+                        });
+                        fetchData();
+                      } catch (error) {
+                        console.error("Erro ao salvar:", error);
+                        toast({ title: "Erro", description: "Erro ao salvar configuração", variant: "destructive" });
+                      } finally {
+                        setIsSavingUsuarios(false);
+                      }
+                    }}
+                    disabled={isSavingUsuarios || usuarioQuantidadeAdicional === (cliente?.usuarios_adicionais || 0)}
+                    className="w-full"
+                  >
+                    {isSavingUsuarios ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Salvando...

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const body = await req.json()
-    const { dominio, action, pdvs_adicionais, empresas_adicionais } = body
+    const { dominio, action, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais } = body
 
     if (!dominio) {
       return new Response(
@@ -69,10 +69,52 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (action === 'update_usuarios' && typeof usuarios_adicionais === 'number') {
+      console.log(`Updating Usuarios adicionais for ${dominio}: ${usuarios_adicionais}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ usuarios_adicionais })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating Usuarios:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar Usuários' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Usuários atualizados com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (action === 'update_produtos' && typeof produtos_adicionais === 'number') {
+      console.log(`Updating Produtos adicionais for ${dominio}: ${produtos_adicionais}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ produtos_adicionais })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating Produtos:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar Produtos' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Produtos atualizados com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Default: fetch customer data
     const { data: cliente, error } = await supabase
       .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais')
+      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais')
       .eq('dominio', dominio)
       .maybeSingle()
 

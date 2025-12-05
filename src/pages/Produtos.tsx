@@ -4,23 +4,27 @@ import { ProductForm } from "@/components/ProductForm";
 import { ProductsTable } from "@/components/ProductsTable";
 import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
 import { CopyProductsDialog } from "@/components/CopyProductsDialog";
+import { ProductLimitAlert } from "@/components/ProductLimitAlert";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeftRight, Loader2, Copy } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useProductLimit } from "@/hooks/useProductLimit";
 import { NoPermission } from "@/components/NoPermission";
 
 const Produtos = () => {
   const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
+  const productLimit = useProductLimit();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   const handleProductAdded = () => {
     setRefreshKey(prev => prev + 1);
+    productLimit.refetch();
   };
 
   // Show loading while checking permissions
-  if (permissionsLoading) {
+  if (permissionsLoading || productLimit.isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -68,8 +72,21 @@ const Produtos = () => {
           </div>
         </div>
 
+        {/* Alerta de Limite de Produtos */}
+        <ProductLimitAlert
+          totalProdutos={productLimit.totalProdutos}
+          limiteTotal={productLimit.limiteTotal}
+          produtosAdicionais={productLimit.produtosAdicionais}
+          isBasico={productLimit.isBasico}
+          podecadastrar={productLimit.podecadastrar}
+          onUpdate={productLimit.refetch}
+        />
+
         {/* Formulário de Novo Produto */}
-        <ProductForm onProductAdded={handleProductAdded} />
+        <ProductForm 
+          onProductAdded={handleProductAdded} 
+          disabled={!productLimit.podecadastrar && productLimit.isBasico}
+        />
 
         {/* Tabela de Produtos */}
         <ProductsTable key={refreshKey} />

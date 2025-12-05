@@ -14,7 +14,7 @@ interface Category {
   nome: string;
 }
 
-export const ProductForm = ({ onProductAdded }: { onProductAdded: () => void }) => {
+export const ProductForm = ({ onProductAdded, disabled = false }: { onProductAdded: () => void; disabled?: boolean }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -128,6 +128,15 @@ export const ProductForm = ({ onProductAdded }: { onProductAdded: () => void }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (disabled) {
+      toast({
+        title: "Limite atingido",
+        description: "Você atingiu o limite de produtos do seu plano. Contrate mais produtos para continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!formData.name || !formData.costPrice || !formData.salePrice) {
       toast({
@@ -376,9 +385,9 @@ export const ProductForm = ({ onProductAdded }: { onProductAdded: () => void }) 
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" size="lg" className="gap-2" disabled={loading}>
+          <Button type="submit" size="lg" className="gap-2" disabled={loading || disabled}>
             <Plus className="w-4 h-4" />
-            {loading ? "Cadastrando..." : "Cadastrar"}
+            {disabled ? "Limite atingido" : loading ? "Cadastrando..." : "Cadastrar"}
           </Button>
         </div>
       </form>
