@@ -186,28 +186,19 @@ const AdminAlunos = () => {
             escola = escolaData;
           }
 
-          // Buscar empresa adotada pelo aluno (exclui conta educacional que começa com "edu-")
+          // Buscar empresa adotada pelo aluno (exclui conta educacional tipo_conta='aluno')
           const { data: empresasData } = await supabase
             .from("tb_clientes_saas")
-            .select("id, dominio, razao_social, status, created_at")
+            .select("id, dominio, razao_social, status, created_at, last_login_at")
             .eq("aluno_id", aluno.id)
-            .not("dominio", "like", "edu-%")
+            .neq("tipo_conta", "aluno")
             .order("created_at", { ascending: false })
             .limit(1);
           empresa_adotada = empresasData?.[0] || null;
 
-          // Buscar último login da empresa adotada (via edge function)
-          if (empresa_adotada) {
-            try {
-              const { data: loginData } = await supabase.functions.invoke("get-last-login", {
-                body: { dominio: empresa_adotada.dominio },
-              });
-              if (loginData?.last_sign_in_at) {
-                ultimo_login = loginData.last_sign_in_at;
-              }
-            } catch (err) {
-              console.error("Erro ao buscar último login:", err);
-            }
+          // Usar last_login_at diretamente da empresa adotada
+          if (empresa_adotada?.last_login_at) {
+            ultimo_login = empresa_adotada.last_login_at;
           }
 
           return {

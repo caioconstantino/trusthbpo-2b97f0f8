@@ -98,6 +98,12 @@ const Login = () => {
         throw new Error("Credenciais inválidas");
       }
 
+      // Atualizar last_login_at na conta do cliente
+      await supabase
+        .from("tb_clientes_saas")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("dominio", dominio.trim().toLowerCase());
+
       // Salvar domínio no localStorage para uso posterior
       localStorage.setItem("user_dominio", dominio.trim().toLowerCase());
       localStorage.setItem("user_nome", userData.nome);

@@ -263,6 +263,7 @@ export type Database = {
           dominio: string
           email: string | null
           id: number
+          last_login_at: string | null
           multiempresa: string | null
           observacoes: string | null
           plano: string | null
@@ -284,6 +285,7 @@ export type Database = {
           dominio: string
           email?: string | null
           id?: number
+          last_login_at?: string | null
           multiempresa?: string | null
           observacoes?: string | null
           plano?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           dominio?: string
           email?: string | null
           id?: number
+          last_login_at?: string | null
           multiempresa?: string | null
           observacoes?: string | null
           plano?: string | null
