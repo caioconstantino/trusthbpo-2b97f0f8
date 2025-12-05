@@ -128,7 +128,8 @@ Deno.serve(async (req) => {
     const umAno = new Date(hoje);
     umAno.setFullYear(umAno.getFullYear() + 1);
 
-    // Criar registro do cliente SaaS (empresa adotada)
+    // Criar registro do cliente SaaS (empresa adotada) vinculado ao aluno
+    console.log("Creating cliente_saas with aluno_id:", aluno_id);
     const { data: clienteData, error: clienteError } = await supabaseAdmin
       .from("tb_clientes_saas")
       .insert({
@@ -138,11 +139,11 @@ Deno.serve(async (req) => {
         email: emailUsuario,
         telefone: telefone?.replace(/\D/g, "") || null,
         responsavel: responsavel || alunoData.nome,
-        observacoes: observacoes || null,
+        observacoes: observacoes || `Empresa adotada pelo aluno: ${alunoData.nome}`,
         status: "Ativo",
         tipo_conta: "aluno",
-        aluno_id,
-        plano: "Educacional",
+        aluno_id: aluno_id,
+        plano: "Básico",
         ultimo_pagamento: hoje.toISOString().split("T")[0],
         proximo_pagamento: umAno.toISOString().split("T")[0],
       })
