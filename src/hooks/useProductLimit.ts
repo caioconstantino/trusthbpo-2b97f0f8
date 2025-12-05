@@ -1,0 +1,104 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ProductLimitData {
+  totalProdutos: number;
+  limiteBase: number;
+  produtosAdicionais: number;
+  limiteTotal: number;
+  isBasico: boolean;
+  isPro: boolean;
+  podecadastrar: boolean;
+  isLoading: boolean;
+}
+
+const LIMITE_BASE_BASICO = 500;
+const PRECO_PACOTE_PRODUTOS = 20; // R$ 20,00 por +500 produtos
+
+export const useProductLimit = () => {
+  const [data, setData] = useState<ProductLimitData>({
+    totalProdutos: 0,
+    limiteBase: LIMITE_BASE_BASICO,
+    produtosAdicionais: 0,
+    limiteTotal: LIMITE_BASE_BASICO,
+    isBasico: true,
+    isPro: false,
+    podecadastrar: true,
+    isLoading: true,
+  });
+
+  const fetchProductLimit = async () => {
+    const dominio = localStorage.getItem("user_dominio");
+    const unidadeId = localStorage.getItem("unidade_ativa_id");
+    if (!dominio) return;
+
+    try {
+      // Fetch client data to get plan and produtos_adicionais
+      const { data: clienteResponse } = await supabase.functions.invoke("get-customer-data", {
+        body: { dominio }
+      });
+
+      const cliente = clienteResponse?.cliente;
+      const plano = cliente?.plano || "Básico";
+      const isBasico = !plano.toLowerCase().includes("pro") && !plano.toLowerCase().includes("profissional");
+      const isPro = !isBasico;
+      const produtosAdicionais = cliente?.produtos_adicionais || 0;
+
+      // Only basic plan has product limit
+      if (isPro) {
+        setData({
+          totalProdutos: 0,
+          limiteBase: 0,
+          produtosAdicionais: 0,
+          limiteTotal: Infinity,
+          isBasico: false,
+          isPro: true,
+          podecadastrar: true,
+          isLoading: false,
+        });
+        return;
+      }
+
+      // Count total products for this domain/unit
+      let query = supabase
+        .from("tb_produtos")
+        .select("id", { count: "exact", head: true })
+        .eq("dominio", dominio)
+        .eq("ativo", true);
+
+      if (unidadeId) {
+        query = query.eq("unidade_id", parseInt(unidadeId));
+      }
+
+      const { count } = await query;
+      const totalProdutos = count || 0;
+      
+      // Calculate limit: base (500) + adicionais (500 each)
+      const limiteTotal = LIMITE_BASE_BASICO + (produtosAdicionais * 500);
+
+      setData({
+        totalProdutos,
+        limiteBase: LIMITE_BASE_BASICO,
+        produtosAdicionais,
+        limiteTotal,
+        isBasico,
+        isPro,
+        podecadastrar: totalProdutos < limiteTotal,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Error fetching product limit:", error);
+      setData(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  useEffect(() => {
+    fetchProductLimit();
+  }, []);
+
+  return {
+    ...data,
+    refetch: fetchProductLimit,
+    PRECO_PACOTE_PRODUTOS,
+  };
+};

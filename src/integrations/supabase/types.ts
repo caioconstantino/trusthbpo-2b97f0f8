@@ -313,6 +313,7 @@ export type Database = {
           observacoes: string | null
           pdvs_adicionais: number
           plano: string | null
+          produtos_adicionais: number
           proximo_pagamento: string | null
           razao_social: string
           responsavel: string | null
@@ -338,6 +339,7 @@ export type Database = {
           observacoes?: string | null
           pdvs_adicionais?: number
           plano?: string | null
+          produtos_adicionais?: number
           proximo_pagamento?: string | null
           razao_social: string
           responsavel?: string | null
@@ -363,6 +365,7 @@ export type Database = {
           observacoes?: string | null
           pdvs_adicionais?: number
           plano?: string | null
+          produtos_adicionais?: number
           proximo_pagamento?: string | null
           razao_social?: string
           responsavel?: string | null
