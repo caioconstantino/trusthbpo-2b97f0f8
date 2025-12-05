@@ -56,10 +56,12 @@ const AdminDashboard = () => {
       const hoje = new Date();
       const hojeStr = hoje.toISOString().split('T')[0];
 
-      // Calcular receita mensal
+      // Calcular receita mensal (mapeando nomes de planos para valores)
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
-      const receita3990 = ativos.filter(c => c.plano === "R$ 39,90").length * 39.90;
-      const receita9990 = ativos.filter(c => c.plano === "R$ 99,90").length * 99.90;
+      
+      // Básico = R$ 39,90, Pro = R$ 99,90, Educacional = R$ 0 (gratuito)
+      const receitaBasico = ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90;
+      const receitaPro = ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
 
       // Clientes inadimplentes (ativos com próximo_pagamento vencido)
       const inadimplentes = clientes?.filter(c => 
@@ -101,8 +103,8 @@ const AdminDashboard = () => {
         }) || [];
         
         const receitaMes = 
-          ativosNoMes.filter(c => c.plano === "R$ 39,90").length * 39.90 +
-          ativosNoMes.filter(c => c.plano === "R$ 99,90").length * 99.90;
+          ativosNoMes.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90 +
+          ativosNoMes.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
         
         receitaSaasPorMes.push({ mes: mesNome, total: receitaMes });
       }
@@ -113,7 +115,7 @@ const AdminDashboard = () => {
         clientesInadimplentes: inadimplentes,
         clientesCancelados: cancelados,
         clientesLeads: clientes?.filter(c => c.status === "Lead").length || 0,
-        receitaMensal: receita3990 + receita9990,
+        receitaMensal: receitaBasico + receitaPro,
         receitaSaasPorMes,
         clientesPorMes,
       });
