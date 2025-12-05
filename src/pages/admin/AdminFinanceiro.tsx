@@ -30,16 +30,18 @@ const AdminFinanceiro = () => {
       if (error) throw error;
 
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
-      const receita3990 = ativos.filter(c => c.plano === "R$ 39,90").length * 39.90;
-      const receita9990 = ativos.filter(c => c.plano === "R$ 99,90").length * 99.90;
-      const receitaTotal = receita3990 + receita9990;
+      
+      // Mapear planos para valores (Básico = 39.90, Pro = 99.90)
+      const receitaBasico = ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90;
+      const receitaPro = ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
+      const receitaTotal = receitaBasico + receitaPro;
 
       // Total de receitas pagas (clientes que já pagaram pelo menos uma vez)
       const clientesPagantes = clientes?.filter(c => c.ultimo_pagamento) || [];
       let totalReceitasPagas = 0;
       clientesPagantes.forEach(c => {
-        if (c.plano === "R$ 39,90") totalReceitasPagas += 39.90;
-        else if (c.plano === "R$ 99,90") totalReceitasPagas += 99.90;
+        if (c.plano === "Básico" || c.plano === "R$ 39,90") totalReceitasPagas += 39.90;
+        else if (c.plano === "Pro" || c.plano === "R$ 99,90") totalReceitasPagas += 99.90;
       });
 
       // Buscar comissões de indicações
@@ -67,8 +69,8 @@ const AdminFinanceiro = () => {
         }) || [];
         
         const receitaMes = 
-          ativosNoMes.filter(c => c.plano === "R$ 39,90").length * 39.90 +
-          ativosNoMes.filter(c => c.plano === "R$ 99,90").length * 99.90;
+          ativosNoMes.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90 +
+          ativosNoMes.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
         
         receitaPorMes.push({ mes: mesNome, receita: receitaMes });
       }
@@ -77,8 +79,8 @@ const AdminFinanceiro = () => {
         clientesAtivos: ativos.length,
         receitaMensal: receitaTotal,
         ticketMedio: ativos.length > 0 ? receitaTotal / ativos.length : 0,
-        plano3990: ativos.filter(c => c.plano === "R$ 39,90").length,
-        plano9990: ativos.filter(c => c.plano === "R$ 99,90").length,
+        planoBasico: ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length,
+        planoPro: ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length,
         receitaPorMes,
         totalReceitasPagas,
         comissaoAPagar,
@@ -324,8 +326,8 @@ const AdminFinanceiro = () => {
                 <PieChart>
                   <Pie
                     data={[
-                      { name: "R$ 39,90", value: stats?.plano3990 || 0 },
-                      { name: "R$ 99,90", value: stats?.plano9990 || 0 },
+                      { name: "Básico (R$ 39,90)", value: stats?.planoBasico || 0 },
+                      { name: "Pro (R$ 99,90)", value: stats?.planoPro || 0 },
                     ]}
                     cx="50%"
                     cy="50%"
@@ -346,11 +348,11 @@ const AdminFinanceiro = () => {
               <div className="flex justify-center gap-6 mt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-blue-500" />
-                  <span className="text-slate-400 text-sm">R$ 39,90 ({stats?.plano3990 || 0})</span>
+                  <span className="text-slate-400 text-sm">Básico ({stats?.planoBasico || 0})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-purple-500" />
-                  <span className="text-slate-400 text-sm">R$ 99,90 ({stats?.plano9990 || 0})</span>
+                  <span className="text-slate-400 text-sm">Pro ({stats?.planoPro || 0})</span>
                 </div>
               </div>
             </CardContent>
@@ -364,32 +366,32 @@ const AdminFinanceiro = () => {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-300">Plano R$ 39,90</span>
+                    <span className="text-slate-300">Plano Básico (R$ 39,90)</span>
                     <span className="text-white font-semibold">
-                      {isLoading ? "..." : formatCurrency((stats?.plano3990 || 0) * 39.90)}
+                      {isLoading ? "..." : formatCurrency((stats?.planoBasico || 0) * 39.90)}
                     </span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-blue-500 rounded-full" 
                       style={{ 
-                        width: `${stats?.receitaMensal ? ((stats.plano3990 * 39.90) / stats.receitaMensal) * 100 : 0}%` 
+                        width: `${stats?.receitaMensal ? ((stats.planoBasico * 39.90) / stats.receitaMensal) * 100 : 0}%` 
                       }} 
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-300">Plano R$ 99,90</span>
+                    <span className="text-slate-300">Plano Pro (R$ 99,90)</span>
                     <span className="text-white font-semibold">
-                      {isLoading ? "..." : formatCurrency((stats?.plano9990 || 0) * 99.90)}
+                      {isLoading ? "..." : formatCurrency((stats?.planoPro || 0) * 99.90)}
                     </span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-purple-500 rounded-full" 
                       style={{ 
-                        width: `${stats?.receitaMensal ? ((stats.plano9990 * 99.90) / stats.receitaMensal) * 100 : 0}%` 
+                        width: `${stats?.receitaMensal ? ((stats.planoPro * 99.90) / stats.receitaMensal) * 100 : 0}%` 
                       }} 
                     />
                   </div>

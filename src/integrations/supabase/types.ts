@@ -846,6 +846,54 @@ export type Database = {
           },
         ]
       }
+      tb_revendas: {
+        Row: {
+          auth_user_id: string | null
+          comissao_percentual: number
+          created_at: string
+          documento: string | null
+          email: string
+          id: string
+          nome: string
+          saldo: number
+          status: string
+          telefone: string | null
+          total_ganho: number
+          total_sacado: number
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          comissao_percentual?: number
+          created_at?: string
+          documento?: string | null
+          email: string
+          id?: string
+          nome: string
+          saldo?: number
+          status?: string
+          telefone?: string | null
+          total_ganho?: number
+          total_sacado?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          comissao_percentual?: number
+          created_at?: string
+          documento?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          saldo?: number
+          status?: string
+          telefone?: string | null
+          total_ganho?: number
+          total_sacado?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tb_saques: {
         Row: {
           chave_pix: string | null
