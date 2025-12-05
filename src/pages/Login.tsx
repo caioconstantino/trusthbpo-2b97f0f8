@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, User, Lock } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import logo from "@/assets/logo.webp";
 
 const Login = () => {
-  const { t } = useTranslation();
   const [step, setStep] = useState<"domain" | "credentials">("domain");
   const [dominio, setDominio] = useState("");
   const [nomeCliente, setNomeCliente] = useState("");
@@ -48,27 +45,27 @@ const Login = () => {
           setNomeCliente(resultado.nome_cliente);
           setStep("credentials");
           toast({
-            title: t('common.success'),
-            description: `${t('dashboard.welcome')}, ${resultado.nome_cliente}`,
+            title: "Sucesso",
+            description: `Bem-vindo, ${resultado.nome_cliente}`,
           });
         } else {
           toast({
             variant: "destructive",
-            title: t('common.error'),
-            description: t('auth.invalidCredentials'),
+            title: "Erro",
+            description: "Credenciais inválidas",
           });
         }
       } else {
         toast({
           variant: "destructive",
-          title: t('common.error'),
-          description: t('auth.invalidCredentials'),
+          title: "Erro",
+          description: "Credenciais inválidas",
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: t('common.error'),
+        title: "Erro",
         description: error.message,
       });
     } finally {
@@ -98,7 +95,7 @@ const Login = () => {
 
       if (userError || !userData) {
         await supabase.auth.signOut();
-        throw new Error(t('auth.invalidCredentials'));
+        throw new Error("Credenciais inválidas");
       }
 
       // Salvar domínio no localStorage para uso posterior
@@ -106,15 +103,15 @@ const Login = () => {
       localStorage.setItem("user_nome", userData.nome);
 
       toast({
-        title: t('auth.loginSuccess'),
-        description: `${t('dashboard.welcome')}!`,
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo!",
       });
 
       navigate("/dashboard");
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: t('common.error'),
+        title: "Erro",
         description: error.message,
       });
     } finally {
@@ -132,7 +129,6 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       {/* Top right controls */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <LanguageSelector />
         <ThemeToggle />
       </div>
 
@@ -142,25 +138,25 @@ const Login = () => {
             <img src={logo} alt="TrustHBPO Logo" className="h-16 object-contain" />
           </div>
           <CardTitle className="text-2xl text-center">
-            {step === "domain" ? t('auth.login') : `${t('dashboard.welcome')}, ${nomeCliente}`}
+            {step === "domain" ? "Entrar" : `Bem-vindo, ${nomeCliente}`}
           </CardTitle>
           <CardDescription className="text-center">
             {step === "domain"
-              ? t('auth.enterDomain')
-              : t('auth.enterPassword')}
+              ? "Digite o domínio"
+              : "Digite a senha"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {step === "domain" ? (
             <form onSubmit={validarDominio} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dominio">{t('auth.domain')}</Label>
+                <Label htmlFor="dominio">Domínio</Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="dominio"
                     type="text"
-                    placeholder={t('auth.enterDomain')}
+                    placeholder="Digite o domínio"
                     value={dominio}
                     onChange={(e) => setDominio(e.target.value)}
                     className="pl-10"
@@ -173,23 +169,23 @@ const Login = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('common.loading')}
+                    Carregando...
                   </>
                 ) : (
-                  t('common.next')
+                  "Próximo"
                 )}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">{t('common.email')}</Label>
+                <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder={t('auth.enterEmail')}
+                    placeholder="Digite o e-mail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -199,7 +195,7 @@ const Login = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="senha">{t('auth.password')}</Label>
+                <Label htmlFor="senha">Senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -222,16 +218,16 @@ const Login = () => {
                   disabled={isLoading}
                   className="flex-1"
                 >
-                  {t('common.back')}
+                  Voltar
                 </Button>
                 <Button type="submit" className="flex-1" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('common.loading')}
+                      Carregando...
                     </>
                   ) : (
-                    t('auth.login')
+                    "Entrar"
                   )}
                 </Button>
               </div>
