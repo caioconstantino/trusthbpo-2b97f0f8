@@ -32,22 +32,20 @@ export function AppSidebar() {
 
   const isCollapsed = state === "collapsed";
 
-  // Verificar se é conta educacional
+  // Verificar se é conta educacional usando edge function (bypass RLS)
   useEffect(() => {
     const checkEducationalAccount = async () => {
       const dominio = localStorage.getItem("dominio");
       if (!dominio) return;
 
       try {
-        const { data, error } = await supabase
-          .from("tb_clientes_saas")
-          .select("tipo_conta, aluno_id")
-          .eq("dominio", dominio)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke("get-customer-data", {
+          body: { dominio },
+        });
 
-        if (!error && data) {
-          setIsEducational(data.tipo_conta === "aluno");
-          setAlunoId(data.aluno_id);
+        if (!error && data?.cliente) {
+          setIsEducational(data.cliente.tipo_conta === "aluno");
+          setAlunoId(data.cliente.aluno_id);
         }
       } catch (err) {
         console.error("Erro ao verificar tipo de conta:", err);
