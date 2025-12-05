@@ -93,6 +93,14 @@ export const useProductLimit = () => {
 
   useEffect(() => {
     fetchProductLimit();
+    
+    // Listen for storage changes (when switching companies)
+    const handleStorageChange = () => {
+      fetchProductLimit();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   return {
