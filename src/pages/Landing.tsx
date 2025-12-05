@@ -6,7 +6,6 @@ import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sp
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.webp";
@@ -89,7 +88,6 @@ export default function Landing() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
-            <LanguageSelector />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => navigate("/login")} className="hidden sm:inline-flex">
               Login
