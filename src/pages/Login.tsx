@@ -8,15 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, User, Lock } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import InadimplenteBlock from "@/components/InadimplenteBlock";
 import logo from "@/assets/logo.webp";
 
 const Login = () => {
-  const [step, setStep] = useState<"domain" | "credentials">("domain");
+  const [step, setStep] = useState<"domain" | "credentials" | "blocked">("domain");
   const [dominio, setDominio] = useState("");
   const [nomeCliente, setNomeCliente] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [blockedData, setBlockedData] = useState<{
+    dataVencimento: string;
+    plano: string;
+  } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -98,6 +103,34 @@ const Login = () => {
         throw new Error("Credenciais inválidas");
       }
 
+      // Verificar status de inadimplência do cliente
+      const { data: clienteData } = await supabase
+        .from("tb_clientes_saas")
+        .select("status, proximo_pagamento, plano, tipo_conta")
+        .eq("dominio", dominio.trim().toLowerCase())
+        .single();
+
+      if (clienteData) {
+        // Verificar se é conta de aluno (não bloqueia)
+        const isAluno = clienteData.tipo_conta === 'aluno';
+        
+        // Verificar se está inadimplente (proximo_pagamento no passado)
+        const hoje = new Date();
+        const proximoPagamento = clienteData.proximo_pagamento ? new Date(clienteData.proximo_pagamento) : null;
+        const isInadimplente = proximoPagamento && proximoPagamento < hoje && !isAluno;
+        
+        if (isInadimplente || (clienteData.status === 'Inadimplente' && !isAluno)) {
+          // Salvar dados para mostrar tela de bloqueio
+          setBlockedData({
+            dataVencimento: clienteData.proximo_pagamento || new Date().toISOString(),
+            plano: clienteData.plano || 'Básico'
+          });
+          setStep("blocked");
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Atualizar last_login_at na conta do cliente
       await supabase
         .from("tb_clientes_saas")
@@ -130,6 +163,17 @@ const Login = () => {
     setEmail("");
     setSenha("");
   };
+
+  // Mostrar tela de bloqueio para inadimplentes
+  if (step === "blocked" && blockedData) {
+    return (
+      <InadimplenteBlock 
+        nomeCliente={nomeCliente}
+        dataVencimento={blockedData.dataVencimento}
+        plano={blockedData.plano}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
