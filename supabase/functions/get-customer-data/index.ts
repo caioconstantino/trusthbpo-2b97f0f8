@@ -16,7 +16,8 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { dominio } = await req.json()
+    const body = await req.json()
+    const { dominio, action, pdvs_adicionais, empresas_adicionais } = body
 
     if (!dominio) {
       return new Response(
@@ -25,9 +26,53 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Handle update actions
+    if (action === 'update_pdvs' && typeof pdvs_adicionais === 'number') {
+      console.log(`Updating PDVs adicionais for ${dominio}: ${pdvs_adicionais}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ pdvs_adicionais })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating PDVs:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar PDVs' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'PDVs atualizados com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (action === 'update_empresas' && typeof empresas_adicionais === 'number') {
+      console.log(`Updating Empresas adicionais for ${dominio}: ${empresas_adicionais}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ empresas_adicionais })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating Empresas:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar Empresas' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Empresas atualizadas com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Default: fetch customer data
     const { data: cliente, error } = await supabase
       .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id')
+      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais')
       .eq('dominio', dominio)
       .maybeSingle()
 
