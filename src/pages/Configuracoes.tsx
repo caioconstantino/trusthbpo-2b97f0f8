@@ -159,6 +159,16 @@ export default function Configuracoes() {
   const [unidadeEstado, setUnidadeEstado] = useState("");
   const [unidadeCep, setUnidadeCep] = useState("");
   const [isSavingUnidade, setIsSavingUnidade] = useState(false);
+  
+  // Copy data states
+  const [copyFromUnidadeId, setCopyFromUnidadeId] = useState<string>("");
+  const [copyOptions, setCopyOptions] = useState({
+    categoriasProdutos: false,
+    produtos: false,
+    categoriasContasPagar: false,
+    categoriasContasReceber: false,
+    clientes: false,
+  });
 
   useEffect(() => {
     fetchData();
@@ -521,6 +531,15 @@ export default function Configuracoes() {
       setUnidadeEstado("");
       setUnidadeCep("");
     }
+    // Reset copy options
+    setCopyFromUnidadeId("");
+    setCopyOptions({
+      categoriasProdutos: false,
+      produtos: false,
+      categoriasContasPagar: false,
+      categoriasContasReceber: false,
+      clientes: false,
+    });
     setUnidadeDialogOpen(true);
   };
 
@@ -548,11 +567,88 @@ export default function Configuracoes() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: newUnidade, error } = await supabase
           .from("tb_unidades")
-          .insert(unidadeData);
+          .insert(unidadeData)
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Copy data if source unit is selected
+        if (copyFromUnidadeId && copyFromUnidadeId !== "none" && newUnidade) {
+          const sourceId = parseInt(copyFromUnidadeId);
+          
+          // Copy Categorias de Produtos
+          if (copyOptions.categoriasProdutos) {
+            const { data: categorias } = await supabase
+              .from("tb_categorias")
+              .select("nome, dominio")
+              .eq("unidade_id", sourceId);
+            
+            if (categorias && categorias.length > 0) {
+              await supabase.from("tb_categorias").insert(
+                categorias.map(c => ({ ...c, unidade_id: newUnidade.id }))
+              );
+            }
+          }
+
+          // Copy Produtos
+          if (copyOptions.produtos) {
+            const { data: produtos } = await supabase
+              .from("tb_produtos")
+              .select("nome, codigo, codigo_barras, preco_custo, preco_venda, observacao, ativo, dominio, tipo, imagem_url")
+              .eq("unidade_id", sourceId);
+            
+            if (produtos && produtos.length > 0) {
+              await supabase.from("tb_produtos").insert(
+                produtos.map(p => ({ ...p, unidade_id: newUnidade.id, categoria_id: null }))
+              );
+            }
+          }
+
+          // Copy Categorias de Contas a Pagar
+          if (copyOptions.categoriasContasPagar) {
+            const { data: categorias } = await supabase
+              .from("tb_categorias_contas_pagar")
+              .select("nome, dominio, edit")
+              .eq("unidade_id", sourceId);
+            
+            if (categorias && categorias.length > 0) {
+              await supabase.from("tb_categorias_contas_pagar").insert(
+                categorias.map(c => ({ ...c, unidade_id: newUnidade.id, parent_id: null }))
+              );
+            }
+          }
+
+          // Copy Categorias de Contas a Receber
+          if (copyOptions.categoriasContasReceber) {
+            const { data: categorias } = await supabase
+              .from("tb_categorias_contas_receber")
+              .select("nome, dominio, edit")
+              .eq("unidade_id", sourceId);
+            
+            if (categorias && categorias.length > 0) {
+              await supabase.from("tb_categorias_contas_receber").insert(
+                categorias.map(c => ({ ...c, unidade_id: newUnidade.id, parent_id: null }))
+              );
+            }
+          }
+
+          // Copy Clientes
+          if (copyOptions.clientes) {
+            const { data: clientes } = await supabase
+              .from("tb_clientes")
+              .select("cpf_cnpj, razao_social, email, telefone, status, observacoes, dominio, responsavel, detalhes_cnpj")
+              .eq("unidade_id", sourceId);
+            
+            if (clientes && clientes.length > 0) {
+              await supabase.from("tb_clientes").insert(
+                clientes.map(c => ({ ...c, unidade_id: newUnidade.id }))
+              );
+            }
+          }
+        }
       }
 
       toast({
@@ -1189,7 +1285,7 @@ export default function Configuracoes() {
 
       {/* Dialog para criar/editar empresa */}
       <Dialog open={unidadeDialogOpen} onOpenChange={setUnidadeDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingUnidade ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
             <DialogDescription>
@@ -1209,6 +1305,100 @@ export default function Configuracoes() {
                 placeholder="Nome da empresa"
               />
             </div>
+
+            {/* Copy data section - only for new units */}
+            {!editingUnidade && unidades.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Copiar dados de outra empresa (opcional)</p>
+                  <div className="space-y-2">
+                    <Label>Empresa de origem</Label>
+                    <Select value={copyFromUnidadeId} onValueChange={setCopyFromUnidadeId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não copiar dados</SelectItem>
+                        {unidades.map((u) => (
+                          <SelectItem key={u.id} value={u.id.toString()}>
+                            {u.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {copyFromUnidadeId && copyFromUnidadeId !== "none" && (
+                    <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                      <p className="text-sm text-muted-foreground">Selecione o que deseja copiar:</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="copy-cat-produtos"
+                            checked={copyOptions.categoriasProdutos}
+                            onCheckedChange={(checked) => 
+                              setCopyOptions(prev => ({ ...prev, categoriasProdutos: !!checked }))
+                            }
+                          />
+                          <Label htmlFor="copy-cat-produtos" className="text-sm font-normal cursor-pointer">
+                            Categorias de Produtos
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="copy-produtos"
+                            checked={copyOptions.produtos}
+                            onCheckedChange={(checked) => 
+                              setCopyOptions(prev => ({ ...prev, produtos: !!checked }))
+                            }
+                          />
+                          <Label htmlFor="copy-produtos" className="text-sm font-normal cursor-pointer">
+                            Produtos
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="copy-cat-pagar"
+                            checked={copyOptions.categoriasContasPagar}
+                            onCheckedChange={(checked) => 
+                              setCopyOptions(prev => ({ ...prev, categoriasContasPagar: !!checked }))
+                            }
+                          />
+                          <Label htmlFor="copy-cat-pagar" className="text-sm font-normal cursor-pointer">
+                            Categorias de Contas a Pagar
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="copy-cat-receber"
+                            checked={copyOptions.categoriasContasReceber}
+                            onCheckedChange={(checked) => 
+                              setCopyOptions(prev => ({ ...prev, categoriasContasReceber: !!checked }))
+                            }
+                          />
+                          <Label htmlFor="copy-cat-receber" className="text-sm font-normal cursor-pointer">
+                            Categorias de Contas a Receber
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="copy-clientes"
+                            checked={copyOptions.clientes}
+                            onCheckedChange={(checked) => 
+                              setCopyOptions(prev => ({ ...prev, clientes: !!checked }))
+                            }
+                          />
+                          <Label htmlFor="copy-clientes" className="text-sm font-normal cursor-pointer">
+                            Clientes
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <Separator />
 
