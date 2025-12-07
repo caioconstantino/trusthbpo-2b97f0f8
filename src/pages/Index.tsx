@@ -6,14 +6,15 @@ import { StockSection } from "@/components/StockSection";
 import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { Accordion } from "@/components/ui/accordion";
-import { Package, Archive, TrendingUp, Loader2 } from "lucide-react";
+import { Package, Archive, TrendingUp, Loader2, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AreaChart,
   Area,
@@ -71,12 +72,15 @@ interface DashboardData {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
+type PeriodFilter = 'hoje' | 'ontem' | 'semana' | 'mes' | 'ano';
+
 const Index = () => {
   const { canView, isLoading: permissionsLoading } = usePermissions();
   const { unidadeAtiva, isLoading: unidadeLoading } = useUnidadeAtiva();
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('hoje');
   const [unidadesAcessiveis, setUnidadesAcessiveis] = useState<UnidadeInfo[]>([]);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
@@ -113,7 +117,41 @@ const Index = () => {
     if (unidadeAtiva) {
       fetchDashboardData();
     }
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, periodFilter]);
+
+  const getDateRange = (period: PeriodFilter) => {
+    const hoje = new Date();
+    let inicio: Date;
+    let fim: Date = hoje;
+
+    switch (period) {
+      case 'hoje':
+        inicio = hoje;
+        break;
+      case 'ontem':
+        inicio = subDays(hoje, 1);
+        fim = subDays(hoje, 1);
+        break;
+      case 'semana':
+        inicio = startOfWeek(hoje, { weekStartsOn: 0 });
+        fim = endOfWeek(hoje, { weekStartsOn: 0 });
+        break;
+      case 'mes':
+        inicio = startOfMonth(hoje);
+        fim = endOfMonth(hoje);
+        break;
+      case 'ano':
+        inicio = startOfYear(hoje);
+        break;
+      default:
+        inicio = hoje;
+    }
+
+    return {
+      inicio: format(inicio, 'yyyy-MM-dd 00:00:00'),
+      fim: format(fim, 'yyyy-MM-dd 23:59:59')
+    };
+  };
 
   const fetchDashboardData = async () => {
     const currentDominio = localStorage.getItem("user_dominio");
@@ -152,6 +190,9 @@ const Index = () => {
       const inicioMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
       const fimMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
       const inicioAno = format(startOfYear(hoje), 'yyyy-MM-dd');
+
+      // Get period date range for accordion data
+      const { inicio: periodInicio, fim: periodFim } = getDateRange(periodFilter);
 
       // Buscar vendas de hoje
       const { data: vendasHoje } = await supabase
@@ -357,30 +398,75 @@ const Index = () => {
       const valorEstoque = produtos?.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0) || 0;
       const lucroEsperado = valorEstoque - custoEstoque;
 
-      // Calculate data per unit
+      // Calculate data per unit - buscar vendas de cada unidade no período selecionado
       const vendasPorUnidadeMap: Record<string, UnidadeData> = {};
       const estoquePorUnidadeMap: Record<string, EstoqueData> = {};
       
       for (const unidade of unidades) {
-        // Vendas por unidade
-        const vendasUnidade = vendasHoje?.filter(v => (v as any).unidade_id === unidade.id) || [];
+        // Buscar vendas da unidade no período selecionado
+        const { data: vendasUnidadePeriodo } = await supabase
+          .from('tb_vendas')
+          .select('id, total, subtotal')
+          .eq('dominio', currentDominio)
+          .eq('unidade_id', unidade.id)
+          .gte('created_at', periodInicio)
+          .lte('created_at', periodFim);
+
+        const vendasUnidade = vendasUnidadePeriodo || [];
         const totalUnidade = vendasUnidade.reduce((acc, v) => acc + Number(v.total), 0);
-        const custoUnidade = vendasUnidade.reduce((acc, v) => acc + Number(v.subtotal) * 0.7, 0);
+        
+        // Buscar itens vendidos para calcular custo real
+        let custoUnidade = 0;
+        let produtosVendidosCount = 0;
+        
+        if (vendasUnidade.length > 0) {
+          const vendaIds = vendasUnidade.map(v => v.id);
+          const { data: itensVendidos } = await supabase
+            .from('tb_vendas_itens')
+            .select('produto_id, quantidade, preco_unitario')
+            .in('venda_id', vendaIds);
+          
+          if (itensVendidos) {
+            produtosVendidosCount = itensVendidos.reduce((acc, item) => acc + item.quantidade, 0);
+            
+            // Buscar preço de custo dos produtos
+            const produtoIds = [...new Set(itensVendidos.map(i => i.produto_id))];
+            const { data: produtosCusto } = await supabase
+              .from('tb_produtos')
+              .select('id, preco_custo')
+              .in('id', produtoIds);
+            
+            if (produtosCusto) {
+              const custoMap = new Map(produtosCusto.map(p => [p.id, Number(p.preco_custo || 0)]));
+              custoUnidade = itensVendidos.reduce((acc, item) => {
+                const custoProduto = custoMap.get(item.produto_id) || 0;
+                return acc + (custoProduto * item.quantidade);
+              }, 0);
+            }
+          }
+        }
         
         vendasPorUnidadeMap[unidade.nome] = {
           vendas: vendasUnidade.length,
-          produtos: 0,
+          produtos: produtosVendidosCount,
           total: totalUnidade,
           custo: custoUnidade
         };
         
-        // Estoque por unidade
-        const produtosUnidade = produtos?.filter(p => (p as any).unidade_id === unidade.id) || [];
-        const custoEstoqueUnidade = produtosUnidade.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0);
-        const valorEstoqueUnidade = produtosUnidade.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0);
+        // Estoque por unidade - buscar produtos da unidade
+        const { data: produtosUnidade } = await supabase
+          .from('tb_produtos')
+          .select('preco_venda, preco_custo')
+          .eq('dominio', currentDominio)
+          .eq('unidade_id', unidade.id)
+          .eq('ativo', true);
+        
+        const produtosUnidadeData = produtosUnidade || [];
+        const custoEstoqueUnidade = produtosUnidadeData.reduce((acc, p) => acc + Number(p.preco_custo || 0), 0);
+        const valorEstoqueUnidade = produtosUnidadeData.reduce((acc, p) => acc + Number(p.preco_venda || 0), 0);
         
         estoquePorUnidadeMap[unidade.nome] = {
-          totalPecas: produtosUnidade.length,
+          totalPecas: produtosUnidadeData.length,
           valorEstoque: valorEstoqueUnidade,
           custoEstoque: custoEstoqueUnidade,
           lucroEsperado: valorEstoqueUnidade - custoEstoqueUnidade,
@@ -657,32 +743,50 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Action Tabs */}
-        <div className="flex gap-2 md:gap-4 border-b border-border overflow-x-auto">
-          <button
-            id="operacional-tab"
-            onClick={() => setActiveTab("operacional")}
-            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "operacional"
-                ? "border-primary text-primary font-medium"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span className="text-sm md:text-base">Operacional</span>
-          </button>
-          <button
-            id="estoque-tab"
-            onClick={() => setActiveTab("estoque")}
-            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === "estoque"
-                ? "border-primary text-primary font-medium"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Archive className="w-4 h-4" />
-            <span className="text-sm md:text-base">Estoque</span>
-          </button>
+        {/* Action Tabs with Period Filter */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border pb-2">
+          <div className="flex gap-2 md:gap-4 overflow-x-auto">
+            <button
+              id="operacional-tab"
+              onClick={() => setActiveTab("operacional")}
+              className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "operacional"
+                  ? "border-primary text-primary font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span className="text-sm md:text-base">Operacional</span>
+            </button>
+            <button
+              id="estoque-tab"
+              onClick={() => setActiveTab("estoque")}
+              className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "estoque"
+                  ? "border-primary text-primary font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Archive className="w-4 h-4" />
+              <span className="text-sm md:text-base">Estoque</span>
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="ontem">Ontem</SelectItem>
+                <SelectItem value="semana">Esta Semana</SelectItem>
+                <SelectItem value="mes">Este Mês</SelectItem>
+                <SelectItem value="ano">Este Ano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Tab Content */}
