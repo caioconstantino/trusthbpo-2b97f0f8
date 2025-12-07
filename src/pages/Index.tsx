@@ -6,7 +6,7 @@ import { StockSection } from "@/components/StockSection";
 import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { Accordion } from "@/components/ui/accordion";
-import { Package, Archive, TrendingUp, Loader2, Calendar } from "lucide-react";
+import { Package, Archive, TrendingUp, Loader2, Calendar, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, startOfWeek, endOfWeek } from "date-fns";
@@ -15,6 +15,11 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 import {
   AreaChart,
   Area,
@@ -72,7 +77,7 @@ interface DashboardData {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-type PeriodFilter = 'hoje' | 'ontem' | 'semana' | 'mes' | 'ano';
+type PeriodFilter = 'hoje' | 'ontem' | 'semana' | 'mes' | 'ano' | 'personalizado';
 
 const Index = () => {
   const { canView, isLoading: permissionsLoading } = usePermissions();
@@ -81,6 +86,10 @@ const Index = () => {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('hoje');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date()
+  });
   const [unidadesAcessiveis, setUnidadesAcessiveis] = useState<UnidadeInfo[]>([]);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     vendasHoje: 0,
@@ -117,7 +126,7 @@ const Index = () => {
     if (unidadeAtiva) {
       fetchDashboardData();
     }
-  }, [unidadeAtiva, periodFilter]);
+  }, [unidadeAtiva, periodFilter, customDateRange]);
 
   const getDateRange = (period: PeriodFilter) => {
     const hoje = new Date();
@@ -143,6 +152,10 @@ const Index = () => {
       case 'ano':
         inicio = startOfYear(hoje);
         break;
+      case 'personalizado':
+        inicio = customDateRange?.from || hoje;
+        fim = customDateRange?.to || hoje;
+        break;
       default:
         inicio = hoje;
     }
@@ -151,6 +164,22 @@ const Index = () => {
       inicio: format(inicio, 'yyyy-MM-dd 00:00:00'),
       fim: format(fim, 'yyyy-MM-dd 23:59:59')
     };
+  };
+
+  const getPeriodLabel = () => {
+    switch (periodFilter) {
+      case 'hoje': return 'Hoje';
+      case 'ontem': return 'Ontem';
+      case 'semana': return 'Esta Semana';
+      case 'mes': return 'Este Mês';
+      case 'ano': return 'Este Ano';
+      case 'personalizado': 
+        if (customDateRange?.from && customDateRange?.to) {
+          return `${format(customDateRange.from, 'dd/MM/yy')} - ${format(customDateRange.to, 'dd/MM/yy')}`;
+        }
+        return 'Personalizado';
+      default: return 'Hoje';
+    }
   };
 
   const fetchDashboardData = async () => {
@@ -185,39 +214,24 @@ const Index = () => {
       setUnidadesAcessiveis(unidades);
       
       const hoje = new Date();
-      const inicioHoje = format(hoje, 'yyyy-MM-dd 00:00:00');
-      const fimHoje = format(hoje, 'yyyy-MM-dd 23:59:59');
-      const inicioMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
-      const fimMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
       const inicioAno = format(startOfYear(hoje), 'yyyy-MM-dd');
 
-      // Get period date range for accordion data
+      // Get period date range - aplica para todas as queries principais
       const { inicio: periodInicio, fim: periodFim } = getDateRange(periodFilter);
 
-      // Buscar vendas de hoje
-      const { data: vendasHoje } = await supabase
+      // Buscar vendas no período selecionado
+      const { data: vendasPeriodo } = await supabase
         .from('tb_vendas')
         .select('total, subtotal')
         .eq('dominio', currentDominio)
         .eq('unidade_id', unidadeId)
-        .gte('created_at', inicioHoje)
-        .lte('created_at', fimHoje);
+        .gte('created_at', periodInicio)
+        .lte('created_at', periodFim);
 
-      const totalVendasHoje = vendasHoje?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
-      const custoVendasHoje = vendasHoje?.reduce((acc, v) => acc + Number(v.subtotal) * 0.7, 0) || 0;
+      const totalVendasPeriodo = vendasPeriodo?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
+      const custoVendasPeriodo = vendasPeriodo?.reduce((acc, v) => acc + Number(v.subtotal) * 0.7, 0) || 0;
 
-      // Buscar vendas do mês
-      const { data: vendasMes } = await supabase
-        .from('tb_vendas')
-        .select('total')
-        .eq('dominio', currentDominio)
-        .eq('unidade_id', unidadeId)
-        .gte('created_at', inicioMes)
-        .lte('created_at', fimMes);
-
-      const totalVendasMes = vendasMes?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
-
-      // Buscar vendas do ano
+      // Buscar vendas do ano (sempre mantém para referência)
       const { data: vendasAno } = await supabase
         .from('tb_vendas')
         .select('total')
@@ -227,18 +241,19 @@ const Index = () => {
 
       const totalVendasAno = vendasAno?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
 
-      // Buscar contas a receber de hoje
-      const { data: contasReceberHoje } = await supabase
+      // Buscar contas a receber no período
+      const { data: contasReceberPeriodo } = await supabase
         .from('tb_contas_receber')
         .select('valor')
         .eq('dominio', currentDominio)
         .eq('unidade_id', unidadeId)
-        .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
+        .gte('vencimento', periodInicio.split(' ')[0])
+        .lte('vencimento', periodFim.split(' ')[0])
         .eq('status', 'pendente');
 
-      const totalReceberHoje = contasReceberHoje?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
+      const totalReceberPeriodo = contasReceberPeriodo?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
 
-      // Buscar contas a receber vencidas
+      // Buscar contas a receber vencidas (sempre até hoje)
       const { data: contasReceberVencidas } = await supabase
         .from('tb_contas_receber')
         .select('valor')
@@ -249,16 +264,17 @@ const Index = () => {
 
       const totalReceberVencidas = contasReceberVencidas?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
 
-      // Buscar despesas de hoje
-      const { data: despesasHoje } = await supabase
+      // Buscar despesas no período
+      const { data: despesasPeriodo } = await supabase
         .from('tb_contas_pagar')
         .select('valor')
         .eq('dominio', currentDominio)
         .eq('unidade_id', unidadeId)
-        .eq('vencimento', format(hoje, 'yyyy-MM-dd'))
+        .gte('vencimento', periodInicio.split(' ')[0])
+        .lte('vencimento', periodFim.split(' ')[0])
         .eq('status', 'pendente');
 
-      const totalDespesasHoje = despesasHoje?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
+      const totalDespesasPeriodo = despesasPeriodo?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
 
       // Buscar total de clientes
       const { count: totalClientes } = await supabase
@@ -475,12 +491,12 @@ const Index = () => {
       }
 
       setDashboardData({
-        vendasHoje: totalVendasHoje,
-        custoHoje: custoVendasHoje,
-        contasReceberHoje: totalReceberHoje,
+        vendasHoje: totalVendasPeriodo,
+        custoHoje: custoVendasPeriodo,
+        contasReceberHoje: totalReceberPeriodo,
         contasReceberVencidas: totalReceberVencidas,
-        despesasHoje: totalDespesasHoje,
-        vendasMes: totalVendasMes,
+        despesasHoje: totalDespesasPeriodo,
+        vendasMes: totalVendasPeriodo, // Usando o período selecionado
         vendasAno: totalVendasAno,
         totalClientes: totalClientes || 0,
         totalProdutos: totalProdutos || 0,
@@ -545,22 +561,86 @@ const Index = () => {
   return (
     <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
       <div className="space-y-6">
+        {/* Period Filter - Top */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-lg border">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-primary" />
+            <span className="font-medium">Período:</span>
+            <span className="text-muted-foreground">{getPeriodLabel()}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Selecione o período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="ontem">Ontem</SelectItem>
+                <SelectItem value="semana">Esta Semana</SelectItem>
+                <SelectItem value="mes">Este Mês</SelectItem>
+                <SelectItem value="ano">Este Ano</SelectItem>
+                <SelectItem value="personalizado">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {periodFilter === 'personalizado' && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !customDateRange && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange?.from ? (
+                      customDateRange.to ? (
+                        <>
+                          {format(customDateRange.from, "dd/MM/yy", { locale: ptBR })} -{" "}
+                          {format(customDateRange.to, "dd/MM/yy", { locale: ptBR })}
+                        </>
+                      ) : (
+                        format(customDateRange.from, "dd/MM/yy", { locale: ptBR })
+                      )
+                    ) : (
+                      <span>Selecione as datas</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    initialFocus
+                    mode="range"
+                    defaultMonth={customDateRange?.from}
+                    selected={customDateRange}
+                    onSelect={setCustomDateRange}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        </div>
+
         {/* Metric Cards */}
         <div id="metric-cards" className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard
-            title="Vendas (HOJE)"
+            title={`Vendas (${getPeriodLabel()})`}
             value={formatCurrency(dashboardData.vendasHoje)}
             subtitle={`Custo estimado: ${formatCurrency(dashboardData.custoHoje)}`}
             variant="sales"
           />
           <MetricCard
-            title="Contas a receber (HOJE)"
+            title={`Contas a receber (${getPeriodLabel()})`}
             value={formatCurrency(dashboardData.contasReceberHoje)}
             subtitle={`Vencidas: ${formatCurrency(dashboardData.contasReceberVencidas)}`}
             variant="receivable"
           />
           <MetricCard
-            title="Despesas (HOJE)"
+            title={`Despesas (${getPeriodLabel()})`}
             value={formatCurrency(dashboardData.despesasHoje)}
             variant="expenses"
           />
@@ -572,7 +652,7 @@ const Index = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Vendas do Mês</p>
+                  <p className="text-xs text-muted-foreground">Vendas ({getPeriodLabel()})</p>
                   <p className="text-lg font-bold text-primary">{formatCurrency(dashboardData.vendasMes)}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-green-500 opacity-50" />
@@ -743,50 +823,32 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Action Tabs with Period Filter */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border pb-2">
-          <div className="flex gap-2 md:gap-4 overflow-x-auto">
-            <button
-              id="operacional-tab"
-              onClick={() => setActiveTab("operacional")}
-              className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "operacional"
-                  ? "border-primary text-primary font-medium"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Package className="w-4 h-4" />
-              <span className="text-sm md:text-base">Operacional</span>
-            </button>
-            <button
-              id="estoque-tab"
-              onClick={() => setActiveTab("estoque")}
-              className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "estoque"
-                  ? "border-primary text-primary font-medium"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Archive className="w-4 h-4" />
-              <span className="text-sm md:text-base">Estoque</span>
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hoje">Hoje</SelectItem>
-                <SelectItem value="ontem">Ontem</SelectItem>
-                <SelectItem value="semana">Esta Semana</SelectItem>
-                <SelectItem value="mes">Este Mês</SelectItem>
-                <SelectItem value="ano">Este Ano</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Action Tabs */}
+        <div className="flex gap-2 md:gap-4 border-b border-border overflow-x-auto">
+          <button
+            id="operacional-tab"
+            onClick={() => setActiveTab("operacional")}
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "operacional"
+                ? "border-primary text-primary font-medium"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span className="text-sm md:text-base">Operacional</span>
+          </button>
+          <button
+            id="estoque-tab"
+            onClick={() => setActiveTab("estoque")}
+            className={`flex items-center gap-2 px-3 md:px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === "estoque"
+                ? "border-primary text-primary font-medium"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Archive className="w-4 h-4" />
+            <span className="text-sm md:text-base">Estoque</span>
+          </button>
         </div>
 
         {/* Tab Content */}
