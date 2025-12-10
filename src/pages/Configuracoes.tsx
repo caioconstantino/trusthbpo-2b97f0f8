@@ -121,6 +121,7 @@ const MODULOS = [
   { id: "contas_pagar", nome: "Contas a Pagar" },
   { id: "contas_receber", nome: "Contas a Receber" },
   { id: "central_contas", nome: "Central de Contas" },
+  { id: "agenda", nome: "Agenda" },
   { id: "configuracoes", nome: "Configurações" },
 ];
 

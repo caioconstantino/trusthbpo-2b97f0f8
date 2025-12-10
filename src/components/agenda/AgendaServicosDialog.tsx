@@ -79,7 +79,7 @@ export function AgendaServicosDialog({
         .select("id, nome, preco_venda")
         .eq("dominio", dominio)
         .eq("unidade_id", unidadeAtiva.id)
-        .eq("tipo", "Serviço")
+        .eq("tipo", "servico")
         .eq("ativo", true)
         .order("nome");
 

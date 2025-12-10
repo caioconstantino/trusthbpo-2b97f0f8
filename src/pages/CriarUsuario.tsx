@@ -218,15 +218,16 @@ export default function CriarUsuario() {
 
       // 4. Create permissions for all modules with full access
       const modulos = [
-        "Dashboard",
-        "PDV",
-        "Produtos",
-        "Clientes",
-        "Compras",
-        "Contas a Pagar",
-        "Contas a Receber",
-        "Central de Contas",
-        "Configurações",
+        "dashboard",
+        "pdv",
+        "produtos",
+        "clientes",
+        "compras",
+        "contas_pagar",
+        "contas_receber",
+        "central_contas",
+        "agenda",
+        "configuracoes",
       ];
 
       const permissoes = modulos.map((modulo) => ({
