@@ -12,9 +12,6 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     host: true,
-    // a porta aqui tanto faz, porque no servidor você está passando `--port $PORT`,
-    // mas deixo uma default:
-    port: 4173,
     allowedHosts: ["trusthbpo.com"],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
