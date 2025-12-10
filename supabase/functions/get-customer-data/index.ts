@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     // Default: fetch customer data
     const { data: cliente, error } = await supabase
       .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais')
+      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, agenda_ativa')
       .eq('dominio', dominio)
       .maybeSingle()
 
