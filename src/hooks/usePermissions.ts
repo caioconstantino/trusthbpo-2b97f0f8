@@ -26,6 +26,7 @@ const MODULO_MAP: Record<string, string> = {
   "contas-receber": "contas_receber",
   "central-contas": "central_contas",
   configuracoes: "configuracoes",
+  agenda: "agenda",
 };
 
 export function usePermissions(): UsePermissionsReturn {
