@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock } from "lucide-react";
 import { NavLink } from "./NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -21,22 +21,26 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { AdoptCompanyDialog } from "./AdoptCompanyDialog";
 import { OfertasEspeciaisDialog } from "./OfertasEspeciaisDialog";
+import { ContratarAgendaDialog } from "./ContratarAgendaDialog";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { canView } = usePermissions();
   const [isEducational, setIsEducational] = useState(false);
   const [alunoId, setAlunoId] = useState<string | null>(null);
   const [adoptDialogOpen, setAdoptDialogOpen] = useState(false);
   const [ofertasDialogOpen, setOfertasDialogOpen] = useState(false);
+  const [agendaAtiva, setAgendaAtiva] = useState(false);
+  const [contratarAgendaOpen, setContratarAgendaOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
 
-  // Verificar se é conta educacional usando edge function (bypass RLS)
+  // Verificar se é conta educacional e se agenda está ativa
   useEffect(() => {
-    const checkEducationalAccount = async () => {
+    const checkAccountData = async () => {
       const dominio = localStorage.getItem("user_dominio");
       
       if (!dominio) {
@@ -51,14 +55,23 @@ export function AppSidebar() {
         if (!error && data?.cliente) {
           setIsEducational(data.cliente.tipo_conta === "aluno");
           setAlunoId(data.cliente.aluno_id);
+          setAgendaAtiva(data.cliente.agenda_ativa === true);
         }
       } catch (err) {
-        console.error("Erro ao verificar tipo de conta:", err);
+        console.error("Erro ao verificar dados da conta:", err);
       }
     };
 
-    checkEducationalAccount();
+    checkAccountData();
   }, []);
+
+  const handleAgendaClick = () => {
+    if (agendaAtiva) {
+      navigate("/agenda");
+    } else {
+      setContratarAgendaOpen(true);
+    }
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", modulo: "dashboard" },
@@ -66,7 +79,6 @@ export function AppSidebar() {
     { icon: Users, label: "Clientes", path: "/clientes", modulo: "clientes" },
     { icon: ShoppingCart, label: "PDV", path: "/pdv", modulo: "pdv" },
     { icon: ShoppingBag, label: "Compras", path: "/compras", modulo: "compras" },
-    { icon: Calendar, label: "Agenda", path: "/agenda", modulo: "agenda" },
   ];
 
   const financeItems = [
@@ -109,6 +121,32 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+                
+                {/* Agenda item with lock if not active */}
+                {canView("agenda") && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      isActive={currentPath === "/agenda"}
+                      onClick={handleAgendaClick}
+                      className="flex items-center gap-3 cursor-pointer"
+                    >
+                      <div className="relative">
+                        <Calendar className="w-5 h-5" />
+                        {!agendaAtiva && (
+                          <Lock className="w-3 h-3 absolute -bottom-1 -right-1 text-amber-500" />
+                        )}
+                      </div>
+                      <span className="flex items-center gap-2">
+                        Agenda
+                        {!agendaAtiva && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full font-medium">
+                            +R$10
+                          </span>
+                        )}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -176,6 +214,15 @@ export function AppSidebar() {
       <OfertasEspeciaisDialog
         open={ofertasDialogOpen}
         onOpenChange={setOfertasDialogOpen}
+      />
+
+      <ContratarAgendaDialog
+        open={contratarAgendaOpen}
+        onOpenChange={setContratarAgendaOpen}
+        onSuccess={() => {
+          setAgendaAtiva(true);
+          navigate("/agenda");
+        }}
       />
     </Sidebar>
   );

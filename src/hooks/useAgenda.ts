@@ -130,11 +130,28 @@ export function useAgenda() {
   const createConfig = async (config: Partial<AgendaConfig>) => {
     if (!dominio || !unidadeAtiva) return null;
 
+    // Ensure required fields are present
+    if (!config.slug) {
+      toast({
+        title: "Erro",
+        description: "Slug é obrigatório.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from("tb_agenda_config")
         .insert([{
-          ...config,
+          tipo: config.tipo || 'servicos',
+          nome: config.nome || 'Minha Agenda',
+          slug: config.slug,
+          ativo: config.ativo ?? true,
+          horario_inicio: config.horario_inicio || '08:00:00',
+          horario_fim: config.horario_fim || '18:00:00',
+          intervalo_minutos: config.intervalo_minutos || 30,
+          dias_funcionamento: config.dias_funcionamento || [1, 2, 3, 4, 5],
           dominio,
           unidade_id: unidadeAtiva.id,
         }])
@@ -218,11 +235,32 @@ export function useAgenda() {
   const createAgendamento = async (agendamento: Partial<Agendamento>) => {
     if (!dominio || !unidadeAtiva) return null;
 
+    // Ensure required fields are present
+    if (!agendamento.agenda_config_id || !agendamento.data_inicio || !agendamento.data_fim || !agendamento.titulo) {
+      toast({
+        title: "Erro",
+        description: "Campos obrigatórios não preenchidos.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from("tb_agendamentos")
         .insert([{
-          ...agendamento,
+          agenda_config_id: agendamento.agenda_config_id,
+          titulo: agendamento.titulo,
+          data_inicio: agendamento.data_inicio,
+          data_fim: agendamento.data_fim,
+          tipo: agendamento.tipo || 'servico',
+          descricao: agendamento.descricao || null,
+          cliente_nome: agendamento.cliente_nome || null,
+          cliente_telefone: agendamento.cliente_telefone || null,
+          cliente_email: agendamento.cliente_email || null,
+          produto_id: agendamento.produto_id || null,
+          status: agendamento.status || 'agendado',
+          observacoes: agendamento.observacoes || null,
           dominio,
           unidade_id: unidadeAtiva.id,
         }])
