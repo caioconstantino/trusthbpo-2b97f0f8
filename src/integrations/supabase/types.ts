@@ -14,6 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
+      tb_agenda_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dias_funcionamento: number[]
+          dominio: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          intervalo_minutos: number
+          nome: string
+          slug: string
+          tipo: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dias_funcionamento?: number[]
+          dominio: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          intervalo_minutos?: number
+          nome?: string
+          slug: string
+          tipo?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dias_funcionamento?: number[]
+          dominio?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          intervalo_minutos?: number
+          nome?: string
+          slug?: string
+          tipo?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_agenda_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_agenda_servicos: {
+        Row: {
+          agenda_config_id: string
+          ativo: boolean
+          created_at: string
+          duracao_minutos: number
+          id: string
+          produto_id: number
+        }
+        Insert: {
+          agenda_config_id: string
+          ativo?: boolean
+          created_at?: string
+          duracao_minutos?: number
+          id?: string
+          produto_id: number
+        }
+        Update: {
+          agenda_config_id?: string
+          ativo?: boolean
+          created_at?: string
+          duracao_minutos?: number
+          id?: string
+          produto_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_agenda_servicos_agenda_config_id_fkey"
+            columns: ["agenda_config_id"]
+            isOneToOne: false
+            referencedRelation: "tb_agenda_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_agenda_servicos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "tb_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_agendamentos: {
+        Row: {
+          agenda_config_id: string
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          dominio: string
+          id: string
+          observacoes: string | null
+          produto_id: number | null
+          status: string
+          tipo: string
+          titulo: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          agenda_config_id: string
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          dominio: string
+          id?: string
+          observacoes?: string | null
+          produto_id?: number | null
+          status?: string
+          tipo?: string
+          titulo: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agenda_config_id?: string
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          observacoes?: string | null
+          produto_id?: number | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_agendamentos_agenda_config_id_fkey"
+            columns: ["agenda_config_id"]
+            isOneToOne: false
+            referencedRelation: "tb_agenda_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_agendamentos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "tb_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_agendamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_alunos: {
         Row: {
           ativo: boolean
@@ -300,6 +480,7 @@ export type Database = {
       }
       tb_clientes_saas: {
         Row: {
+          agenda_ativa: boolean
           aluno_id: string | null
           cpf_cnpj: string | null
           created_at: string | null
@@ -326,6 +507,7 @@ export type Database = {
           usuarios_adicionais: number
         }
         Insert: {
+          agenda_ativa?: boolean
           aluno_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
@@ -352,6 +534,7 @@ export type Database = {
           usuarios_adicionais?: number
         }
         Update: {
+          agenda_ativa?: boolean
           aluno_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null

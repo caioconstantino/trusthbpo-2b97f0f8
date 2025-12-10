@@ -18,6 +18,8 @@ import Compras from "./pages/Compras";
 import ContasPagar from "./pages/ContasPagar";
 import ContasReceber from "./pages/ContasReceber";
 import CentralContas from "./pages/CentralContas";
+import Agenda from "./pages/Agenda";
+import AgendarPublico from "./pages/AgendarPublico";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -61,7 +63,11 @@ const App = () => (
             <Route path="/contas-pagar" element={<ProtectedRoute><ContasPagar /></ProtectedRoute>} />
             <Route path="/contas-receber" element={<ProtectedRoute><ContasReceber /></ProtectedRoute>} />
             <Route path="/central-contas" element={<ProtectedRoute><CentralContas /></ProtectedRoute>} />
+            <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+            
+            {/* Public Scheduling */}
+            <Route path="/agendar/:slug" element={<AgendarPublico />} />
             
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
