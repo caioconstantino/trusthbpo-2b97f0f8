@@ -20,6 +20,7 @@ import ContasReceber from "./pages/ContasReceber";
 import CentralContas from "./pages/CentralContas";
 import Agenda from "./pages/Agenda";
 import AgendarPublico from "./pages/AgendarPublico";
+import AgendarEventoPublico from "./pages/AgendarEventoPublico";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -68,6 +69,7 @@ const App = () => (
             
             {/* Public Scheduling */}
             <Route path="/agendar/:slug" element={<AgendarPublico />} />
+            <Route path="/evento/:slug" element={<AgendarEventoPublico />} />
             
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

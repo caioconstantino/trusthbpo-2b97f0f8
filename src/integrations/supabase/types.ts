@@ -1323,6 +1323,51 @@ export type Database = {
           },
         ]
       }
+      tb_sangrias: {
+        Row: {
+          created_at: string
+          dominio: string
+          id: string
+          motivo: string | null
+          sessao_id: string
+          unidade_id: number | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          dominio: string
+          id?: string
+          motivo?: string | null
+          sessao_id: string
+          unidade_id?: number | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          dominio?: string
+          id?: string
+          motivo?: string | null
+          sessao_id?: string
+          unidade_id?: number | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_sangrias_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "tb_sessoes_caixa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_sangrias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_saques: {
         Row: {
           chave_pix: string | null

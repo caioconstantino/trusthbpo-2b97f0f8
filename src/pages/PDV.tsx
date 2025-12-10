@@ -18,13 +18,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Grid3x3, Trash2, ChevronDown, Search, Loader2, LogOut, Banknote } from "lucide-react";
+import { Grid3x3, Trash2, ChevronDown, Search, Loader2, LogOut, Banknote, History } from "lucide-react";
 import { ProductGridDialog } from "@/components/ProductGridDialog";
 import { FinalizeSaleDialog } from "@/components/FinalizeSaleDialog";
 import { QuantityDialog } from "@/components/QuantityDialog";
 import { OpenSessionDialog } from "@/components/OpenSessionDialog";
 import { SangriaDialog } from "@/components/SangriaDialog";
 import { CloseSessionDialog } from "@/components/CloseSessionDialog";
+import { SalesHistoryDialog } from "@/components/SalesHistoryDialog";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 import { supabase } from "@/integrations/supabase/client";
 import { usePdvSession } from "@/hooks/usePdvSession";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +68,7 @@ const PDV = () => {
   const [showSangriaDialog, setShowSangriaDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showOpenDialog, setShowOpenDialog] = useState(true);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -196,10 +199,36 @@ const PDV = () => {
   };
 
   const handleSangria = async (valor: number, motivo: string) => {
-    toast({
-      title: "Sangria registrada",
-      description: `R$ ${valor.toFixed(2)} retirado do caixa`
-    });
+    if (!session) return;
+    
+    const dominio = localStorage.getItem("user_dominio") || "";
+    const unidadeId = getUnidadeAtivaId();
+    
+    try {
+      const { error } = await supabase
+        .from("tb_sangrias")
+        .insert({
+          sessao_id: session.id,
+          dominio,
+          unidade_id: unidadeId,
+          valor,
+          motivo
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sangria registrada",
+        description: `R$ ${valor.toFixed(2)} retirado do caixa`
+      });
+    } catch (error) {
+      console.error("Erro ao registrar sangria:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar a sangria",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCloseSession = async (valorFechamento: number, observacoes: string) => {
@@ -412,6 +441,10 @@ const PDV = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setShowHistoryDialog(true)}>
+                <History className="w-4 h-4 mr-2" />
+                Histórico de Vendas
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowSangriaDialog(true)}>
                 <Banknote className="w-4 h-4 mr-2" />
                 Sangria
@@ -467,6 +500,12 @@ const PDV = () => {
         onOpenChange={setShowCloseDialog}
         sessionId={session?.id || ""}
         onConfirm={handleCloseSession}
+      />
+
+      <SalesHistoryDialog
+        open={showHistoryDialog}
+        onOpenChange={setShowHistoryDialog}
+        sessionId={session?.id || ""}
       />
     </DashboardLayout>
   );

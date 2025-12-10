@@ -70,6 +70,14 @@ export const CloseSessionDialog = ({
         .select("id, total")
         .eq("sessao_id", sessionId);
 
+      // Get sangrias for this session
+      const { data: sangriasData } = await supabase
+        .from("tb_sangrias")
+        .select("valor")
+        .eq("sessao_id", sessionId);
+
+      const totalSangrias = sangriasData?.reduce((sum, s) => sum + Number(s.valor), 0) || 0;
+
       // Get payments for these sales
       let totalDinheiro = 0;
       let totalCredito = 0;
@@ -112,11 +120,11 @@ export const CloseSessionDialog = ({
         totalDebito,
         totalPix,
         valorAbertura: Number(sessionData?.valor_abertura) || 0,
-        sangrias: 0
+        sangrias: totalSangrias
       });
 
-      // Set expected cash as default
-      const expectedCash = (Number(sessionData?.valor_abertura) || 0) + totalDinheiro;
+      // Set expected cash as default (abertura + dinheiro - sangrias)
+      const expectedCash = (Number(sessionData?.valor_abertura) || 0) + totalDinheiro - totalSangrias;
       setValorFechamento(expectedCash.toFixed(2));
     } catch (error) {
       console.error("Error loading summary:", error);
@@ -169,6 +177,12 @@ export const CloseSessionDialog = ({
                 <span>R$ {summary.totalPix.toFixed(2)}</span>
               </div>
             </div>
+            {summary.sangrias > 0 && (
+              <div className="border-t pt-2 flex justify-between text-orange-600 dark:text-orange-400">
+                <span>Sangrias:</span>
+                <span>- R$ {summary.sangrias.toFixed(2)}</span>
+              </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>Total de Vendas:</span>
               <span>R$ {summary.totalVendas.toFixed(2)}</span>
