@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, ArrowRight, Check, Loader2, Minus, Plus, Users, Building, Monitor, Calendar, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Minus, Plus, Users, Building, Monitor, Calendar, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.webp";
@@ -44,6 +44,7 @@ export default function Checkout() {
   const [searchParams] = useSearchParams();
   
   const initialPlan = searchParams.get("plano") === "Profissional" ? "Profissional" : "Essencial";
+  const refCodeFromUrl = searchParams.get("ref");
   
   const [selectedPlan, setSelectedPlan] = useState<"Essencial" | "Profissional">(initialPlan);
   const [billingPeriod, setBillingPeriod] = useState<"mensal" | "anual">("mensal");
@@ -51,6 +52,42 @@ export default function Checkout() {
   const [additionalCompanies, setAdditionalCompanies] = useState(0);
   const [additionalPdvs, setAdditionalPdvs] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+
+  // Load referral code from URL or sessionStorage
+  useEffect(() => {
+    const code = refCodeFromUrl || sessionStorage.getItem("referral_code");
+    if (code) {
+      setReferralCode(code);
+      // Fetch referrer name
+      fetchReferrerName(code);
+    }
+  }, [refCodeFromUrl]);
+
+  const fetchReferrerName = async (code: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("tb_indicacoes_config")
+        .select("dominio")
+        .eq("link_slug", code)
+        .maybeSingle();
+
+      if (data?.dominio) {
+        const { data: clienteData } = await supabase
+          .from("tb_clientes_saas")
+          .select("razao_social")
+          .eq("dominio", data.dominio)
+          .maybeSingle();
+        
+        if (clienteData?.razao_social) {
+          setReferrerName(clienteData.razao_social);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching referrer:", error);
+    }
+  };
 
   const plan = PLANS[selectedPlan];
 
@@ -103,6 +140,7 @@ export default function Checkout() {
           additionalUsers,
           additionalCompanies,
           additionalPdvs,
+          cupom: referralCode || undefined, // Pass referral code as cupom
         }
       });
 
@@ -366,7 +404,28 @@ export default function Checkout() {
           </div>
 
           {/* Resumo */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
+            {/* Referral Banner */}
+            {referralCode && (
+              <Card className="border-green-500/30 bg-green-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-green-500/20">
+                      <Gift className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                        Indicado por
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-300">
+                        {referrerName || referralCode}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="sticky top-24 border-primary/20">
               <CardHeader className="bg-primary/5 rounded-t-lg">
                 <CardTitle className="text-lg">Resumo do Pedido</CardTitle>

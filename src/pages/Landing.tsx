@@ -2,17 +2,30 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, ShoppingCart, Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logo from "@/assets/logo.webp";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [hoveredPlan, setHoveredPlan] = useState<number | null>(null);
 
+  // Capture referral code from URL and store in sessionStorage
+  useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode) {
+      sessionStorage.setItem("referral_code", refCode);
+    }
+  }, [searchParams]);
+
   const handleContractPlan = (planName: string) => {
-    navigate(`/checkout?plano=${planName}`);
+    const refCode = sessionStorage.getItem("referral_code");
+    const url = refCode 
+      ? `/checkout?plano=${planName}&ref=${refCode}` 
+      : `/checkout?plano=${planName}`;
+    navigate(url);
   };
 
   return (
