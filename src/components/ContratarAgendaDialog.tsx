@@ -43,7 +43,7 @@ export function ContratarAgendaDialog({
 
       toast({
         title: "Sucesso!",
-        description: "Módulo Agenda ativado! R$10 serão adicionados à sua próxima fatura.",
+        description: "Módulo Agenda ativado! R$14,90 serão adicionados à sua próxima fatura.",
       });
 
       onOpenChange(false);
@@ -85,7 +85,7 @@ export function ContratarAgendaDialog({
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-primary">+R$10</p>
+              <p className="text-2xl font-bold text-primary">+R$14,90</p>
               <p className="text-xs text-muted-foreground">/mês</p>
             </div>
           </div>
@@ -100,6 +100,7 @@ export function ContratarAgendaDialog({
                 "Seleção de serviços disponíveis",
                 "Configuração de horários e intervalos",
                 "Notificação de agendamentos",
+                "Integração com WhatsApp",
               ].map((feature, index) => (
                 <li key={index} className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-green-500" />

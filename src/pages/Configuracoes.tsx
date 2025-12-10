@@ -71,6 +71,7 @@ interface ClienteSaas {
   empresas_adicionais?: number;
   usuarios_adicionais?: number;
   produtos_adicionais?: number;
+  agenda_ativa?: boolean;
 }
 
 interface Usuario {
@@ -197,9 +198,10 @@ export default function Configuracoes() {
   const [isSavingEmpresas, setIsSavingEmpresas] = useState(false);
   const PRECO_EMPRESA_ADICIONAL = 10; // R$ 10,00
 
-  // Preços dos planos
+  // Preços dos planos e módulos
   const PRECO_BASICO = 39.90;
   const PRECO_PRO = 99.90;
+  const PRECO_AGENDA = 14.90;
 
   // Calcular empresas incluídas no plano
   const empresasIncluidas = cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? 2 : 1;
@@ -1110,6 +1112,19 @@ export default function Configuracoes() {
                     </div>
                   )}
 
+                  {/* Módulo Agenda */}
+                  {cliente?.agenda_ativa && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <p className="font-medium">Módulo Agenda</p>
+                        <p className="text-sm text-muted-foreground">Agendamentos + WhatsApp</p>
+                      </div>
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(PRECO_AGENDA)}
+                      </span>
+                    </div>
+                  )}
+
                   <Separator />
 
                   {/* Total */}
@@ -1123,7 +1138,8 @@ export default function Configuracoes() {
                         (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
                         ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
                         ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL) +
-                        ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL)
+                        ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL) +
+                        (cliente?.agenda_ativa ? PRECO_AGENDA : 0)
                       )}
                     </span>
                   </div>
@@ -1193,7 +1209,8 @@ export default function Configuracoes() {
                           (cliente?.plano === "Pro" || cliente?.plano === "R$ 99,90" ? PRECO_PRO : PRECO_BASICO) +
                           ((cliente?.pdvs_adicionais || 0) * PRECO_PDV_ADICIONAL) +
                           ((cliente?.empresas_adicionais || 0) * PRECO_EMPRESA_ADICIONAL) +
-                          ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL)
+                          ((cliente?.usuarios_adicionais || 0) * PRECO_USUARIO_ADICIONAL) +
+                          (cliente?.agenda_ativa ? PRECO_AGENDA : 0)
                         )}
                       </p>
                     </div>

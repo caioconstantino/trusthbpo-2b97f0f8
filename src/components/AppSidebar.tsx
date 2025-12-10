@@ -140,7 +140,7 @@ export function AppSidebar() {
                         Agenda
                         {!agendaAtiva && (
                           <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full font-medium">
-                            +R$10
+                            +R$14,90
                           </span>
                         )}
                       </span>
