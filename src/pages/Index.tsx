@@ -4,7 +4,6 @@ import { MetricCard } from "@/components/MetricCard";
 import { OperationalSection } from "@/components/OperationalSection";
 import { StockSection } from "@/components/StockSection";
 import { DashboardTutorial } from "@/components/DashboardTutorial";
-import { ProductCarousel } from "@/components/ProductCarousel";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, TrendingUp, Loader2, Calendar, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -892,9 +891,6 @@ const Index = () => {
             ))}
           </Accordion>
         )}
-
-        {/* Product Carousel */}
-        <ProductCarousel />
       </div>
 
       {/* Tutorial */}
