@@ -11,6 +11,7 @@ interface CreateLinkRequest {
   dominio?: string // domínio do cliente (para adicionais)
   tipo?: string // tipo de compra: 'plano', 'pdv_adicional', 'empresa_adicional'
   quantidade?: number // quantidade de adicionais
+  produtoCodigo?: string // código do produto (basico, pro, etc)
   // Novos campos para checkout completo
   billingPeriod?: 'mensal' | 'anual'
   additionalUsers?: number
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
       dominio, 
       tipo, 
       quantidade,
+      produtoCodigo,
       billingPeriod,
       additionalUsers,
       additionalCompanies,
@@ -135,6 +137,7 @@ Deno.serve(async (req) => {
       tipo: tipo || 'plano',
       quantidade: quantidade || 1,
       plan_name: planName,
+      produto_codigo: produtoCodigo || '',
       billing_period: billingPeriod || 'mensal',
       additional_users: additionalUsers || 0,
       additional_companies: additionalCompanies || 0,

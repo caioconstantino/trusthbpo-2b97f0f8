@@ -88,7 +88,8 @@ const RevendaLanding = () => {
           planName: `${produto.produto_nome} - via ${revenda.nome}`,
           planPrice: priceInCents,
           cupom: revenda.slug,
-          revendaId: revenda.id
+          revendaId: revenda.id,
+          produtoCodigo: produto.produto_codigo
         }
       });
 

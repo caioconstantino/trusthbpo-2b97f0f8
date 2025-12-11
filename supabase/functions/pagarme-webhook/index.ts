@@ -38,6 +38,8 @@ interface PagarmeWebhookPayload {
       dominio?: string
       tipo?: string
       quantidade?: number
+      plan_name?: string
+      produto_codigo?: string
     }
   }
 }
@@ -69,6 +71,86 @@ function getPlanFromAmount(amount: number): string {
   return 'Personalizado'
 }
 
+// Get plan name from reseller product
+async function getPlanFromReseller(
+  supabase: ReturnType<typeof createClient>,
+  revendaId: string,
+  amount: number,
+  planName?: string,
+  produtoCodigo?: string
+): Promise<{ plan: string; valorPago: number } | null> {
+  try {
+    // Converter amount de centavos para reais
+    const valorPago = amount / 100
+
+    // Se temos o produto_codigo no metadata, usar diretamente
+    if (produtoCodigo) {
+      let plan = 'Básico'
+      if (produtoCodigo === 'pro' || produtoCodigo === 'profissional') {
+        plan = 'Profissional'
+      } else if (produtoCodigo === 'basico' || produtoCodigo === 'essencial') {
+        plan = 'Básico'
+      }
+      console.log(`Plan determined from produto_codigo: ${plan}`)
+      return { plan, valorPago }
+    }
+
+    // Buscar produtos da revenda
+    const { data: produtos, error } = await supabase
+      .from('tb_revendas_produtos')
+      .select('produto_codigo, produto_nome, preco_revenda')
+      .eq('revenda_id', revendaId)
+
+    if (error || !produtos || produtos.length === 0) {
+      console.error('Error fetching reseller products:', error)
+      return null
+    }
+
+    // Tentar encontrar o produto pelo valor pago (com tolerância de 0.01)
+    const produtoEncontrado = produtos.find(
+      p => Math.abs(p.preco_revenda - valorPago) < 0.01
+    )
+
+    if (produtoEncontrado) {
+      // Determinar o plano baseado no produto_codigo
+      let plan = 'Básico'
+      if (produtoEncontrado.produto_codigo === 'pro' || 
+          produtoEncontrado.produto_codigo === 'profissional') {
+        plan = 'Profissional'
+      } else if (produtoEncontrado.produto_codigo === 'basico' || 
+                 produtoEncontrado.produto_codigo === 'essencial') {
+        plan = 'Básico'
+      }
+
+      console.log(`Plan determined from valor pago: ${plan}`)
+      return { plan, valorPago }
+    }
+
+    // Se não encontrou pelo valor, tentar pelo plan_name
+    if (planName) {
+      const produtoPorNome = produtos.find(
+        p => planName.toLowerCase().includes(p.produto_codigo.toLowerCase()) ||
+            planName.toLowerCase().includes(p.produto_nome.toLowerCase())
+      )
+
+      if (produtoPorNome) {
+        let plan = 'Básico'
+        if (produtoPorNome.produto_codigo === 'pro' || 
+            produtoPorNome.produto_codigo === 'profissional') {
+          plan = 'Profissional'
+        }
+        console.log(`Plan determined from plan_name: ${plan}`)
+        return { plan, valorPago }
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error in getPlanFromReseller:', error)
+    return null
+  }
+}
+
 // Send email via SMTP
 async function sendWelcomeEmail(
   email: string, 
@@ -94,7 +176,7 @@ async function sendWelcomeEmail(
       },
     })
 
-    const createUserUrl = `https://trusthbpo.lovable.app/criar-usuario?dominio=${dominio}`
+    const createUserUrl = `https://trusthbpo.com/criar-usuario?dominio=${dominio}`
 
     await client.send({
       from: smtpFrom,
@@ -363,9 +445,36 @@ Deno.serve(async (req) => {
         const customerDocument = customer.document
         const customerName = customer.name
         const orderAmount = payload.data?.amount || 0
-        const plan = getPlanFromAmount(orderAmount)
+        const planName = metadata?.plan_name || null
+        
+        // Determinar o plano e valor pago
+        let plan = getPlanFromAmount(orderAmount)
+        let valorPago: number | null = null
+        
+        // Se for de revenda, buscar o plano correto
+        if (revendaId) {
+          console.log('Purchase from reseller, determining plan...')
+          const produtoCodigo = metadata?.produto_codigo || null
+          const resellerPlan = await getPlanFromReseller(supabase, revendaId, orderAmount, planName, produtoCodigo)
+          if (resellerPlan) {
+            plan = resellerPlan.plan
+            valorPago = resellerPlan.valorPago
+            console.log(`Plan determined from reseller: ${plan}, valor pago: R$ ${valorPago}`)
+          } else {
+            // Se não encontrou, usar valor pago mesmo assim
+            valorPago = orderAmount / 100
+            console.log(`Could not determine plan from reseller, using default. Valor pago: R$ ${valorPago}`)
+          }
+        } else {
+          // Para compras diretas, o valor pago é o valor do plano padrão
+          if (plan === 'Básico') {
+            valorPago = 39.90
+          } else if (plan === 'Profissional') {
+            valorPago = 99.90
+          }
+        }
 
-        console.log('Customer info:', { email: customerEmail, document: customerDocument, name: customerName })
+        console.log('Customer info:', { email: customerEmail, document: customerDocument, name: customerName, plan, valorPago })
 
         // Check if customer already exists (by email or document)
         const { data: existingCustomer, error: searchError } = await supabase
@@ -384,15 +493,22 @@ Deno.serve(async (req) => {
           const today = new Date().toISOString().split('T')[0]
           const nextPayment = getNextPaymentDate()
 
+          const updateData: Record<string, unknown> = {
+            status: 'Ativo',
+            ultimo_pagamento: today,
+            proximo_pagamento: nextPayment,
+            ultima_forma_pagamento: 'Pagar.me',
+            plano: plan
+          }
+          
+          // Atualizar valor_pago se fornecido
+          if (valorPago !== null) {
+            updateData.valor_pago = valorPago
+          }
+
           const { error: updateError } = await supabase
             .from('tb_clientes_saas')
-            .update({
-              status: 'Ativo',
-              ultimo_pagamento: today,
-              proximo_pagamento: nextPayment,
-              ultima_forma_pagamento: 'Pagar.me',
-              plano: plan
-            })
+            .update(updateData)
             .eq('id', existingCustomer.id)
 
           if (updateError) {
@@ -425,20 +541,27 @@ Deno.serve(async (req) => {
           const today = new Date().toISOString().split('T')[0]
           const nextPayment = getNextPaymentDate()
 
+          const insertData: Record<string, unknown> = {
+            razao_social: customerName,
+            email: customerEmail,
+            cpf_cnpj: customerDocument,
+            dominio: newDominio,
+            status: 'Ativo',
+            plano: plan,
+            ultimo_pagamento: today,
+            proximo_pagamento: nextPayment,
+            ultima_forma_pagamento: 'Pagar.me',
+            cupom: cupom // Link customer to reseller via cupom
+          }
+          
+          // Adicionar valor_pago se fornecido
+          if (valorPago !== null) {
+            insertData.valor_pago = valorPago
+          }
+
           const { data: newCustomer, error: insertError } = await supabase
             .from('tb_clientes_saas')
-            .insert({
-              razao_social: customerName,
-              email: customerEmail,
-              cpf_cnpj: customerDocument,
-              dominio: newDominio,
-              status: 'Ativo',
-              plano: plan,
-              ultimo_pagamento: today,
-              proximo_pagamento: nextPayment,
-              ultima_forma_pagamento: 'Pagar.me',
-              cupom: cupom // Link customer to reseller via cupom
-            })
+            .insert(insertData)
             .select()
             .single()
 

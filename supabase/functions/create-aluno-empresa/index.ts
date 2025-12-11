@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
     console.log("Cliente SaaS created for domain:", dominio);
 
     // Enviar email com link para criar usuário
-    const baseUrl = "https://trusthbpo.lovable.app";
+    const baseUrl = "https://trusthbpo.com";
     const createUserLink = `${baseUrl}/criar-usuario?dominio=${dominio}`;
 
     const emailHtml = `
