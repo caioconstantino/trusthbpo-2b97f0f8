@@ -8,8 +8,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, DollarSign, Users, Calendar, Receipt, TrendingUp } from "lucide-react";
-import { format } from "date-fns";
+import { Building2, DollarSign, Users, Calendar, Receipt, TrendingUp, Clock, CreditCard, Wallet } from "lucide-react";
+import { format, differenceInMonths } from "date-fns";
 
 interface Cliente {
   id: number;
@@ -30,6 +30,11 @@ interface Cliente {
   tipo_conta: string | null;
   last_login_at: string | null;
   observacoes: string | null;
+  pdvs_adicionais?: number;
+  empresas_adicionais?: number;
+  usuarios_adicionais?: number;
+  produtos_adicionais?: number;
+  agenda_ativa?: boolean;
 }
 
 interface Indicacao {
@@ -55,10 +60,20 @@ interface ViewClienteDialogProps {
   cliente: Cliente | null;
 }
 
+// Preços dos adicionais
+const PRECOS = {
+  basico: 39.90,
+  profissional: 99.90,
+  pdv_adicional: 10.00,
+  empresa_adicional: 20.00,
+  agenda: 29.90,
+};
+
 export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDialogProps) {
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
   const [indicacaoConfig, setIndicacaoConfig] = useState<IndicacaoConfig | null>(null);
   const [totalVendas, setTotalVendas] = useState(0);
+  const [totalPago, setTotalPago] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -66,6 +81,46 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
       fetchClienteData();
     }
   }, [open, cliente]);
+
+  const parseDescontoFromObservacoes = (observacoes: string | null): number => {
+    if (!observacoes) return 0;
+    const match = observacoes.match(/Desconto\/Acréscimo:\s*([-\d.]+)%/);
+    return match ? parseFloat(match[1]) : 0;
+  };
+
+  const calcularValorMensalidade = (cli: Cliente): number => {
+    const plano = cli.plano?.toLowerCase() || "";
+    let valorBase = 0;
+    
+    if (plano.includes("pro") || plano.includes("profissional") || plano.includes("99")) {
+      valorBase = PRECOS.profissional;
+    } else if (plano.includes("básico") || plano.includes("basico") || plano.includes("39")) {
+      valorBase = PRECOS.basico;
+    }
+
+    // Adicionar PDVs adicionais
+    const pdvsAdicionais = cli.pdvs_adicionais || 0;
+    const empresasAdicionais = cli.empresas_adicionais || 0;
+    const agendaAtiva = cli.agenda_ativa || false;
+
+    let valorAdicionais = 0;
+    valorAdicionais += pdvsAdicionais * PRECOS.pdv_adicional;
+    valorAdicionais += empresasAdicionais * PRECOS.empresa_adicional;
+    if (agendaAtiva) valorAdicionais += PRECOS.agenda;
+
+    // Aplicar desconto/acréscimo
+    const descontoAcrescimo = parseDescontoFromObservacoes(cli.observacoes);
+    const valorComDesconto = valorBase * (1 + descontoAcrescimo / 100);
+
+    return valorComDesconto + valorAdicionais;
+  };
+
+  const calcularMesesComoCliente = (createdAt: string | null): number => {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt);
+    const hoje = new Date();
+    return differenceInMonths(hoje, created);
+  };
 
   const fetchClienteData = async () => {
     if (!cliente) return;
@@ -98,6 +153,12 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
       
       const total = vendasData?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
       setTotalVendas(total);
+
+      // Calcular total pago (baseado nos meses como cliente x valor mensalidade)
+      const meses = calcularMesesComoCliente(cliente.created_at);
+      const valorMensal = calcularValorMensalidade(cliente);
+      setTotalPago(meses * valorMensal);
+
     } catch (error) {
       console.error("Erro ao buscar dados do cliente:", error);
     } finally {
@@ -131,6 +192,10 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
 
   if (!cliente) return null;
 
+  const mesesComoCliente = calcularMesesComoCliente(cliente.created_at);
+  const valorProximaFatura = calcularValorMensalidade(cliente);
+  const descontoAcrescimo = parseDescontoFromObservacoes(cliente.observacoes);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -140,6 +205,25 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
             {cliente.razao_social}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Insights Cards */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-lg p-4 text-center border border-green-500/30">
+            <Wallet className="w-6 h-6 text-green-400 mx-auto mb-2" />
+            <p className="text-xs text-slate-400">Total Já Pago</p>
+            <p className="text-lg font-bold text-green-400">{formatCurrency(totalPago)}</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-lg p-4 text-center border border-blue-500/30">
+            <Clock className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+            <p className="text-xs text-slate-400">Tempo como Cliente</p>
+            <p className="text-lg font-bold text-blue-400">{mesesComoCliente} {mesesComoCliente === 1 ? 'mês' : 'meses'}</p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-lg p-4 text-center border border-purple-500/30">
+            <CreditCard className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+            <p className="text-xs text-slate-400">Próxima Fatura</p>
+            <p className="text-lg font-bold text-purple-400">{formatCurrency(valorProximaFatura)}</p>
+          </div>
+        </div>
 
         <Tabs defaultValue="dados" className="w-full">
           <TabsList className="bg-slate-700/50 border-slate-600">
@@ -313,6 +397,52 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
                 <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
                 <p className="text-sm text-slate-400">Total de Vendas</p>
                 <p className="text-xl font-bold text-green-400">{formatCurrency(totalVendas)}</p>
+              </div>
+            </div>
+
+            {/* Detalhamento da Fatura */}
+            <div className="border-t border-slate-700 pt-4">
+              <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Composição da Fatura Mensal
+              </h4>
+              <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300">Plano {cliente.plano || "Base"}</span>
+                  <span className="text-white">
+                    {formatCurrency(cliente.plano?.toLowerCase().includes("pro") || cliente.plano?.toLowerCase().includes("profissional") ? PRECOS.profissional : PRECOS.basico)}
+                  </span>
+                </div>
+                {descontoAcrescimo !== 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">{descontoAcrescimo < 0 ? "Desconto" : "Acréscimo"} ({descontoAcrescimo}%)</span>
+                    <span className={descontoAcrescimo < 0 ? "text-green-400" : "text-amber-400"}>
+                      {descontoAcrescimo < 0 ? "-" : "+"}{formatCurrency(Math.abs((cliente.plano?.toLowerCase().includes("pro") || cliente.plano?.toLowerCase().includes("profissional") ? PRECOS.profissional : PRECOS.basico) * descontoAcrescimo / 100))}
+                    </span>
+                  </div>
+                )}
+                {(cliente.pdvs_adicionais || 0) > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">PDVs Adicionais ({cliente.pdvs_adicionais}x)</span>
+                    <span className="text-white">+{formatCurrency((cliente.pdvs_adicionais || 0) * PRECOS.pdv_adicional)}</span>
+                  </div>
+                )}
+                {(cliente.empresas_adicionais || 0) > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Empresas Adicionais ({cliente.empresas_adicionais}x)</span>
+                    <span className="text-white">+{formatCurrency((cliente.empresas_adicionais || 0) * PRECOS.empresa_adicional)}</span>
+                  </div>
+                )}
+                {cliente.agenda_ativa && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Módulo Agenda</span>
+                    <span className="text-white">+{formatCurrency(PRECOS.agenda)}</span>
+                  </div>
+                )}
+                <div className="border-t border-slate-600 pt-3 flex justify-between items-center font-semibold">
+                  <span className="text-white">Total Mensal</span>
+                  <span className="text-primary text-lg">{formatCurrency(valorProximaFatura)}</span>
+                </div>
               </div>
             </div>
 
