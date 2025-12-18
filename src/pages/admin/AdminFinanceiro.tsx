@@ -18,6 +18,15 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
 
+// Preços dos produtos e adicionais
+const PRECOS = {
+  basico: 39.90,
+  profissional: 99.90,
+  pdv_adicional: 10.00,
+  empresa_adicional: 20.00,
+  agenda: 29.90,
+};
+
 const AdminFinanceiro = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,23 +36,48 @@ const AdminFinanceiro = () => {
     queryFn: async () => {
       const { data: clientes, error } = await supabase
         .from("tb_clientes_saas")
-        .select("plano, status, created_at, ultimo_pagamento");
+        .select("plano, status, created_at, ultimo_pagamento, observacoes, pdvs_adicionais, empresas_adicionais, agenda_ativa");
       if (error) throw error;
 
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
       
-      // Mapear planos para valores (Básico = 39.90, Pro = 99.90)
-      const receitaBasico = ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90;
-      const receitaPro = ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
-      const receitaTotal = receitaBasico + receitaPro;
+      // Função para extrair desconto/acréscimo das observações
+      const parseDescontoFromObservacoes = (observacoes: string | null): number => {
+        if (!observacoes) return 0;
+        const match = observacoes.match(/Desconto\/Acréscimo:\s*([-\d.]+)%/);
+        return match ? parseFloat(match[1]) : 0;
+      };
+
+      // Função para calcular valor mensal real de cada cliente
+      const calcularValorMensalCliente = (cliente: any): number => {
+        const plano = cliente.plano?.toLowerCase() || "";
+        let valorBase = 0;
+        
+        if (plano.includes("pro") || plano.includes("profissional") || plano.includes("99")) {
+          valorBase = PRECOS.profissional;
+        } else if (plano.includes("básico") || plano.includes("basico") || plano.includes("39")) {
+          valorBase = PRECOS.basico;
+        }
+
+        // Aplicar desconto/acréscimo
+        const descontoAcrescimo = parseDescontoFromObservacoes(cliente.observacoes);
+        const valorComDesconto = valorBase * (1 + descontoAcrescimo / 100);
+
+        // Adicionar PDVs, empresas e agenda
+        let valorAdicionais = 0;
+        valorAdicionais += (cliente.pdvs_adicionais || 0) * PRECOS.pdv_adicional;
+        valorAdicionais += (cliente.empresas_adicionais || 0) * PRECOS.empresa_adicional;
+        if (cliente.agenda_ativa) valorAdicionais += PRECOS.agenda;
+
+        return valorComDesconto + valorAdicionais;
+      };
+
+      // Calcular MRR real (considerando descontos e adicionais)
+      const receitaTotal = ativos.reduce((acc, cliente) => acc + calcularValorMensalCliente(cliente), 0);
 
       // Total de receitas pagas (clientes que já pagaram pelo menos uma vez)
       const clientesPagantes = clientes?.filter(c => c.ultimo_pagamento) || [];
-      let totalReceitasPagas = 0;
-      clientesPagantes.forEach(c => {
-        if (c.plano === "Básico" || c.plano === "R$ 39,90") totalReceitasPagas += 39.90;
-        else if (c.plano === "Pro" || c.plano === "R$ 99,90") totalReceitasPagas += 99.90;
-      });
+      const totalReceitasPagas = clientesPagantes.reduce((acc, cliente) => acc + calcularValorMensalCliente(cliente), 0);
 
       // Buscar comissões de indicações
       const { data: indicacoes } = await supabase
@@ -69,19 +103,29 @@ const AdminFinanceiro = () => {
           return created <= fimMes && c.status === "Ativo";
         }) || [];
         
-        const receitaMes = 
-          ativosNoMes.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90 +
-          ativosNoMes.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
+        // Calcular receita real do mês (com descontos e adicionais)
+        const receitaMes = ativosNoMes.reduce((acc, cliente) => acc + calcularValorMensalCliente(cliente), 0);
         
         receitaPorMes.push({ mes: mesNome, receita: receitaMes });
       }
+
+      // Contar clientes por plano
+      const planoBasico = ativos.filter(c => {
+        const plano = c.plano?.toLowerCase() || "";
+        return plano.includes("básico") || plano.includes("basico") || plano.includes("39");
+      }).length;
+      
+      const planoPro = ativos.filter(c => {
+        const plano = c.plano?.toLowerCase() || "";
+        return plano.includes("pro") || plano.includes("profissional") || plano.includes("99");
+      }).length;
 
       return {
         clientesAtivos: ativos.length,
         receitaMensal: receitaTotal,
         ticketMedio: ativos.length > 0 ? receitaTotal / ativos.length : 0,
-        planoBasico: ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length,
-        planoPro: ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length,
+        planoBasico,
+        planoPro,
         receitaPorMes,
         totalReceitasPagas,
         comissaoAPagar,
