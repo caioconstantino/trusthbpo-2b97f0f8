@@ -593,6 +593,55 @@ Deno.serve(async (req) => {
             } else {
               console.log('Matriz unit created for:', newDominio)
             }
+
+            // Create "Administradores" permission group with all permissions
+            const { data: grupoData, error: grupoError } = await supabase
+              .from('tb_grupos_permissao')
+              .insert({
+                dominio: newDominio,
+                nome: 'Administradores',
+                descricao: 'Grupo com acesso total ao sistema'
+              })
+              .select()
+              .single()
+
+            if (grupoError) {
+              console.error('Error creating permission group:', grupoError)
+            } else if (grupoData) {
+              console.log('Permission group created for:', newDominio)
+              
+              // Create all module permissions with snake_case names
+              const modulos = [
+                'dashboard',
+                'pdv',
+                'produtos',
+                'clientes',
+                'compras',
+                'contas_pagar',
+                'contas_receber',
+                'central_contas',
+                'configuracoes',
+                'agenda'
+              ]
+
+              const { error: permError } = await supabase
+                .from('tb_grupos_permissao_modulos')
+                .insert(
+                  modulos.map(modulo => ({
+                    grupo_id: grupoData.id,
+                    modulo,
+                    visualizar: true,
+                    editar: true,
+                    excluir: true
+                  }))
+                )
+
+              if (permError) {
+                console.error('Error creating module permissions:', permError)
+              } else {
+                console.log('Module permissions created for:', newDominio)
+              }
+            }
             
             // If this sale came from a reseller, create a sale record
             if (revendaId) {
