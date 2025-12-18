@@ -53,11 +53,13 @@ import {
   Ban,
   CheckCircle,
   Trash2,
-  Handshake
+  Handshake,
+  Plus
 } from "lucide-react";
 import { ImportClientesDialog } from "@/components/admin/ImportClientesDialog";
 import { ViewClienteDialog } from "@/components/admin/ViewClienteDialog";
 import { EditClienteSheet } from "@/components/admin/EditClienteSheet";
+import { CreateClienteDialog } from "@/components/admin/CreateClienteDialog";
 
 interface SaasCliente {
   id: number;
@@ -91,6 +93,7 @@ const AdminClientes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // Estados para dialogs
   const [viewCliente, setViewCliente] = useState<SaasCliente | null>(null);
@@ -330,10 +333,16 @@ const AdminClientes = () => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Clientes SaaS</h2>
-          <Button onClick={() => setImportDialogOpen(true)} className="bg-primary hover:bg-primary/90">
-            <Upload className="w-4 h-4 mr-2" />
-            Importar XLSX
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Cliente
+            </Button>
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Upload className="w-4 h-4 mr-2" />
+              Importar XLSX
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -486,6 +495,12 @@ const AdminClientes = () => {
       </main>
 
       {/* Dialogs */}
+      <CreateClienteDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchClientes}
+      />
+
       <ImportClientesDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}

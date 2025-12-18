@@ -71,9 +71,15 @@ function getPlanFromAmount(amount: number): string {
   return 'Personalizado'
 }
 
+interface RevendaProduto {
+  produto_codigo: string;
+  produto_nome: string;
+  preco_revenda: number;
+}
+
 // Get plan name from reseller product
 async function getPlanFromReseller(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   revendaId: string,
   amount: number,
   planName?: string,
@@ -106,8 +112,10 @@ async function getPlanFromReseller(
       return null
     }
 
+    const produtosTyped = produtos as RevendaProduto[]
+
     // Tentar encontrar o produto pelo valor pago (com tolerância de 0.01)
-    const produtoEncontrado = produtos.find(
+    const produtoEncontrado = produtosTyped.find(
       p => Math.abs(p.preco_revenda - valorPago) < 0.01
     )
 
@@ -128,7 +136,7 @@ async function getPlanFromReseller(
 
     // Se não encontrou pelo valor, tentar pelo plan_name
     if (planName) {
-      const produtoPorNome = produtos.find(
+      const produtoPorNome = produtosTyped.find(
         p => planName.toLowerCase().includes(p.produto_codigo.toLowerCase()) ||
             planName.toLowerCase().includes(p.produto_nome.toLowerCase())
       )
@@ -454,8 +462,8 @@ Deno.serve(async (req) => {
         // Se for de revenda, buscar o plano correto
         if (revendaId) {
           console.log('Purchase from reseller, determining plan...')
-          const produtoCodigo = metadata?.produto_codigo || null
-          const resellerPlan = await getPlanFromReseller(supabase, revendaId, orderAmount, planName, produtoCodigo)
+          const produtoCodigo = metadata?.produto_codigo || undefined
+          const resellerPlan = await getPlanFromReseller(supabase, revendaId, orderAmount, planName || undefined, produtoCodigo)
           if (resellerPlan) {
             plan = resellerPlan.plan
             valorPago = resellerPlan.valorPago
