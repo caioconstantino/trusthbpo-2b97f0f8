@@ -118,20 +118,21 @@ export const CreateClienteDialog = ({
         .single();
 
       if (grupoData) {
+        // Módulos com nomes em snake_case conforme esperado pelo usePermissions
         const modulos = [
-          "Dashboard",
-          "PDV",
-          "Produtos",
-          "Clientes",
-          "Compras",
-          "Contas a Pagar",
-          "Contas a Receber",
-          "Central de Contas",
-          "Configurações",
-          "Agenda",
+          "dashboard",
+          "pdv",
+          "produtos",
+          "clientes",
+          "compras",
+          "contas_pagar",
+          "contas_receber",
+          "central_contas",
+          "configuracoes",
+          "agenda",
         ];
 
-        await supabase.from("tb_grupos_permissao_modulos").insert(
+        const { error: permError } = await supabase.from("tb_grupos_permissao_modulos").insert(
           modulos.map((modulo) => ({
             grupo_id: grupoData.id,
             modulo,
@@ -140,11 +141,33 @@ export const CreateClienteDialog = ({
             excluir: true,
           }))
         );
+
+        if (permError) {
+          console.error("Erro ao criar permissões:", permError);
+        }
+      }
+
+      // Enviar email de boas-vindas se tiver email
+      if (formData.email) {
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: {
+              email: formData.email,
+              customerName: formData.razao_social,
+              dominio: formData.dominio.toLowerCase().trim(),
+            },
+          });
+        } catch (emailError) {
+          console.error("Erro ao enviar email:", emailError);
+          // Não bloqueia o cadastro se o email falhar
+        }
       }
 
       toast({
         title: "Sucesso",
-        description: "Cliente cadastrado com sucesso!",
+        description: formData.email 
+          ? "Cliente cadastrado com sucesso! Email de boas-vindas enviado."
+          : "Cliente cadastrado com sucesso!",
       });
 
       setFormData({
