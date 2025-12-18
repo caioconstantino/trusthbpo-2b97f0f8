@@ -122,6 +122,14 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
     return differenceInMonths(hoje, created);
   };
 
+  const calcularMesesPagos = (createdAt: string | null, ultimoPagamento: string | null): number => {
+    if (!createdAt || !ultimoPagamento) return 0;
+    const created = new Date(createdAt);
+    const ultimoPago = new Date(ultimoPagamento);
+    // Conta os meses entre a criação e o último pagamento + 1 (inclui o mês do último pagamento)
+    return differenceInMonths(ultimoPago, created) + 1;
+  };
+
   const fetchClienteData = async () => {
     if (!cliente) return;
     setIsLoading(true);
@@ -154,10 +162,10 @@ export function ViewClienteDialog({ open, onOpenChange, cliente }: ViewClienteDi
       const total = vendasData?.reduce((acc, v) => acc + Number(v.total), 0) || 0;
       setTotalVendas(total);
 
-      // Calcular total pago (baseado nos meses como cliente x valor mensalidade)
-      const meses = calcularMesesComoCliente(cliente.created_at);
+      // Calcular total pago (baseado nos meses pagos reais)
+      const mesesPagos = calcularMesesPagos(cliente.created_at, cliente.ultimo_pagamento);
       const valorMensal = calcularValorMensalidade(cliente);
-      setTotalPago(meses * valorMensal);
+      setTotalPago(mesesPagos * valorMensal);
 
     } catch (error) {
       console.error("Erro ao buscar dados do cliente:", error);

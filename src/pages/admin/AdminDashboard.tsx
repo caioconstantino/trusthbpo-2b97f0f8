@@ -47,23 +47,62 @@ const AdminDashboard = () => {
     fetchStats();
   }, []);
 
+  // Preços dos adicionais
+  const PRECOS = {
+    basico: 39.90,
+    profissional: 99.90,
+    pdv_adicional: 10.00,
+    empresa_adicional: 20.00,
+    agenda: 29.90,
+  };
+
+  const parseDescontoFromObservacoes = (observacoes: string | null): number => {
+    if (!observacoes) return 0;
+    const match = observacoes.match(/Desconto\/Acréscimo:\s*([-\d.]+)%/);
+    return match ? parseFloat(match[1]) : 0;
+  };
+
+  const calcularValorMensalCliente = (cliente: any): number => {
+    const plano = cliente.plano?.toLowerCase() || "";
+    let valorBase = 0;
+    
+    if (plano.includes("pro") || plano.includes("profissional") || plano.includes("99")) {
+      valorBase = PRECOS.profissional;
+    } else if (plano.includes("básico") || plano.includes("basico") || plano.includes("39")) {
+      valorBase = PRECOS.basico;
+    }
+
+    // Aplicar desconto/acréscimo
+    const descontoAcrescimo = parseDescontoFromObservacoes(cliente.observacoes);
+    const valorComDesconto = valorBase * (1 + descontoAcrescimo / 100);
+
+    // Adicionar produtos adicionais
+    const pdvsAdicionais = cliente.pdvs_adicionais || 0;
+    const empresasAdicionais = cliente.empresas_adicionais || 0;
+    const agendaAtiva = cliente.agenda_ativa || false;
+
+    let valorAdicionais = 0;
+    valorAdicionais += pdvsAdicionais * PRECOS.pdv_adicional;
+    valorAdicionais += empresasAdicionais * PRECOS.empresa_adicional;
+    if (agendaAtiva) valorAdicionais += PRECOS.agenda;
+
+    return valorComDesconto + valorAdicionais;
+  };
+
   const fetchStats = async () => {
     try {
       const { data: clientes, error } = await supabase
         .from("tb_clientes_saas")
-        .select("id, status, plano, created_at, proximo_pagamento");
+        .select("id, status, plano, created_at, proximo_pagamento, observacoes, pdvs_adicionais, empresas_adicionais, agenda_ativa");
 
       if (error) throw error;
 
       const hoje = new Date();
       const hojeStr = hoje.toISOString().split('T')[0];
 
-      // Calcular receita mensal (mapeando nomes de planos para valores)
+      // Calcular receita mensal usando valores reais de cada cliente
       const ativos = clientes?.filter(c => c.status === "Ativo") || [];
-      
-      // Básico = R$ 39,90, Pro = R$ 99,90, Educacional = R$ 0 (gratuito)
-      const receitaBasico = ativos.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90;
-      const receitaPro = ativos.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
+      const receitaMensal = ativos.reduce((total, cliente) => total + calcularValorMensalCliente(cliente), 0);
 
       // Clientes inadimplentes (ativos com próximo_pagamento vencido)
       const inadimplentes = clientes?.filter(c => 
@@ -91,7 +130,7 @@ const AdminDashboard = () => {
         clientesPorMes.push({ mes: mesNome, total: clientesNoMes });
       }
 
-      // Receita SaaS por mês (baseado em clientes ativos acumulados)
+      // Receita SaaS por mês (baseado em clientes ativos acumulados com valores reais)
       const receitaSaasPorMes: { mes: string; total: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
@@ -104,10 +143,7 @@ const AdminDashboard = () => {
           return created <= fimMes && c.status === "Ativo";
         }) || [];
         
-        const receitaMes = 
-          ativosNoMes.filter(c => c.plano === "Básico" || c.plano === "R$ 39,90").length * 39.90 +
-          ativosNoMes.filter(c => c.plano === "Pro" || c.plano === "R$ 99,90").length * 99.90;
-        
+        const receitaMes = ativosNoMes.reduce((total, cliente) => total + calcularValorMensalCliente(cliente), 0);
         receitaSaasPorMes.push({ mes: mesNome, total: receitaMes });
       }
       
@@ -117,7 +153,7 @@ const AdminDashboard = () => {
         clientesInadimplentes: inadimplentes,
         clientesCancelados: cancelados,
         clientesLeads: clientes?.filter(c => c.status === "Lead").length || 0,
-        receitaMensal: receitaBasico + receitaPro,
+        receitaMensal,
         receitaSaasPorMes,
         clientesPorMes,
       });
