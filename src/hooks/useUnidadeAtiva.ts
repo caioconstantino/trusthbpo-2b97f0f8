@@ -9,6 +9,11 @@ interface Unidade {
   endereco_estado: string | null;
 }
 
+// Cache global
+let cachedUnidades: Unidade[] | null = null;
+let cacheDominio: string | null = null;
+let cachePromise: Promise<Unidade[]> | null = null;
+
 export function useUnidadeAtiva() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade | null>(null);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -22,50 +27,72 @@ export function useUnidadeAtiva() {
     }
 
     try {
+      // Se já temos cache para este domínio, usar imediatamente
+      if (cachedUnidades && cacheDominio === dominio) {
+        setUnidades(cachedUnidades);
+        selectStoredUnidade(cachedUnidades);
+        setIsLoading(false);
+        return;
+      }
+
+      // Se já tem uma requisição em andamento, aguardar
+      if (cachePromise && cacheDominio === dominio) {
+        const result = await cachePromise;
+        setUnidades(result);
+        selectStoredUnidade(result);
+        setIsLoading(false);
+        return;
+      }
+
+      cacheDominio = dominio;
+
       // Get user's unit access permissions
       const unidadesAcessoStr = localStorage.getItem("user_unidades_acesso");
       const unidadesAcesso: number[] = unidadesAcessoStr ? JSON.parse(unidadesAcessoStr) : [];
 
-      let query = supabase
-        .from("tb_unidades")
-        .select("id, nome, dominio, endereco_cidade, endereco_estado")
-        .eq("dominio", dominio)
-        .eq("ativo", true);
+      cachePromise = (async () => {
+        let query = supabase
+          .from("tb_unidades")
+          .select("id, nome, dominio, endereco_cidade, endereco_estado")
+          .eq("dominio", dominio)
+          .eq("ativo", true);
 
-      // Filter by user's accessible units if they have restrictions
-      if (unidadesAcesso.length > 0) {
-        query = query.in("id", unidadesAcesso);
-      }
-
-      const { data, error } = await query.order("nome");
-
-      if (error) throw error;
-
-      const unidadesData = data as Unidade[];
-      setUnidades(unidadesData);
-
-      // Check if there's a stored unidade
-      const storedUnidadeId = localStorage.getItem("unidade_ativa_id");
-      if (storedUnidadeId) {
-        const stored = unidadesData.find(u => u.id === parseInt(storedUnidadeId));
-        if (stored) {
-          setUnidadeAtiva(stored);
-        } else if (unidadesData.length > 0) {
-          // Stored unidade no longer exists, use first one
-          setUnidadeAtiva(unidadesData[0]);
-          localStorage.setItem("unidade_ativa_id", unidadesData[0].id.toString());
+        if (unidadesAcesso.length > 0) {
+          query = query.in("id", unidadesAcesso);
         }
-      } else if (unidadesData.length > 0) {
-        // No stored unidade, use first one
-        setUnidadeAtiva(unidadesData[0]);
-        localStorage.setItem("unidade_ativa_id", unidadesData[0].id.toString());
-      }
+
+        const { data, error } = await query.order("nome");
+        if (error) throw error;
+        return (data || []) as Unidade[];
+      })();
+
+      const unidadesData = await cachePromise;
+      cachedUnidades = unidadesData;
+      setUnidades(unidadesData);
+      selectStoredUnidade(unidadesData);
     } catch (error) {
       console.error("Erro ao carregar unidades:", error);
     } finally {
       setIsLoading(false);
+      cachePromise = null;
     }
   }, []);
+
+  const selectStoredUnidade = (unidadesData: Unidade[]) => {
+    const storedUnidadeId = localStorage.getItem("unidade_ativa_id");
+    if (storedUnidadeId) {
+      const stored = unidadesData.find(u => u.id === parseInt(storedUnidadeId));
+      if (stored) {
+        setUnidadeAtiva(stored);
+      } else if (unidadesData.length > 0) {
+        setUnidadeAtiva(unidadesData[0]);
+        localStorage.setItem("unidade_ativa_id", unidadesData[0].id.toString());
+      }
+    } else if (unidadesData.length > 0) {
+      setUnidadeAtiva(unidadesData[0]);
+      localStorage.setItem("unidade_ativa_id", unidadesData[0].id.toString());
+    }
+  };
 
   useEffect(() => {
     fetchUnidades();
@@ -91,8 +118,15 @@ export function useUnidadeAtiva() {
   };
 }
 
-// Helper function to get unidade_id from localStorage (for use in queries without the hook)
+// Helper function to get unidade_id from localStorage
 export function getUnidadeAtivaId(): number | null {
   const stored = localStorage.getItem("unidade_ativa_id");
   return stored ? parseInt(stored) : null;
+}
+
+// Limpar cache (chamar no logout)
+export function clearUnidadeCache() {
+  cachedUnidades = null;
+  cacheDominio = null;
+  cachePromise = null;
 }

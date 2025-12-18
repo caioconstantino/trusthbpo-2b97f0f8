@@ -21,7 +21,8 @@ import {
 } from "./ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
+import { useUnidadeAtiva, clearUnidadeCache } from "@/hooks/useUnidadeAtiva";
+import { clearPermissionsCache } from "@/hooks/usePermissions";
 
 interface DashboardHeaderProps {
   onTutorialClick?: () => void;
@@ -64,7 +65,18 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
 
   const handleLogout = async () => {
     try {
+      // Limpar caches antes do logout
+      clearPermissionsCache();
+      clearUnidadeCache();
+      
       await supabase.auth.signOut();
+      
+      // Limpar localStorage
+      localStorage.removeItem("user_dominio");
+      localStorage.removeItem("user_nome");
+      localStorage.removeItem("user_unidades_acesso");
+      localStorage.removeItem("unidade_ativa_id");
+      
       toast({
         title: "Logout realizado com sucesso",
         description: "Logout realizado com sucesso",
