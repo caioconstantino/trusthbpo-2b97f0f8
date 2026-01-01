@@ -19,6 +19,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
+import { SaleReceiptDialog } from "./SaleReceiptDialog";
 
 interface CartItem {
   id: string;
@@ -32,6 +33,19 @@ interface Payment {
   type: string;
   method: string;
   value: number;
+}
+
+interface SaleReceiptData {
+  id?: string;
+  customerName: string;
+  cartItems: CartItem[];
+  subtotal: number;
+  discountPercent: number;
+  additionPercent: number;
+  total: number;
+  change: number;
+  payments: { method: string; value: number }[];
+  createdAt?: string;
 }
 
 interface FinalizeSaleDialogProps {
@@ -61,6 +75,8 @@ export const FinalizeSaleDialog = ({
   const [addition, setAddition] = useState(0);
   const [paymentValue, setPaymentValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<SaleReceiptData | null>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const subtotal = total;
@@ -171,7 +187,7 @@ export const FinalizeSaleDialog = ({
 
     setSaving(true);
 
-    const success = await saveSale({
+    const saleResult = await saveSale({
       sessionId,
       customerName,
       cartItems,
@@ -185,13 +201,28 @@ export const FinalizeSaleDialog = ({
 
     setSaving(false);
 
-    if (success) {
-      toast({
-        title: "Venda finalizada!",
-        description: `Total: R$ ${finalTotal.toFixed(2)} | Troco: R$ ${change.toFixed(2)}`,
+    if (saleResult) {
+      // Prepare receipt data
+      setReceiptData({
+        id: saleResult.id,
+        customerName,
+        cartItems,
+        subtotal,
+        discountPercent: discount,
+        additionPercent: addition,
+        total: finalTotal,
+        change,
+        payments: payments.map(p => ({ method: p.method, value: p.value })),
+        createdAt: saleResult.createdAt
       });
-      onComplete();
+      setShowReceipt(true);
     }
+  };
+
+  const handleReceiptClose = () => {
+    setShowReceipt(false);
+    setReceiptData(null);
+    onComplete();
   };
 
   const handleCancel = () => {
@@ -371,6 +402,15 @@ export const FinalizeSaleDialog = ({
           </div>
         </div>
       </DialogContent>
+
+      {/* Receipt Dialog */}
+      <SaleReceiptDialog
+        open={showReceipt}
+        onOpenChange={(open) => {
+          if (!open) handleReceiptClose();
+        }}
+        saleData={receiptData}
+      />
     </Dialog>
   );
 };

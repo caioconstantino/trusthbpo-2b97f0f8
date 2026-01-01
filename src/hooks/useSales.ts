@@ -31,7 +31,7 @@ export const useSales = () => {
   const dominio = localStorage.getItem("user_dominio") || "";
   const unidadeId = getUnidadeAtivaId();
 
-  const saveSale = async (saleData: SaleData): Promise<boolean> => {
+  const saveSale = async (saleData: SaleData): Promise<{ id: string; createdAt: string } | null> => {
     try {
       // Insert the sale
       const { data: venda, error: vendaError } = await supabase
@@ -56,7 +56,7 @@ export const useSales = () => {
           description: vendaError.message,
           variant: "destructive"
         });
-        return false;
+        return null;
       }
 
       // Insert sale items
@@ -92,7 +92,7 @@ export const useSales = () => {
         console.error("Error inserting payments:", pagamentosError);
       }
 
-      return true;
+      return { id: venda.id, createdAt: venda.created_at };
     } catch (error) {
       console.error("Error saving sale:", error);
       toast({
@@ -100,7 +100,7 @@ export const useSales = () => {
         description: "Ocorreu um erro inesperado",
         variant: "destructive"
       });
-      return false;
+      return null;
     }
   };
 
