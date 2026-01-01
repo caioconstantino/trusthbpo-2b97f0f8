@@ -475,6 +475,7 @@ export const EditProductSheet = ({
         open={showTransferDialog}
         onOpenChange={setShowTransferDialog}
         productName={product?.nome || ""}
+        productId={product?.id}
       />
     </>
   );
