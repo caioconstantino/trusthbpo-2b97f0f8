@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.get-customer-by-phone]
 verify_jwt = false
+
+[functions.send-receipt-email]
+verify_jwt = false

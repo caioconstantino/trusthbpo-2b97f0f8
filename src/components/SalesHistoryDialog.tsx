@@ -10,9 +10,10 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Receipt, Clock } from "lucide-react";
+import { Loader2, Receipt, Clock, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface SalesHistoryDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export const SalesHistoryDialog = ({
   onOpenChange,
   sessionId
 }: SalesHistoryDialogProps) => {
+  const { toast } = useToast();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
@@ -86,6 +88,95 @@ export const SalesHistoryDialog = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportPDF = () => {
+    if (sales.length === 0) {
+      toast({
+        title: "Nenhuma venda",
+        description: "Não há vendas para exportar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const totalGeral = sales.reduce((sum, s) => sum + Number(s.total), 0);
+    
+    const salesRows = sales.map(sale => {
+      const hora = format(new Date(sale.created_at), "HH:mm", { locale: ptBR });
+      const pagamentos = sale.pagamentos.map(p => p.forma_pagamento).join(", ");
+      const itensText = sale.itens.map(i => `${i.quantidade}x ${i.produto_nome}`).join("; ");
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${hora}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${sale.cliente_nome || "N/I"}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd; font-size: 11px;">${itensText}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${pagamentos}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">R$ ${Number(sale.total).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Histórico de Vendas</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { text-align: center; color: #333; }
+          .info { text-align: center; color: #666; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #333; }
+          .total-row { background: #f0f0f0; font-weight: bold; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>Histórico de Vendas</h1>
+        <p class="info">Data: ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })} | Total de vendas: ${sales.length}</p>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Cliente</th>
+              <th>Itens</th>
+              <th>Pagamento</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${salesRows}
+            <tr class="total-row">
+              <td colspan="4" style="padding: 10px; text-align: right;">TOTAL GERAL:</td>
+              <td style="padding: 10px; text-align: right;">R$ ${totalGeral.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>Relatório gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+
+    toast({
+      title: "Exportar PDF",
+      description: "Use a opção 'Salvar como PDF' na janela de impressão",
+    });
   };
 
   return (
@@ -170,7 +261,16 @@ export const SalesHistoryDialog = ({
           </ScrollArea>
         )}
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-between pt-2 gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleExportPDF}
+            disabled={loading || sales.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
