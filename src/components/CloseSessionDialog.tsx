@@ -10,6 +10,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Switch } from "./ui/switch";
+import { EyeOff, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CloseSessionDialogProps {
@@ -37,6 +39,7 @@ export const CloseSessionDialog = ({
 }: CloseSessionDialogProps) => {
   const [valorFechamento, setValorFechamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [blindMode, setBlindMode] = useState(false);
   const [summary, setSummary] = useState<SessionSummary>({
     totalVendas: 0,
     totalDinheiro: 0,
@@ -51,6 +54,8 @@ export const CloseSessionDialog = ({
   useEffect(() => {
     if (open && sessionId) {
       loadSessionSummary();
+      setValorFechamento("");
+      setObservacoes("");
     }
   }, [open, sessionId]);
 
@@ -122,10 +127,6 @@ export const CloseSessionDialog = ({
         valorAbertura: Number(sessionData?.valor_abertura) || 0,
         sangrias: totalSangrias
       });
-
-      // Set expected cash as default (abertura + dinheiro - sangrias)
-      const expectedCash = (Number(sessionData?.valor_abertura) || 0) + totalDinheiro - totalSangrias;
-      setValorFechamento(expectedCash.toFixed(2));
     } catch (error) {
       console.error("Error loading summary:", error);
     } finally {
@@ -141,55 +142,74 @@ export const CloseSessionDialog = ({
     onConfirm(valor, observacoes);
   };
 
+  const formatHiddenValue = () => "R$ ••••••";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Fechamento de Caixa</DialogTitle>
           <DialogDescription>
-            Confira os valores e feche a sessão do caixa
+            {blindMode 
+              ? "Modo às cegas: informe o valor contado sem ver os valores esperados"
+              : "Confira os valores e feche a sessão do caixa"
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Summary */}
+          {/* Toggle Blind Mode */}
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              {blindMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span className="text-sm font-medium">Fechamento às cegas</span>
+            </div>
+            <Switch
+              checked={blindMode}
+              onCheckedChange={setBlindMode}
+            />
+          </div>
+
+          {/* Summary - Hidden in blind mode */}
           <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Valor de Abertura:</span>
-              <span className="font-medium">R$ {summary.valorAbertura.toFixed(2)}</span>
+              <span className="font-medium">
+                {blindMode ? formatHiddenValue() : `R$ ${summary.valorAbertura.toFixed(2)}`}
+              </span>
             </div>
             <div className="border-t pt-2 mt-2">
               <div className="font-medium mb-1">Vendas por Forma de Pagamento:</div>
               <div className="flex justify-between">
                 <span>Dinheiro:</span>
-                <span>R$ {summary.totalDinheiro.toFixed(2)}</span>
+                <span>{blindMode ? formatHiddenValue() : `R$ ${summary.totalDinheiro.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Crédito:</span>
-                <span>R$ {summary.totalCredito.toFixed(2)}</span>
+                <span>{blindMode ? formatHiddenValue() : `R$ ${summary.totalCredito.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Débito:</span>
-                <span>R$ {summary.totalDebito.toFixed(2)}</span>
+                <span>{blindMode ? formatHiddenValue() : `R$ ${summary.totalDebito.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Pix:</span>
-                <span>R$ {summary.totalPix.toFixed(2)}</span>
+                <span>{blindMode ? formatHiddenValue() : `R$ ${summary.totalPix.toFixed(2)}`}</span>
               </div>
             </div>
             {summary.sangrias > 0 && (
               <div className="border-t pt-2 flex justify-between text-orange-600 dark:text-orange-400">
                 <span>Sangrias:</span>
-                <span>- R$ {summary.sangrias.toFixed(2)}</span>
+                <span>{blindMode ? formatHiddenValue() : `- R$ ${summary.sangrias.toFixed(2)}`}</span>
               </div>
             )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>Total de Vendas:</span>
-              <span>R$ {summary.totalVendas.toFixed(2)}</span>
+              <span>{blindMode ? formatHiddenValue() : `R$ ${summary.totalVendas.toFixed(2)}`}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-bold text-primary">
               <span>Dinheiro Esperado no Caixa:</span>
-              <span>R$ {expectedCash.toFixed(2)}</span>
+              <span>{blindMode ? formatHiddenValue() : `R$ ${expectedCash.toFixed(2)}`}</span>
             </div>
           </div>
 
@@ -207,7 +227,8 @@ export const CloseSessionDialog = ({
             />
           </div>
 
-          {valorFechamento && (
+          {/* Difference indicator - Hidden in blind mode */}
+          {valorFechamento && !blindMode && (
             <div className={`p-3 rounded-lg text-center font-medium ${
               difference === 0 
                 ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
@@ -221,6 +242,13 @@ export const CloseSessionDialog = ({
                   ? `Sobra de R$ ${difference.toFixed(2)}`
                   : `Falta de R$ ${Math.abs(difference).toFixed(2)}`
               }
+            </div>
+          )}
+
+          {valorFechamento && blindMode && (
+            <div className="p-3 rounded-lg text-center font-medium bg-muted">
+              <EyeOff className="h-4 w-4 inline mr-2" />
+              Valor será conferido após fechamento
             </div>
           )}
 
@@ -247,7 +275,7 @@ export const CloseSessionDialog = ({
             <Button
               className="flex-1"
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={loading || !valorFechamento}
             >
               Fechar Caixa
             </Button>
