@@ -488,6 +488,7 @@ export type Database = {
           dominio: string
           email: string | null
           empresas_adicionais: number
+          fechamento_cego: boolean
           id: number
           last_login_at: string | null
           multiempresa: string | null
@@ -515,6 +516,7 @@ export type Database = {
           dominio: string
           email?: string | null
           empresas_adicionais?: number
+          fechamento_cego?: boolean
           id?: number
           last_login_at?: string | null
           multiempresa?: string | null
@@ -542,6 +544,7 @@ export type Database = {
           dominio?: string
           email?: string | null
           empresas_adicionais?: number
+          fechamento_cego?: boolean
           id?: number
           last_login_at?: string | null
           multiempresa?: string | null

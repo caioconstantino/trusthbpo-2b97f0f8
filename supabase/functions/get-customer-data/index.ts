@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const body = await req.json()
-    const { dominio, action, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais } = body
+    const { dominio, action, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, fechamento_cego } = body
 
     if (!dominio) {
       return new Response(
@@ -111,10 +111,31 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (action === 'update_fechamento_cego' && typeof fechamento_cego === 'boolean') {
+      console.log(`Updating Fechamento Cego for ${dominio}: ${fechamento_cego}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ fechamento_cego })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating Fechamento Cego:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar configuração de fechamento' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Configuração atualizada com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Default: fetch customer data
     const { data: cliente, error } = await supabase
       .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, agenda_ativa')
+      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, agenda_ativa, fechamento_cego')
       .eq('dominio', dominio)
       .maybeSingle()
 
