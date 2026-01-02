@@ -72,6 +72,7 @@ interface ClienteSaas {
   usuarios_adicionais?: number;
   produtos_adicionais?: number;
   agenda_ativa?: boolean;
+  fechamento_cego?: boolean;
 }
 
 interface Usuario {
@@ -191,6 +192,8 @@ export default function Configuracoes() {
   // PDV states
   const [pdvQuantidadeAdicional, setPdvQuantidadeAdicional] = useState(0);
   const [isSavingPdvs, setIsSavingPdvs] = useState(false);
+  const [fechamentoCego, setFechamentoCego] = useState(false);
+  const [isSavingFechamentoCego, setIsSavingFechamentoCego] = useState(false);
   const PRECO_PDV_ADICIONAL = 10; // R$ 10,00
 
   // Empresa adicional states
@@ -234,6 +237,7 @@ export default function Configuracoes() {
         setPdvQuantidadeAdicional(clienteData.cliente.pdvs_adicionais || 0);
         setEmpresaQuantidadeAdicional(clienteData.cliente.empresas_adicionais || 0);
         setUsuarioQuantidadeAdicional(clienteData.cliente.usuarios_adicionais || 0);
+        setFechamentoCego(clienteData.cliente.fechamento_cego || false);
       }
 
       // Fetch users
@@ -1398,6 +1402,83 @@ export default function Configuracoes() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Configurações Avançadas de PDV */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  Configurações Avançadas
+                </CardTitle>
+                <CardDescription>Configurações de segurança e operação do PDV</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Fechamento às Cegas */}
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <span className="font-medium">Fechamento às Cegas</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Quando ativo, os valores esperados ficam ocultos durante o fechamento do caixa, 
+                      impedindo que o operador ajuste o valor informado.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isSavingFechamentoCego && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <Checkbox
+                      checked={fechamentoCego}
+                      onCheckedChange={async (checked) => {
+                        setFechamentoCego(!!checked);
+                        setIsSavingFechamentoCego(true);
+                        try {
+                          const { error } = await supabase.functions.invoke("get-customer-data", {
+                            body: { 
+                              dominio: userDominio,
+                              action: "update_fechamento_cego",
+                              fechamento_cego: !!checked
+                            }
+                          });
+                          if (error) throw error;
+                          toast({ 
+                            title: "Configuração salva!", 
+                            description: checked ? "Fechamento às cegas ativado" : "Fechamento às cegas desativado" 
+                          });
+                        } catch (error) {
+                          console.error("Erro ao salvar:", error);
+                          setFechamentoCego(!checked);
+                          toast({ title: "Erro", description: "Erro ao salvar configuração", variant: "destructive" });
+                        } finally {
+                          setIsSavingFechamentoCego(false);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Link para Sessões de PDV */}
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-5 w-5 text-primary" />
+                      <span className="font-medium">Sessões de PDV</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Visualize as sessões ativas, histórico e sessões que precisam de revisão.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.location.href = "/sessoes-pdv"}
+                    className="gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ver Sessões
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Usuários Adicionais Tab */}

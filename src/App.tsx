@@ -21,6 +21,7 @@ import CentralContas from "./pages/CentralContas";
 import Agenda from "./pages/Agenda";
 import AgendarPublico from "./pages/AgendarPublico";
 import AgendarEventoPublico from "./pages/AgendarEventoPublico";
+import SessoesPdv from "./pages/SessoesPdv";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/central-contas" element={<ProtectedRoute><CentralContas /></ProtectedRoute>} />
             <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+            <Route path="/sessoes-pdv" element={<ProtectedRoute><SessoesPdv /></ProtectedRoute>} />
             
             {/* Public Scheduling */}
             <Route path="/agendar/:slug" element={<AgendarPublico />} />

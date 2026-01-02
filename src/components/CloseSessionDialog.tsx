@@ -11,7 +11,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
-import { EyeOff, Eye } from "lucide-react";
+import { EyeOff, Eye, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CloseSessionDialogProps {
@@ -40,6 +40,7 @@ export const CloseSessionDialog = ({
   const [valorFechamento, setValorFechamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [blindMode, setBlindMode] = useState(false);
+  const [adminBlindMode, setAdminBlindMode] = useState(false);
   const [summary, setSummary] = useState<SessionSummary>({
     totalVendas: 0,
     totalDinheiro: 0,
@@ -54,10 +55,31 @@ export const CloseSessionDialog = ({
   useEffect(() => {
     if (open && sessionId) {
       loadSessionSummary();
+      loadAdminSettings();
       setValorFechamento("");
       setObservacoes("");
     }
   }, [open, sessionId]);
+
+  const loadAdminSettings = async () => {
+    const dominio = localStorage.getItem("user_dominio");
+    if (!dominio) return;
+
+    try {
+      const { data } = await supabase.functions.invoke("get-customer-data", {
+        body: { dominio }
+      });
+
+      if (data?.cliente?.fechamento_cego) {
+        setAdminBlindMode(true);
+        setBlindMode(true);
+      } else {
+        setAdminBlindMode(false);
+      }
+    } catch (error) {
+      console.error("Error loading admin settings:", error);
+    }
+  };
 
   const loadSessionSummary = async () => {
     setLoading(true);
@@ -163,10 +185,17 @@ export const CloseSessionDialog = ({
             <div className="flex items-center gap-2">
               {blindMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               <span className="text-sm font-medium">Fechamento às cegas</span>
+              {adminBlindMode && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  (Obrigatório)
+                </span>
+              )}
             </div>
             <Switch
               checked={blindMode}
               onCheckedChange={setBlindMode}
+              disabled={adminBlindMode}
             />
           </div>
 
