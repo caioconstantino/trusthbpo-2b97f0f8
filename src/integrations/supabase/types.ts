@@ -684,6 +684,7 @@ export type Database = {
           unidade_id: number | null
           updated_at: string
           valor: number
+          valor_pago: number | null
           vencimento: string
         }
         Insert: {
@@ -701,6 +702,7 @@ export type Database = {
           unidade_id?: number | null
           updated_at?: string
           valor?: number
+          valor_pago?: number | null
           vencimento: string
         }
         Update: {
@@ -718,6 +720,7 @@ export type Database = {
           unidade_id?: number | null
           updated_at?: string
           valor?: number
+          valor_pago?: number | null
           vencimento?: string
         }
         Relationships: [
@@ -752,6 +755,7 @@ export type Database = {
           unidade_id: number | null
           updated_at: string
           valor: number
+          valor_recebido: number | null
           vencimento: string
           venda_id: string | null
         }
@@ -769,6 +773,7 @@ export type Database = {
           unidade_id?: number | null
           updated_at?: string
           valor?: number
+          valor_recebido?: number | null
           vencimento: string
           venda_id?: string | null
         }
@@ -786,6 +791,7 @@ export type Database = {
           unidade_id?: number | null
           updated_at?: string
           valor?: number
+          valor_recebido?: number | null
           vencimento?: string
           venda_id?: string | null
         }
