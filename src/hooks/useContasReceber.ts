@@ -10,6 +10,7 @@ export interface ContaReceber {
   categoria: string | null;
   descricao: string;
   valor: number;
+  valor_recebido: number;
   vencimento: string;
   status: string;
   forma_pagamento: string | null;
@@ -148,12 +149,25 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
     }
   };
 
-  const receberConta = async (id: string) => {
+  const receberConta = async (id: string, valorRecebido?: number) => {
     try {
+      // Find the conta to get current values
+      const conta = contas.find(c => c.id === id);
+      if (!conta) throw new Error("Receita não encontrada");
+
+      const valorTotal = Number(conta.valor);
+      const valorJaRecebido = Number(conta.valor_recebido || 0);
+      const valorRecebimento = valorRecebido !== undefined ? valorRecebido : (valorTotal - valorJaRecebido);
+      const novoValorRecebido = valorJaRecebido + valorRecebimento;
+      
+      // Determine new status
+      const novoStatus = novoValorRecebido >= valorTotal ? "recebido" : "parcial";
+
       const { error } = await supabase
         .from("tb_contas_receber")
         .update({
-          status: "recebido",
+          status: novoStatus,
+          valor_recebido: novoValorRecebido,
           data_recebimento: new Date().toISOString().split('T')[0]
         })
         .eq("id", id);
@@ -161,7 +175,13 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
       if (error) throw error;
 
       await fetchContas();
-      toast({ title: "Receita marcada como recebida!" });
+      
+      if (novoStatus === "recebido") {
+        toast({ title: "Receita marcada como recebida!" });
+      } else {
+        const restante = valorTotal - novoValorRecebido;
+        toast({ title: `Recebimento parcial registrado! Faltam R$ ${restante.toFixed(2)}` });
+      }
       return true;
     } catch (error) {
       console.error("Error receiving conta:", error);
@@ -218,12 +238,11 @@ export const useContasReceber = (initialFilters?: { startDate?: string; endDate?
     });
 
   const totalPendente = contas
-    .filter(c => c.status === "pendente")
-    .reduce((sum, c) => sum + Number(c.valor), 0);
+    .filter(c => c.status === "pendente" || c.status === "parcial")
+    .reduce((sum, c) => sum + (Number(c.valor) - Number(c.valor_recebido || 0)), 0);
 
   const totalRecebido = contas
-    .filter(c => c.status === "recebido")
-    .reduce((sum, c) => sum + Number(c.valor), 0);
+    .reduce((sum, c) => sum + Number(c.valor_recebido || 0), 0);
 
   return {
     contas,

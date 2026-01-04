@@ -10,6 +10,7 @@ export interface ContaPagar {
   categoria: string | null;
   descricao: string;
   valor: number;
+  valor_pago: number;
   vencimento: string;
   status: string;
   forma_pagamento: string | null;
@@ -148,12 +149,25 @@ export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: 
     }
   };
 
-  const pagarConta = async (id: string) => {
+  const pagarConta = async (id: string, valorPago?: number) => {
     try {
+      // Find the conta to get current values
+      const conta = contas.find(c => c.id === id);
+      if (!conta) throw new Error("Conta não encontrada");
+
+      const valorTotal = Number(conta.valor);
+      const valorJaPago = Number(conta.valor_pago || 0);
+      const valorPagamento = valorPago !== undefined ? valorPago : (valorTotal - valorJaPago);
+      const novoValorPago = valorJaPago + valorPagamento;
+      
+      // Determine new status
+      const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+
       const { error } = await supabase
         .from("tb_contas_pagar")
         .update({
-          status: "pago",
+          status: novoStatus,
+          valor_pago: novoValorPago,
           data_pagamento: new Date().toISOString().split('T')[0]
         })
         .eq("id", id);
@@ -161,7 +175,13 @@ export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: 
       if (error) throw error;
 
       await fetchContas();
-      toast({ title: "Conta marcada como paga!" });
+      
+      if (novoStatus === "pago") {
+        toast({ title: "Conta marcada como paga!" });
+      } else {
+        const restante = valorTotal - novoValorPago;
+        toast({ title: `Pagamento parcial registrado! Faltam R$ ${restante.toFixed(2)}` });
+      }
       return true;
     } catch (error) {
       console.error("Error paying conta:", error);
@@ -220,12 +240,11 @@ export const useContasPagar = (initialFilters?: { startDate?: string; endDate?: 
     });
 
   const totalPendente = contas
-    .filter(c => c.status === "pendente")
-    .reduce((sum, c) => sum + Number(c.valor), 0);
+    .filter(c => c.status === "pendente" || c.status === "parcial")
+    .reduce((sum, c) => sum + (Number(c.valor) - Number(c.valor_pago || 0)), 0);
 
   const totalPago = contas
-    .filter(c => c.status === "pago")
-    .reduce((sum, c) => sum + Number(c.valor), 0);
+    .reduce((sum, c) => sum + Number(c.valor_pago || 0), 0);
 
   return {
     contas,

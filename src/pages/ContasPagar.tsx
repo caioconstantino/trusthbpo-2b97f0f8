@@ -15,6 +15,7 @@ import { CalendarIcon, Check, Trash2, Loader2, List, Plus, X } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { useContasPagar, ContaPagar } from "@/hooks/useContasPagar";
 import { ManageContasPagarCategoryDialog } from "@/components/ManageContasPagarCategoryDialog";
+import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 import {
@@ -76,7 +77,7 @@ const ContasPagar = () => {
   const [numOcorrencias, setNumOcorrencias] = useState(12);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [payingId, setPayingId] = useState<string | null>(null);
+  const [payingConta, setPayingConta] = useState<ContaPagar | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   // Initial filters for hook
@@ -258,10 +259,10 @@ const ContasPagar = () => {
     });
   };
 
-  const handlePagar = async () => {
-    if (payingId) {
-      await pagarConta(payingId);
-      setPayingId(null);
+  const handlePagar = async (valorPago: number) => {
+    if (payingConta) {
+      await pagarConta(payingConta.id, valorPago);
+      setPayingConta(null);
       // Refresh with current filters
       await fetchContas({
         startDate: format(startDate, "yyyy-MM-dd"),
@@ -655,6 +656,7 @@ const ContasPagar = () => {
               <SelectContent>
                 <SelectItem value="Todos">Todos</SelectItem>
                 <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Parcial">Parcial</SelectItem>
                 <SelectItem value="Pago">Pago</SelectItem>
               </SelectContent>
             </Select>
@@ -698,48 +700,63 @@ const ContasPagar = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {categoryContas.map((conta) => (
-                            <tr key={conta.id} className="border-t">
-                              <td className="py-2 px-3 text-sm">{conta.descricao}</td>
-                              <td className="py-2 px-3 text-sm text-right font-medium">
-                                R$ {Number(conta.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="py-2 px-3 text-sm">{formatDate(conta.vencimento)}</td>
-                              <td className="py-2 px-3">
-                                <span className={cn(
-                                  "px-2 py-0.5 rounded-full text-xs font-medium",
-                                  conta.status === "pago" 
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                    : "bg-destructive/10 text-destructive"
-                                )}>
-                                  {conta.status === "pago" ? "Pago" : "Pendente"}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3">
-                                <div className="flex items-center justify-center gap-1">
-                                  {conta.status === "pendente" && (
+                          {categoryContas.map((conta) => {
+                            const valorPago = Number(conta.valor_pago || 0);
+                            const valorTotal = Number(conta.valor);
+                            const valorRestante = valorTotal - valorPago;
+                            
+                            return (
+                              <tr key={conta.id} className="border-t">
+                                <td className="py-2 px-3 text-sm">{conta.descricao}</td>
+                                <td className="py-2 px-3 text-sm text-right">
+                                  <div className="font-medium">
+                                    R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </div>
+                                  {valorPago > 0 && valorPago < valorTotal && (
+                                    <div className="text-xs text-amber-600">
+                                      Falta: R$ {valorRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-sm">{formatDate(conta.vencimento)}</td>
+                                <td className="py-2 px-3">
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                                    conta.status === "pago" 
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                      : conta.status === "parcial"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                      : "bg-destructive/10 text-destructive"
+                                  )}>
+                                    {conta.status === "pago" ? "Pago" : conta.status === "parcial" ? "Parcial" : "Pendente"}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {(conta.status === "pendente" || conta.status === "parcial") && (
+                                      <Button
+                                        size="icon"
+                                        className="h-7 w-7 bg-green-600 hover:bg-green-700"
+                                        onClick={() => setPayingConta(conta)}
+                                        title="Registrar pagamento"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </Button>
+                                    )}
                                     <Button
                                       size="icon"
-                                      className="h-7 w-7 bg-green-600 hover:bg-green-700"
-                                      onClick={() => setPayingId(conta.id)}
-                                      title="Marcar como pago"
+                                      variant="destructive"
+                                      className="h-7 w-7"
+                                      onClick={() => setDeletingId(conta.id)}
+                                      title="Excluir"
                                     >
-                                      <Check className="w-3 h-3" />
+                                      <Trash2 className="w-3 h-3" />
                                     </Button>
-                                  )}
-                                  <Button
-                                    size="icon"
-                                    variant="destructive"
-                                    className="h-7 w-7"
-                                    onClick={() => setDeletingId(conta.id)}
-                                    title="Excluir"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -751,23 +768,15 @@ const ContasPagar = () => {
         )}
       </div>
 
-      {/* Confirm Pay Dialog */}
-      <AlertDialog open={!!payingId} onOpenChange={() => setPayingId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta conta será marcada como paga.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePagar} className="bg-green-600 hover:bg-green-700">
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Partial Payment Dialog */}
+      <PartialPaymentDialog
+        open={!!payingConta}
+        onOpenChange={(open) => !open && setPayingConta(null)}
+        valorTotal={payingConta ? Number(payingConta.valor) : 0}
+        valorPago={payingConta ? Number(payingConta.valor_pago || 0) : 0}
+        tipo="pagar"
+        onConfirm={handlePagar}
+      />
 
       {/* Delete Dialog */}
       <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>

@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useContasReceber, ContaReceber } from "@/hooks/useContasReceber";
 import { ClienteSearchInput } from "@/components/ClienteSearchInput";
 import { ManageContasReceberCategoryDialog } from "@/components/ManageContasReceberCategoryDialog";
+import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NoPermission } from "@/components/NoPermission";
 import {
@@ -78,7 +79,7 @@ const ContasReceber = () => {
   const [numOcorrencias, setNumOcorrencias] = useState(12);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [receivingId, setReceivingId] = useState<string | null>(null);
+  const [receivingConta, setReceivingConta] = useState<ContaReceber | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   // Initial filters for hook
@@ -264,10 +265,10 @@ const ContasReceber = () => {
     });
   };
 
-  const handleReceber = async () => {
-    if (receivingId) {
-      await receberConta(receivingId);
-      setReceivingId(null);
+  const handleReceber = async (valorRecebido: number) => {
+    if (receivingConta) {
+      await receberConta(receivingConta.id, valorRecebido);
+      setReceivingConta(null);
       await fetchContas({
         startDate: format(startDate, "yyyy-MM-dd"),
         endDate: format(endDate, "yyyy-MM-dd"),
@@ -670,6 +671,7 @@ const ContasReceber = () => {
               <SelectContent>
                 <SelectItem value="Todos">Todos</SelectItem>
                 <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Parcial">Parcial</SelectItem>
                 <SelectItem value="Recebido">Recebido</SelectItem>
               </SelectContent>
             </Select>
@@ -714,49 +716,64 @@ const ContasReceber = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {categoryContas.map((conta) => (
-                            <tr key={conta.id} className="border-t">
-                              <td className="py-2 px-3 text-sm">{conta.descricao}</td>
-                              <td className="py-2 px-3 text-sm">{conta.cliente || "-"}</td>
-                              <td className="py-2 px-3 text-sm text-right font-medium">
-                                R$ {Number(conta.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="py-2 px-3 text-sm">{formatDate(conta.vencimento)}</td>
-                              <td className="py-2 px-3">
-                                <span className={cn(
-                                  "px-2 py-0.5 rounded-full text-xs font-medium",
-                                  conta.status === "recebido" 
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                                )}>
-                                  {conta.status === "recebido" ? "Recebido" : "Pendente"}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3">
-                                <div className="flex items-center justify-center gap-1">
-                                  {conta.status === "pendente" && (
+                          {categoryContas.map((conta) => {
+                            const valorRecebido = Number(conta.valor_recebido || 0);
+                            const valorTotal = Number(conta.valor);
+                            const valorRestante = valorTotal - valorRecebido;
+                            
+                            return (
+                              <tr key={conta.id} className="border-t">
+                                <td className="py-2 px-3 text-sm">{conta.descricao}</td>
+                                <td className="py-2 px-3 text-sm">{conta.cliente || "-"}</td>
+                                <td className="py-2 px-3 text-sm text-right">
+                                  <div className="font-medium">
+                                    R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </div>
+                                  {valorRecebido > 0 && valorRecebido < valorTotal && (
+                                    <div className="text-xs text-amber-600">
+                                      Falta: R$ {valorRestante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-sm">{formatDate(conta.vencimento)}</td>
+                                <td className="py-2 px-3">
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                                    conta.status === "recebido" 
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                      : conta.status === "parcial"
+                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                  )}>
+                                    {conta.status === "recebido" ? "Recebido" : conta.status === "parcial" ? "Parcial" : "Pendente"}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {(conta.status === "pendente" || conta.status === "parcial") && (
+                                      <Button
+                                        size="icon"
+                                        className="h-7 w-7 bg-green-600 hover:bg-green-700"
+                                        onClick={() => setReceivingConta(conta)}
+                                        title="Registrar recebimento"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </Button>
+                                    )}
                                     <Button
                                       size="icon"
-                                      className="h-7 w-7 bg-green-600 hover:bg-green-700"
-                                      onClick={() => setReceivingId(conta.id)}
-                                      title="Marcar como recebido"
+                                      variant="destructive"
+                                      className="h-7 w-7"
+                                      onClick={() => setDeletingId(conta.id)}
+                                      title="Excluir"
                                     >
-                                      <Check className="w-3 h-3" />
+                                      <Trash2 className="w-3 h-3" />
                                     </Button>
-                                  )}
-                                  <Button
-                                    size="icon"
-                                    variant="destructive"
-                                    className="h-7 w-7"
-                                    onClick={() => setDeletingId(conta.id)}
-                                    title="Excluir"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -768,23 +785,15 @@ const ContasReceber = () => {
         )}
       </div>
 
-      {/* Confirm Receive Dialog */}
-      <AlertDialog open={!!receivingId} onOpenChange={() => setReceivingId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar recebimento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta receita será marcada como recebida.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReceber} className="bg-green-600 hover:bg-green-700">
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Partial Payment Dialog */}
+      <PartialPaymentDialog
+        open={!!receivingConta}
+        onOpenChange={(open) => !open && setReceivingConta(null)}
+        valorTotal={receivingConta ? Number(receivingConta.valor) : 0}
+        valorPago={receivingConta ? Number(receivingConta.valor_recebido || 0) : 0}
+        tipo="receber"
+        onConfirm={handleReceber}
+      />
 
       {/* Delete Dialog */}
       <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
