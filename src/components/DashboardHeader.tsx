@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSelector } from "./LanguageSelector";
 import { ReferralDialog } from "./ReferralDialog";
 import {
   DropdownMenu,
@@ -151,6 +152,7 @@ export const DashboardHeader = ({ onTutorialClick }: DashboardHeaderProps) => {
           <Users className="w-4 h-4" />
           <span>Indique e Ganhe</span>
         </Button>
+        <LanguageSelector />
         <ThemeToggle />
 
         {/* Notifications Dropdown */}
