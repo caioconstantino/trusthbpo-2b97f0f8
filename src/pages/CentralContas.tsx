@@ -75,6 +75,9 @@ const CentralContas = () => {
   const [lastMonthReceitas, setLastMonthReceitas] = useState(0);
   const [lastMonthDespesas, setLastMonthDespesas] = useState(0);
   const [forecastReceitas, setForecastReceitas] = useState(0);
+  const [totalDespesasPagas, setTotalDespesasPagas] = useState(0);
+  const [totalDespesasPendentes, setTotalDespesasPendentes] = useState(0);
+  const [totalDespesasVencidas, setTotalDespesasVencidas] = useState(0);
 
   const fetchMonthlyData = async () => {
     const months = parseInt(period);
@@ -82,10 +85,12 @@ const CentralContas = () => {
     const startDate = startOfMonth(subMonths(new Date(), months - 1));
     const unidadeId = localStorage.getItem("unidade_ativa_id");
 
+    // Buscar apenas receitas PAGAS (status = "Recebido")
     let receitasQuery = supabase
       .from("tb_contas_receber")
-      .select("valor, vencimento, status")
+      .select("valor, vencimento, status, valor_recebido")
       .eq("dominio", dominio)
+      .eq("status", "Recebido")
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
     
@@ -129,11 +134,12 @@ const CentralContas = () => {
       monthlyMap.set(key, { receitas: 0, despesas: 0 });
     }
 
+    // Usar valor_recebido para receitas pagas
     receitasData?.forEach(item => {
       const key = item.vencimento.substring(0, 7);
       if (monthlyMap.has(key)) {
         const current = monthlyMap.get(key)!;
-        current.receitas += Number(item.valor);
+        current.receitas += Number(item.valor_recebido || item.valor);
       }
     });
 
@@ -145,13 +151,32 @@ const CentralContas = () => {
       }
     });
 
+    // Calcular totais de despesas por status
+    let despPagas = 0;
+    let despPendentes = 0;
+    let despVencidas = 0;
+    const hoje = format(new Date(), "yyyy-MM-dd");
+
     despesasData?.forEach(item => {
       const key = item.vencimento.substring(0, 7);
       if (monthlyMap.has(key)) {
         const current = monthlyMap.get(key)!;
         current.despesas += Number(item.valor);
       }
+      
+      // Contabilizar por status
+      if (item.status === "Pago") {
+        despPagas += Number(item.valor);
+      } else if (item.vencimento < hoje) {
+        despVencidas += Number(item.valor);
+      } else {
+        despPendentes += Number(item.valor);
+      }
     });
+
+    setTotalDespesasPagas(despPagas);
+    setTotalDespesasPendentes(despPendentes);
+    setTotalDespesasVencidas(despVencidas);
 
     const result: MonthlyData[] = Array.from(monthlyMap.entries())
       .map(([key, value]) => ({
@@ -254,10 +279,12 @@ const CentralContas = () => {
         .slice(0, 5)
     );
 
+    // Buscar apenas receitas PAGAS para o gráfico de categorias
     let receitasQuery = supabase
       .from("tb_contas_receber")
-      .select("categoria, valor")
+      .select("categoria, valor, valor_recebido")
       .eq("dominio", dominio)
+      .eq("status", "Recebido")
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
     
@@ -270,7 +297,7 @@ const CentralContas = () => {
     const revenueMap = new Map<string, number>();
     receitasData?.forEach(item => {
       const cat = item.categoria || "Vendas";
-      revenueMap.set(cat, (revenueMap.get(cat) || 0) + Number(item.valor));
+      revenueMap.set(cat, (revenueMap.get(cat) || 0) + Number(item.valor_recebido || item.valor));
     });
 
     setRevenueCategories(
@@ -662,7 +689,7 @@ const CentralContas = () => {
                 <TrendingUp className="w-5 h-5 text-emerald-500" />
                 Receitas por Categoria
               </CardTitle>
-              <CardDescription>Distribuição das receitas nos últimos 3 meses</CardDescription>
+              <CardDescription>Distribuição das receitas pagas nos últimos 3 meses</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -700,6 +727,57 @@ const CentralContas = () => {
                     Sem dados de receitas
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cards de Resumo de Despesas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Despesas Pagas</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(totalDespesasPagas)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Despesas Pendentes</p>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                    {formatCurrency(totalDespesasPendentes)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Despesas Vencidas</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(totalDespesasVencidas)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
