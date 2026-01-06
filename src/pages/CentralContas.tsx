@@ -78,6 +78,9 @@ const CentralContas = () => {
   const [totalDespesasPagas, setTotalDespesasPagas] = useState(0);
   const [totalDespesasPendentes, setTotalDespesasPendentes] = useState(0);
   const [totalDespesasVencidas, setTotalDespesasVencidas] = useState(0);
+  const [totalReceitasRecebidas, setTotalReceitasRecebidas] = useState(0);
+  const [totalReceitasPendentes, setTotalReceitasPendentes] = useState(0);
+  const [totalReceitasVencidas, setTotalReceitasVencidas] = useState(0);
 
   const fetchMonthlyData = async () => {
     const months = parseInt(period);
@@ -85,12 +88,26 @@ const CentralContas = () => {
     const startDate = startOfMonth(subMonths(new Date(), months - 1));
     const unidadeId = localStorage.getItem("unidade_ativa_id");
 
-    // Buscar apenas receitas PAGAS (status = "Recebido")
+    // Buscar TODAS as receitas para calcular totais por status
+    let todasReceitasQuery = supabase
+      .from("tb_contas_receber")
+      .select("valor, vencimento, status, valor_recebido")
+      .eq("dominio", dominio)
+      .gte("vencimento", format(startDate, "yyyy-MM-dd"))
+      .lte("vencimento", format(endDate, "yyyy-MM-dd"));
+    
+    if (unidadeId) {
+      todasReceitasQuery = todasReceitasQuery.eq("unidade_id", parseInt(unidadeId));
+    }
+
+    const { data: todasReceitasData } = await todasReceitasQuery;
+
+    // Buscar apenas receitas PAGAS (status = "recebido" ou "parcial") para os gráficos
     let receitasQuery = supabase
       .from("tb_contas_receber")
       .select("valor, vencimento, status, valor_recebido")
       .eq("dominio", dominio)
-      .eq("status", "Recebido")
+      .in("status", ["recebido", "parcial"])
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
     
@@ -115,7 +132,7 @@ const CentralContas = () => {
 
     let despesasQuery = supabase
       .from("tb_contas_pagar")
-      .select("valor, vencimento, status")
+      .select("valor, vencimento, status, valor_pago")
       .eq("dominio", dominio)
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
@@ -151,11 +168,38 @@ const CentralContas = () => {
       }
     });
 
+    // Calcular totais de receitas por status
+    let recRecebidas = 0;
+    let recPendentes = 0;
+    let recVencidas = 0;
+    const hoje = format(new Date(), "yyyy-MM-dd");
+
+    todasReceitasData?.forEach(item => {
+      if (item.status === "recebido") {
+        recRecebidas += Number(item.valor_recebido || item.valor);
+      } else if (item.status === "parcial") {
+        recRecebidas += Number(item.valor_recebido || 0);
+        const restante = Number(item.valor) - Number(item.valor_recebido || 0);
+        if (item.vencimento < hoje) {
+          recVencidas += restante;
+        } else {
+          recPendentes += restante;
+        }
+      } else if (item.vencimento < hoje) {
+        recVencidas += Number(item.valor);
+      } else {
+        recPendentes += Number(item.valor);
+      }
+    });
+
+    setTotalReceitasRecebidas(recRecebidas);
+    setTotalReceitasPendentes(recPendentes);
+    setTotalReceitasVencidas(recVencidas);
+
     // Calcular totais de despesas por status
     let despPagas = 0;
     let despPendentes = 0;
     let despVencidas = 0;
-    const hoje = format(new Date(), "yyyy-MM-dd");
 
     despesasData?.forEach(item => {
       const key = item.vencimento.substring(0, 7);
@@ -164,9 +208,17 @@ const CentralContas = () => {
         current.despesas += Number(item.valor);
       }
       
-      // Contabilizar por status
-      if (item.status === "Pago") {
-        despPagas += Number(item.valor);
+      // Contabilizar por status (status em minúsculo)
+      if (item.status === "pago") {
+        despPagas += Number(item.valor_pago || item.valor);
+      } else if (item.status === "parcial") {
+        despPagas += Number(item.valor_pago || 0);
+        const restante = Number(item.valor) - Number(item.valor_pago || 0);
+        if (item.vencimento < hoje) {
+          despVencidas += restante;
+        } else {
+          despPendentes += restante;
+        }
       } else if (item.vencimento < hoje) {
         despVencidas += Number(item.valor);
       } else {
@@ -284,7 +336,7 @@ const CentralContas = () => {
       .from("tb_contas_receber")
       .select("categoria, valor, valor_recebido")
       .eq("dominio", dominio)
-      .eq("status", "Recebido")
+      .in("status", ["recebido", "parcial"])
       .gte("vencimento", format(startDate, "yyyy-MM-dd"))
       .lte("vencimento", format(endDate, "yyyy-MM-dd"));
     
@@ -727,6 +779,57 @@ const CentralContas = () => {
                     Sem dados de receitas
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cards de Resumo de Receitas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receitas Recebidas</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(totalReceitasRecebidas)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receitas Pendentes</p>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                    {formatCurrency(totalReceitasPendentes)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receitas Vencidas</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(totalReceitasVencidas)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
