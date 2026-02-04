@@ -20,6 +20,7 @@ import ContasPagar from "./pages/ContasPagar";
 import ContasReceber from "./pages/ContasReceber";
 import CentralContas from "./pages/CentralContas";
 import Agenda from "./pages/Agenda";
+import Propostas from "./pages/Propostas";
 import AgendarPublico from "./pages/AgendarPublico";
 import AgendarEventoPublico from "./pages/AgendarEventoPublico";
 import SessoesPdv from "./pages/SessoesPdv";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/contas-receber" element={<ProtectedRoute><ContasReceber /></ProtectedRoute>} />
             <Route path="/central-contas" element={<ProtectedRoute><CentralContas /></ProtectedRoute>} />
             <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+            <Route path="/propostas" element={<ProtectedRoute><Propostas /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/sessoes-pdv" element={<ProtectedRoute><SessoesPdv /></ProtectedRoute>} />
             
