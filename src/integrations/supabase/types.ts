@@ -1178,6 +1178,192 @@ export type Database = {
           },
         ]
       }
+      tb_propostas: {
+        Row: {
+          cliente_email: string | null
+          cliente_id: number | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          condicoes: string | null
+          created_at: string
+          dominio: string
+          id: string
+          layout: Json
+          modelo_id: string | null
+          numero: number
+          observacoes: string | null
+          status: string
+          titulo: string
+          total: number
+          unidade_id: number | null
+          updated_at: string
+          validade_dias: number
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_email?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          condicoes?: string | null
+          created_at?: string
+          dominio: string
+          id?: string
+          layout?: Json
+          modelo_id?: string | null
+          numero: number
+          observacoes?: string | null
+          status?: string
+          titulo: string
+          total?: number
+          unidade_id?: number | null
+          updated_at?: string
+          validade_dias?: number
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_email?: string | null
+          cliente_id?: number | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          condicoes?: string | null
+          created_at?: string
+          dominio?: string
+          id?: string
+          layout?: Json
+          modelo_id?: string | null
+          numero?: number
+          observacoes?: string | null
+          status?: string
+          titulo?: string
+          total?: number
+          unidade_id?: number | null
+          updated_at?: string
+          validade_dias?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "tb_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_propostas_itens: {
+        Row: {
+          created_at: string
+          desconto_percentual: number
+          descricao: string
+          id: string
+          ordem: number
+          preco_unitario: number
+          produto_id: number | null
+          proposta_id: string
+          quantidade: number
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          desconto_percentual?: number
+          descricao: string
+          id?: string
+          ordem?: number
+          preco_unitario?: number
+          produto_id?: number | null
+          proposta_id: string
+          quantidade?: number
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          desconto_percentual?: number
+          descricao?: string
+          id?: string
+          ordem?: number
+          preco_unitario?: number
+          produto_id?: number | null
+          proposta_id?: string
+          quantidade?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "tb_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_itens_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_propostas_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          dominio: string
+          id: string
+          layout: Json
+          nome: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          dominio: string
+          id?: string
+          layout?: Json
+          nome: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          layout?: Json
+          nome?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_modelos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_revendas: {
         Row: {
           auth_user_id: string | null
@@ -1753,6 +1939,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_proposta_numero: {
+        Args: { p_dominio: string; p_unidade_id: number }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
