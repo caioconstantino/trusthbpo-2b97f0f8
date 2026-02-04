@@ -84,13 +84,16 @@ export function CreatePropostaDialog({
 
     setLoading(true);
     try {
-      const selectedModelo = modelos.find((m) => m.id === modeloId);
-      const selectedCliente = clientes.find((c) => c.id.toString() === clienteId);
+      const actualModeloId = modeloId === "none" ? "" : modeloId;
+      const actualClienteId = clienteId === "none" ? "" : clienteId;
+      
+      const selectedModelo = modelos.find((m) => m.id === actualModeloId);
+      const selectedCliente = clientes.find((c) => c.id.toString() === actualClienteId);
 
       await createProposta({
         titulo,
-        modelo_id: modeloId || null,
-        cliente_id: clienteId ? parseInt(clienteId) : null,
+        modelo_id: actualModeloId || null,
+        cliente_id: actualClienteId ? parseInt(actualClienteId) : null,
         cliente_nome: selectedCliente?.razao_social || null,
         cliente_email: selectedCliente?.email || null,
         cliente_telefone: selectedCliente?.telefone || null,
@@ -134,12 +137,14 @@ export function CreatePropostaDialog({
                 <SelectValue placeholder="Selecione um modelo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum (layout padrão)</SelectItem>
-                {modelos.map((modelo) => (
-                  <SelectItem key={modelo.id} value={modelo.id}>
-                    {modelo.nome}
-                  </SelectItem>
-                ))}
+                <SelectItem value="none">Nenhum (layout padrão)</SelectItem>
+                {modelos
+                  .filter((modelo) => modelo.id && modelo.id !== "")
+                  .map((modelo) => (
+                    <SelectItem key={modelo.id} value={modelo.id}>
+                      {modelo.nome}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -151,12 +156,14 @@ export function CreatePropostaDialog({
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
-                {clientes.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.id.toString()}>
-                    {cliente.razao_social}
-                  </SelectItem>
-                ))}
+                <SelectItem value="none">Nenhum</SelectItem>
+                {clientes
+                  .filter((cliente) => cliente.id != null)
+                  .map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id.toString()}>
+                      {cliente.razao_social}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
