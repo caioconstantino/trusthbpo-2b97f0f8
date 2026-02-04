@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Send, ShoppingCart, Printer } from "lucide-react";
+import { Download, Send, ShoppingCart, Printer, Loader2 } from "lucide-react";
 import { Proposta, PropostaItem, usePropostas } from "@/hooks/usePropostas";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface ViewPropostaDialogProps {
   open: boolean;
@@ -45,6 +48,8 @@ export function ViewPropostaDialog({
 }: ViewPropostaDialogProps) {
   const { fetchItens } = usePropostas();
   const [itens, setItens] = useState<PropostaItem[]>([]);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open && proposta) {
@@ -66,6 +71,62 @@ export function ViewPropostaDialog({
     window.print();
   };
 
+  const handleDownloadPdf = async () => {
+    if (!printRef.current) return;
+
+    setGeneratingPdf(true);
+    try {
+      const element = printRef.current;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        imgX,
+        imgY,
+        imgWidth * ratio,
+        imgHeight * ratio
+      );
+
+      pdf.save(`proposta-${proposta.numero}.pdf`);
+
+      toast({
+        title: "PDF gerado",
+        description: "O PDF da proposta foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
@@ -80,14 +141,14 @@ export function ViewPropostaDialog({
         </DialogHeader>
 
         <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6 print:p-0">
+          <div ref={printRef} className="p-6 space-y-6 print:p-0 bg-white">
             {/* Renderizar blocos do layout */}
             {proposta.layout.map((block) => {
               switch (block.type) {
                 case "header":
                   return (
                     <div key={block.id} className="text-center">
-                      <h1 className="text-2xl font-bold">
+                      <h1 className="text-2xl font-bold text-foreground">
                         {block.content || "Proposta Comercial"}
                       </h1>
                       <p className="text-muted-foreground mt-1">
@@ -99,37 +160,37 @@ export function ViewPropostaDialog({
                 case "items":
                   return (
                     <div key={block.id} className="space-y-4">
-                      <h3 className="font-semibold text-lg">Itens da Proposta</h3>
+                      <h3 className="font-semibold text-lg text-foreground">Itens da Proposta</h3>
                       <div className="border rounded-lg overflow-hidden">
                         <table className="w-full">
                           <thead className="bg-muted">
                             <tr>
-                              <th className="text-left p-3">Descrição</th>
-                              <th className="text-center p-3 w-20">Qtd</th>
-                              <th className="text-right p-3 w-28">Unitário</th>
-                              <th className="text-center p-3 w-20">Desc.</th>
-                              <th className="text-right p-3 w-28">Total</th>
+                              <th className="text-left p-3 text-foreground">Descrição</th>
+                              <th className="text-center p-3 w-20 text-foreground">Qtd</th>
+                              <th className="text-right p-3 w-28 text-foreground">Unitário</th>
+                              <th className="text-center p-3 w-20 text-foreground">Desc.</th>
+                              <th className="text-right p-3 w-28 text-foreground">Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {itens.map((item, idx) => (
                               <tr key={item.id || idx} className="border-t">
-                                <td className="p-3">{item.descricao}</td>
-                                <td className="text-center p-3">
+                                <td className="p-3 text-foreground">{item.descricao}</td>
+                                <td className="text-center p-3 text-foreground">
                                   {item.quantidade}
                                 </td>
-                                <td className="text-right p-3">
+                                <td className="text-right p-3 text-foreground">
                                   {item.preco_unitario.toLocaleString("pt-BR", {
                                     style: "currency",
                                     currency: "BRL",
                                   })}
                                 </td>
-                                <td className="text-center p-3">
+                                <td className="text-center p-3 text-foreground">
                                   {item.desconto_percentual > 0
                                     ? `${item.desconto_percentual}%`
                                     : "-"}
                                 </td>
-                                <td className="text-right p-3 font-medium">
+                                <td className="text-right p-3 font-medium text-foreground">
                                   {item.total.toLocaleString("pt-BR", {
                                     style: "currency",
                                     currency: "BRL",
@@ -140,10 +201,10 @@ export function ViewPropostaDialog({
                           </tbody>
                           <tfoot className="bg-muted font-semibold">
                             <tr>
-                              <td colSpan={4} className="text-right p-3">
+                              <td colSpan={4} className="text-right p-3 text-foreground">
                                 Total:
                               </td>
-                              <td className="text-right p-3">
+                              <td className="text-right p-3 text-foreground">
                                 {proposta.total.toLocaleString("pt-BR", {
                                   style: "currency",
                                   currency: "BRL",
@@ -159,8 +220,8 @@ export function ViewPropostaDialog({
                 case "conditions":
                   return (
                     <div key={block.id} className="space-y-2">
-                      <h3 className="font-semibold text-lg">Condições</h3>
-                      <p className="text-sm whitespace-pre-wrap">
+                      <h3 className="font-semibold text-lg text-foreground">Condições</h3>
+                      <p className="text-sm whitespace-pre-wrap text-foreground">
                         {block.content || proposta.condicoes || "-"}
                       </p>
                     </div>
@@ -169,7 +230,7 @@ export function ViewPropostaDialog({
                 case "text":
                   return (
                     <div key={block.id}>
-                      <p className="whitespace-pre-wrap">{block.content}</p>
+                      <p className="whitespace-pre-wrap text-foreground">{block.content}</p>
                     </div>
                   );
 
@@ -184,8 +245,8 @@ export function ViewPropostaDialog({
             {/* Informações do cliente */}
             {proposta.cliente_nome && (
               <div className="space-y-2 pt-4 border-t">
-                <h3 className="font-semibold">Cliente</h3>
-                <div className="text-sm space-y-1">
+                <h3 className="font-semibold text-foreground">Cliente</h3>
+                <div className="text-sm space-y-1 text-foreground">
                   <p><strong>Nome:</strong> {proposta.cliente_nome}</p>
                   {proposta.cliente_email && (
                     <p><strong>Email:</strong> {proposta.cliente_email}</p>
@@ -218,9 +279,13 @@ export function ViewPropostaDialog({
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
           </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Baixar PDF
+          <Button variant="outline" onClick={handleDownloadPdf} disabled={generatingPdf}>
+            {generatingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            {generatingPdf ? "Gerando..." : "Baixar PDF"}
           </Button>
           <Button variant="outline">
             <Send className="h-4 w-4 mr-2" />
