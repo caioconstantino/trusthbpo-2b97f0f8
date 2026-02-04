@@ -362,11 +362,13 @@ export function PropostaEditorDialog({
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                              {produtos.map((p) => (
-                                <SelectItem key={p.id} value={p.id.toString()}>
-                                  {p.nome}
-                                </SelectItem>
-                              ))}
+                              {produtos
+                                .filter((p) => p.id != null && p.id.toString() !== "")
+                                .map((p) => (
+                                  <SelectItem key={p.id} value={p.id.toString()}>
+                                    {p.nome}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </div>
