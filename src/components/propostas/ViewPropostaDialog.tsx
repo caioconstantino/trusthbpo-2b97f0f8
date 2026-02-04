@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Download, Send, ShoppingCart, Printer, Loader2 } from "lucide-react";
-import { Proposta, PropostaItem, usePropostas } from "@/hooks/usePropostas";
+import { Proposta, PropostaItem, PropostaBlock, usePropostas } from "@/hooks/usePropostas";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -127,6 +127,215 @@ export function ViewPropostaDialog({
     }
   };
 
+  const renderBlock = (block: PropostaBlock) => {
+    const config = block.config || {};
+
+    switch (block.type) {
+      case "header":
+        return (
+          <div 
+            key={block.id} 
+            className="py-4 px-6 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+              textAlign: config.alignment || "center",
+            }}
+          >
+            {config.logoUrl && (
+              <img
+                src={config.logoUrl}
+                alt="Logo"
+                className="max-h-16 mb-3"
+                style={{
+                  marginLeft: config.alignment === "center" ? "auto" : config.alignment === "right" ? "auto" : "0",
+                  marginRight: config.alignment === "center" ? "auto" : config.alignment === "left" ? "auto" : "0",
+                  display: "block",
+                }}
+              />
+            )}
+            <h1 
+              className="text-2xl font-bold"
+              style={{ color: config.textColor || "#000000" }}
+            >
+              {block.content || "Proposta Comercial"}
+            </h1>
+            <p 
+              className="mt-1"
+              style={{ color: config.textColor ? `${config.textColor}99` : "#666666" }}
+            >
+              Proposta Nº {proposta.numero}
+            </p>
+          </div>
+        );
+
+      case "items":
+        return (
+          <div key={block.id} className="space-y-4">
+            <h3 
+              className="font-semibold text-lg"
+              style={{ color: config.textColor || "#000000" }}
+            >
+              Itens da Proposta
+            </h3>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead 
+                  style={{ 
+                    backgroundColor: config.headerBgColor || "#f3f4f6",
+                    color: config.headerTextColor || "#000000",
+                  }}
+                >
+                  <tr>
+                    <th className="text-left p-3">Descrição</th>
+                    <th className="text-center p-3 w-20">Qtd</th>
+                    <th className="text-right p-3 w-28">Unitário</th>
+                    <th className="text-center p-3 w-20">Desc.</th>
+                    <th className="text-right p-3 w-28">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itens.map((item, idx) => (
+                    <tr 
+                      key={item.id || idx} 
+                      className="border-t"
+                      style={{ 
+                        backgroundColor: config.rowBgColor || "#ffffff",
+                        color: config.rowTextColor || "#000000",
+                      }}
+                    >
+                      <td className="p-3">{item.descricao}</td>
+                      <td className="text-center p-3">{item.quantidade}</td>
+                      <td className="text-right p-3">
+                        {item.preco_unitario.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td className="text-center p-3">
+                        {item.desconto_percentual > 0
+                          ? `${item.desconto_percentual}%`
+                          : "-"}
+                      </td>
+                      <td className="text-right p-3 font-medium">
+                        {item.total.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot 
+                  className="font-semibold"
+                  style={{ 
+                    backgroundColor: config.footerBgColor || "#f3f4f6",
+                    color: config.footerTextColor || "#000000",
+                  }}
+                >
+                  <tr>
+                    <td colSpan={4} className="text-right p-3">Total:</td>
+                    <td className="text-right p-3">
+                      {proposta.total.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+
+      case "conditions":
+        return (
+          <div 
+            key={block.id} 
+            className="space-y-2 p-4 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+            }}
+          >
+            <h3 
+              className="font-semibold text-lg"
+              style={{ color: config.textColor || "#000000" }}
+            >
+              Condições
+            </h3>
+            <p 
+              className="whitespace-pre-wrap"
+              style={{ 
+                color: config.textColor || "#000000",
+                fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+              }}
+            >
+              {block.content || proposta.condicoes || "-"}
+            </p>
+          </div>
+        );
+
+      case "text":
+        return (
+          <div 
+            key={block.id}
+            className="p-4 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+              textAlign: config.alignment || "left",
+            }}
+          >
+            <p 
+              className="whitespace-pre-wrap"
+              style={{ 
+                color: config.textColor || "#000000",
+                fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+              }}
+            >
+              {block.content}
+            </p>
+          </div>
+        );
+
+      case "divider":
+        return (
+          <Separator 
+            key={block.id} 
+            style={{ 
+              backgroundColor: config.borderColor || "#e5e7eb",
+              marginTop: config.padding === "small" ? "0.5rem" : config.padding === "large" ? "1.5rem" : "1rem",
+              marginBottom: config.padding === "small" ? "0.5rem" : config.padding === "large" ? "1.5rem" : "1rem",
+            }}
+          />
+        );
+
+      case "footer":
+        return (
+          <div 
+            key={block.id}
+            className="p-4 rounded mt-4"
+            style={{ 
+              backgroundColor: config.backgroundColor || "#f3f4f6",
+              color: config.textColor || "#666666",
+            }}
+          >
+            {config.companyName && (
+              <p className="font-semibold text-lg">{config.companyName}</p>
+            )}
+            <div className="flex flex-wrap gap-4 text-sm mt-1">
+              {config.companyPhone && <span>📞 {config.companyPhone}</span>}
+              {config.companyEmail && <span>✉️ {config.companyEmail}</span>}
+            </div>
+            {config.companyAddress && (
+              <p className="text-sm mt-2">📍 {config.companyAddress}</p>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
@@ -143,104 +352,7 @@ export function ViewPropostaDialog({
         <ScrollArea className="flex-1">
           <div ref={printRef} className="p-6 space-y-6 print:p-0 bg-white">
             {/* Renderizar blocos do layout */}
-            {proposta.layout.map((block) => {
-              switch (block.type) {
-                case "header":
-                  return (
-                    <div key={block.id} className="text-center">
-                      <h1 className="text-2xl font-bold text-foreground">
-                        {block.content || "Proposta Comercial"}
-                      </h1>
-                      <p className="text-muted-foreground mt-1">
-                        Proposta Nº {proposta.numero}
-                      </p>
-                    </div>
-                  );
-
-                case "items":
-                  return (
-                    <div key={block.id} className="space-y-4">
-                      <h3 className="font-semibold text-lg text-foreground">Itens da Proposta</h3>
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted">
-                            <tr>
-                              <th className="text-left p-3 text-foreground">Descrição</th>
-                              <th className="text-center p-3 w-20 text-foreground">Qtd</th>
-                              <th className="text-right p-3 w-28 text-foreground">Unitário</th>
-                              <th className="text-center p-3 w-20 text-foreground">Desc.</th>
-                              <th className="text-right p-3 w-28 text-foreground">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {itens.map((item, idx) => (
-                              <tr key={item.id || idx} className="border-t">
-                                <td className="p-3 text-foreground">{item.descricao}</td>
-                                <td className="text-center p-3 text-foreground">
-                                  {item.quantidade}
-                                </td>
-                                <td className="text-right p-3 text-foreground">
-                                  {item.preco_unitario.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </td>
-                                <td className="text-center p-3 text-foreground">
-                                  {item.desconto_percentual > 0
-                                    ? `${item.desconto_percentual}%`
-                                    : "-"}
-                                </td>
-                                <td className="text-right p-3 font-medium text-foreground">
-                                  {item.total.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot className="bg-muted font-semibold">
-                            <tr>
-                              <td colSpan={4} className="text-right p-3 text-foreground">
-                                Total:
-                              </td>
-                              <td className="text-right p-3 text-foreground">
-                                {proposta.total.toLocaleString("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-                  );
-
-                case "conditions":
-                  return (
-                    <div key={block.id} className="space-y-2">
-                      <h3 className="font-semibold text-lg text-foreground">Condições</h3>
-                      <p className="text-sm whitespace-pre-wrap text-foreground">
-                        {block.content || proposta.condicoes || "-"}
-                      </p>
-                    </div>
-                  );
-
-                case "text":
-                  return (
-                    <div key={block.id}>
-                      <p className="whitespace-pre-wrap text-foreground">{block.content}</p>
-                    </div>
-                  );
-
-                case "divider":
-                  return <Separator key={block.id} className="my-4" />;
-
-                default:
-                  return null;
-              }
-            })}
+            {proposta.layout.map((block) => renderBlock(block))}
 
             {/* Informações do cliente */}
             {proposta.cliente_nome && (
