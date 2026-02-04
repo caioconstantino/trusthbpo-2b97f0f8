@@ -28,11 +28,14 @@ import {
   FileText,
   Minus,
   Save,
+  Settings,
+  FileSignature,
 } from "lucide-react";
-import { usePropostas, Proposta, PropostaBlock, PropostaItem } from "@/hooks/usePropostas";
+import { usePropostas, Proposta, PropostaBlock, PropostaItem, BlockConfig } from "@/hooks/usePropostas";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidadeAtiva } from "@/hooks/useUnidadeAtiva";
 import { toast } from "@/hooks/use-toast";
+import { BlockConfigPanel } from "./BlockConfigPanel";
 
 interface Produto {
   id: number;
@@ -53,6 +56,7 @@ const blockTypeIcons = {
   conditions: FileText,
   text: Type,
   divider: Minus,
+  footer: FileSignature,
 };
 
 const blockTypeLabels = {
@@ -61,6 +65,7 @@ const blockTypeLabels = {
   conditions: "Condições",
   text: "Texto",
   divider: "Divisor",
+  footer: "Rodapé",
 };
 
 export function PropostaEditorDialog({
@@ -81,6 +86,7 @@ export function PropostaEditorDialog({
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (open && proposta) {
@@ -122,21 +128,37 @@ export function PropostaEditorDialog({
   };
 
   const addBlock = (type: PropostaBlock["type"]) => {
+    const defaultConfig: BlockConfig = {
+      alignment: "center",
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+    };
+
     const newBlock: PropostaBlock = {
       id: `${type}-${Date.now()}`,
       type,
-      content: type === "header" ? "Novo Cabeçalho" : type === "conditions" ? "Condições..." : "",
+      content: type === "header" ? "Proposta Comercial" : type === "conditions" ? "Condições de pagamento e entrega a combinar." : "",
+      config: defaultConfig,
     };
     setLayout([...layout, newBlock]);
   };
 
   const removeBlock = (index: number) => {
     setLayout(layout.filter((_, i) => i !== index));
+    if (editingBlockIndex === index) {
+      setEditingBlockIndex(null);
+    }
   };
 
   const updateBlockContent = (index: number, content: string) => {
     const newLayout = [...layout];
     newLayout[index] = { ...newLayout[index], content };
+    setLayout(newLayout);
+  };
+
+  const updateBlockConfig = (index: number, config: BlockConfig) => {
+    const newLayout = [...layout];
+    newLayout[index] = { ...newLayout[index], config };
     setLayout(newLayout);
   };
 
@@ -236,9 +258,143 @@ export function PropostaEditorDialog({
     }
   };
 
+  const getBlockPreview = (block: PropostaBlock) => {
+    const config = block.config || {};
+    
+    switch (block.type) {
+      case "header":
+        return (
+          <div 
+            className="p-3 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+              textAlign: config.alignment || "center",
+            }}
+          >
+            {config.logoUrl && (
+              <img 
+                src={config.logoUrl} 
+                alt="Logo" 
+                className="max-h-12 mb-2"
+                style={{ 
+                  marginLeft: config.alignment === "center" ? "auto" : config.alignment === "right" ? "auto" : "0",
+                  marginRight: config.alignment === "center" ? "auto" : config.alignment === "left" ? "auto" : "0",
+                  display: "block",
+                }}
+              />
+            )}
+            <p 
+              className="font-semibold"
+              style={{ color: config.textColor || "inherit" }}
+            >
+              {block.content || "Cabeçalho"}
+            </p>
+          </div>
+        );
+
+      case "items":
+        return (
+          <div className="text-sm">
+            <div 
+              className="p-2 rounded-t font-medium"
+              style={{ 
+                backgroundColor: config.headerBgColor || "#f3f4f6",
+                color: config.headerTextColor || "inherit",
+              }}
+            >
+              Tabela de Itens
+            </div>
+            <div 
+              className="p-2 border-x"
+              style={{ 
+                backgroundColor: config.rowBgColor || "#ffffff",
+                color: config.rowTextColor || "inherit",
+              }}
+            >
+              {itens.length} item(ns)
+            </div>
+            <div 
+              className="p-2 rounded-b font-medium"
+              style={{ 
+                backgroundColor: config.footerBgColor || "#f3f4f6",
+                color: config.footerTextColor || "inherit",
+              }}
+            >
+              Total: {calcularTotal().toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </div>
+          </div>
+        );
+
+      case "conditions":
+        return (
+          <div 
+            className="p-2 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+              color: config.textColor || "inherit",
+              fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+            }}
+          >
+            <p className="text-sm line-clamp-2">{block.content || "Condições..."}</p>
+          </div>
+        );
+
+      case "text":
+        return (
+          <div 
+            className="p-2 rounded"
+            style={{ 
+              backgroundColor: config.backgroundColor || "transparent",
+              color: config.textColor || "inherit",
+              textAlign: config.alignment || "left",
+              fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+            }}
+          >
+            <p className="text-sm line-clamp-2">{block.content || "Texto..."}</p>
+          </div>
+        );
+
+      case "divider":
+        return (
+          <hr 
+            className="my-2"
+            style={{ 
+              borderColor: config.borderColor || "#e5e7eb",
+              marginTop: config.padding === "small" ? "0.5rem" : config.padding === "large" ? "1.5rem" : "1rem",
+              marginBottom: config.padding === "small" ? "0.5rem" : config.padding === "large" ? "1.5rem" : "1rem",
+            }}
+          />
+        );
+
+      case "footer":
+        return (
+          <div 
+            className="p-2 rounded text-sm"
+            style={{ 
+              backgroundColor: config.backgroundColor || "#f3f4f6",
+              color: config.textColor || "#666666",
+            }}
+          >
+            {config.companyName && <p className="font-medium">{config.companyName}</p>}
+            <div className="flex gap-4 text-xs">
+              {config.companyPhone && <span>{config.companyPhone}</span>}
+              {config.companyEmail && <span>{config.companyEmail}</span>}
+            </div>
+            {config.companyAddress && <p className="text-xs mt-1">{config.companyAddress}</p>}
+            {!config.companyName && !config.companyPhone && !config.companyEmail && (
+              <p className="text-muted-foreground">Clique em configurar para adicionar informações</p>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Editar Proposta #{proposta.numero}</DialogTitle>
         </DialogHeader>
@@ -251,11 +407,11 @@ export function PropostaEditorDialog({
           </TabsList>
 
           <TabsContent value="layout" className="flex-1 flex flex-col">
-            <div className="flex gap-4 flex-1 overflow-hidden">
+            <div className="flex gap-4 flex-1 overflow-hidden relative">
               {/* Painel de elementos */}
-              <div className="w-48 border rounded-lg p-3 space-y-2">
+              <div className="w-48 border rounded-lg p-3 space-y-2 flex-shrink-0">
                 <p className="text-sm font-medium mb-3">Elementos</p>
-                {(["header", "items", "conditions", "text", "divider"] as const).map(
+                {(["header", "items", "conditions", "text", "divider", "footer"] as const).map(
                   (type) => {
                     const Icon = blockTypeIcons[type];
                     return (
@@ -296,45 +452,38 @@ export function PropostaEditorDialog({
                           onDragEnd={handleDragEnd}
                           className={`cursor-move ${
                             draggedIndex === index ? "opacity-50" : ""
-                          }`}
+                          } ${editingBlockIndex === index ? "ring-2 ring-primary" : ""}`}
                         >
-                          <CardContent className="p-3 flex items-start gap-2">
-                            <GripVertical className="h-5 w-5 text-muted-foreground mt-1" />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Icon className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                  {blockTypeLabels[block.type]}
-                                </span>
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-2">
+                              <GripVertical className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Icon className="h-4 w-4 flex-shrink-0" />
+                                  <span className="text-sm font-medium">
+                                    {blockTypeLabels[block.type]}
+                                  </span>
+                                </div>
+                                {getBlockPreview(block)}
                               </div>
-                              {block.type === "items" ? (
-                                <p className="text-sm text-muted-foreground">
-                                  {itens.length} item(ns) - Total:{" "}
-                                  {calcularTotal().toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </p>
-                              ) : block.type === "divider" ? (
-                                <hr className="border-t-2" />
-                              ) : (
-                                <Textarea
-                                  value={block.content || ""}
-                                  onChange={(e) =>
-                                    updateBlockContent(index, e.target.value)
-                                  }
-                                  placeholder="Digite o conteúdo..."
-                                  className="min-h-[60px]"
-                                />
-                              )}
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditingBlockIndex(editingBlockIndex === index ? null : index)}
+                                  className={editingBlockIndex === index ? "bg-primary/10" : ""}
+                                >
+                                  <Settings className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeBlock(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeBlock(index)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
                           </CardContent>
                         </Card>
                       );
@@ -342,6 +491,18 @@ export function PropostaEditorDialog({
                   )}
                 </div>
               </ScrollArea>
+
+              {/* Painel de configuração */}
+              {editingBlockIndex !== null && layout[editingBlockIndex] && (
+                <BlockConfigPanel
+                  blockType={layout[editingBlockIndex].type}
+                  config={layout[editingBlockIndex].config || {}}
+                  content={layout[editingBlockIndex].content}
+                  onConfigChange={(config) => updateBlockConfig(editingBlockIndex, config)}
+                  onContentChange={(content) => updateBlockContent(editingBlockIndex, content)}
+                  onClose={() => setEditingBlockIndex(null)}
+                />
+              )}
             </div>
           </TabsContent>
 

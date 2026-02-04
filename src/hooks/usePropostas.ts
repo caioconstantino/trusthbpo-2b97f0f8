@@ -61,11 +61,40 @@ export interface PropostaItem {
   };
 }
 
+export interface BlockConfig {
+  // Header config
+  logoUrl?: string;
+  alignment?: "left" | "center" | "right";
+  backgroundColor?: string;
+  textColor?: string;
+  showBorder?: boolean;
+  borderColor?: string;
+  padding?: string;
+  
+  // Items config
+  headerBgColor?: string;
+  headerTextColor?: string;
+  rowBgColor?: string;
+  rowTextColor?: string;
+  footerBgColor?: string;
+  footerTextColor?: string;
+  
+  // Conditions/Text config
+  fontSize?: string;
+  fontWeight?: string;
+  
+  // Footer config
+  companyName?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyAddress?: string;
+}
+
 export interface PropostaBlock {
   id: string;
-  type: "header" | "items" | "conditions" | "text" | "divider";
+  type: "header" | "items" | "conditions" | "text" | "divider" | "footer";
   content?: string;
-  config?: Record<string, unknown>;
+  config?: BlockConfig;
 }
 
 export const usePropostas = () => {
