@@ -30,6 +30,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
+import {
   Plus,
   Search,
   MoreVertical,
@@ -42,6 +46,8 @@ import {
   ShoppingCart,
   LayoutTemplate,
   Eye,
+  List,
+  Kanban,
 } from "lucide-react";
 import { usePropostas, Proposta, PropostaModelo } from "@/hooks/usePropostas";
 import { format } from "date-fns";
@@ -50,6 +56,8 @@ import { CreatePropostaDialog } from "@/components/propostas/CreatePropostaDialo
 import { PropostaEditorDialog } from "@/components/propostas/PropostaEditorDialog";
 import { ModeloEditorDialog } from "@/components/propostas/ModeloEditorDialog";
 import { ViewPropostaDialog } from "@/components/propostas/ViewPropostaDialog";
+import { PropostasKanban } from "@/components/propostas/PropostasKanban";
+import { PropostasAutomacoesDialog } from "@/components/propostas/PropostasAutomacoesDialog";
 
 const statusColors: Record<string, string> = {
   rascunho: "bg-gray-500",
@@ -85,12 +93,14 @@ const Propostas = () => {
   const [editorDialogOpen, setEditorDialogOpen] = useState(false);
   const [modeloEditorOpen, setModeloEditorOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [automacoesDialogOpen, setAutomacoesDialogOpen] = useState(false);
   const [selectedProposta, setSelectedProposta] = useState<Proposta | null>(null);
   const [selectedModelo, setSelectedModelo] = useState<PropostaModelo | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteModeloDialogOpen, setDeleteModeloDialogOpen] = useState(false);
   const [propostaToDelete, setPropostaToDelete] = useState<string | null>(null);
   const [modeloToDelete, setModeloToDelete] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
 
   const filteredPropostas = propostas.filter(
     (p) =>
@@ -178,142 +188,170 @@ const Propostas = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar propostas..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+        {viewMode === "table" && (
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar propostas..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Tabs defaultValue="propostas">
-          <TabsList>
-            <TabsTrigger value="propostas">
-              <FileText className="h-4 w-4 mr-2" />
-              Propostas ({propostas.length})
-            </TabsTrigger>
-            <TabsTrigger value="modelos">
-              <LayoutTemplate className="h-4 w-4 mr-2" />
-              Modelos ({modelos.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="propostas">
+                <FileText className="h-4 w-4 mr-2" />
+                Propostas ({propostas.length})
+              </TabsTrigger>
+              <TabsTrigger value="modelos">
+                <LayoutTemplate className="h-4 w-4 mr-2" />
+                Modelos ({modelos.length})
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="propostas" className="mt-4">
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nº</TableHead>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(value) => value && setViewMode(value as "table" | "kanban")}
+              className="border rounded-lg"
+            >
+              <ToggleGroupItem value="table" aria-label="Visualização em tabela">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="kanban" aria-label="Visualização em Kanban">
+                <Kanban className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <TabsContent value="propostas" className="mt-0">
+            {viewMode === "kanban" ? (
+              <PropostasKanban
+                propostas={propostas}
+                onViewProposta={handleViewProposta}
+                onEditProposta={handleEditProposta}
+                onOpenAutomacoes={() => setAutomacoesDialogOpen(true)}
+                onRefresh={fetchPropostas}
+              />
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          Carregando...
-                        </TableCell>
+                        <TableHead>Nº</TableHead>
+                        <TableHead>Título</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
-                    ) : filteredPropostas.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          Nenhuma proposta encontrada
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredPropostas.map((proposta) => (
-                        <TableRow key={proposta.id}>
-                          <TableCell className="font-medium">
-                            #{proposta.numero}
-                          </TableCell>
-                          <TableCell>{proposta.titulo}</TableCell>
-                          <TableCell>{proposta.cliente_nome || "-"}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={`${statusColors[proposta.status]} text-white`}
-                            >
-                              {statusLabels[proposta.status] || proposta.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {proposta.total.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(proposta.created_at), "dd/MM/yyyy", {
-                              locale: ptBR,
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => handleViewProposta(proposta)}
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Visualizar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleEditProposta(proposta)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Duplicar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Baixar PDF
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Send className="h-4 w-4 mr-2" />
-                                  Enviar por Email
-                                </DropdownMenuItem>
-                                {proposta.status === "aprovada" && (
-                                  <DropdownMenuItem>
-                                    <ShoppingCart className="h-4 w-4 mr-2" />
-                                    Converter em Venda
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setPropostaToDelete(proposta.id);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            Carregando...
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                      ) : filteredPropostas.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            Nenhuma proposta encontrada
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredPropostas.map((proposta) => (
+                          <TableRow key={proposta.id}>
+                            <TableCell className="font-medium">
+                              #{proposta.numero}
+                            </TableCell>
+                            <TableCell>{proposta.titulo}</TableCell>
+                            <TableCell>{proposta.cliente_nome || "-"}</TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`${statusColors[proposta.status]} text-white`}
+                              >
+                                {statusLabels[proposta.status] || proposta.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {proposta.total.toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(proposta.created_at), "dd/MM/yyyy", {
+                                locale: ptBR,
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleViewProposta(proposta)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Visualizar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditProposta(proposta)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Duplicar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Baixar PDF
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Enviar por Email
+                                  </DropdownMenuItem>
+                                  {proposta.status === "aprovada" && (
+                                    <DropdownMenuItem>
+                                      <ShoppingCart className="h-4 w-4 mr-2" />
+                                      Converter em Venda
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setPropostaToDelete(proposta.id);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="modelos" className="mt-4">
@@ -400,6 +438,11 @@ const Propostas = () => {
           proposta={selectedProposta}
         />
       )}
+
+      <PropostasAutomacoesDialog
+        open={automacoesDialogOpen}
+        onOpenChange={setAutomacoesDialogOpen}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
