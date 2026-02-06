@@ -1184,6 +1184,7 @@ export type Database = {
           cliente_id: number | null
           cliente_nome: string | null
           cliente_telefone: string | null
+          coluna_id: string | null
           condicoes: string | null
           created_at: string
           dominio: string
@@ -1205,6 +1206,7 @@ export type Database = {
           cliente_id?: number | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
+          coluna_id?: string | null
           condicoes?: string | null
           created_at?: string
           dominio: string
@@ -1226,6 +1228,7 @@ export type Database = {
           cliente_id?: number | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
+          coluna_id?: string | null
           condicoes?: string | null
           created_at?: string
           dominio?: string
@@ -1251,6 +1254,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tb_propostas_coluna_id_fkey"
+            columns: ["coluna_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_kanban_colunas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tb_propostas_modelo_id_fkey"
             columns: ["modelo_id"]
             isOneToOne: false
@@ -1259,6 +1269,70 @@ export type Database = {
           },
           {
             foreignKeyName: "tb_propostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_propostas_automacoes: {
+        Row: {
+          ativo: boolean | null
+          coluna_destino_id: string | null
+          coluna_origem_id: string | null
+          config: Json | null
+          created_at: string
+          dominio: string
+          id: string
+          nome: string
+          tipo_acao: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          coluna_destino_id?: string | null
+          coluna_origem_id?: string | null
+          config?: Json | null
+          created_at?: string
+          dominio: string
+          id?: string
+          nome: string
+          tipo_acao: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          coluna_destino_id?: string | null
+          coluna_origem_id?: string | null
+          config?: Json | null
+          created_at?: string
+          dominio?: string
+          id?: string
+          nome?: string
+          tipo_acao?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_automacoes_coluna_destino_id_fkey"
+            columns: ["coluna_destino_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_kanban_colunas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_automacoes_coluna_origem_id_fkey"
+            columns: ["coluna_origem_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_kanban_colunas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_automacoes_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "tb_unidades"
@@ -1320,6 +1394,114 @@ export type Database = {
           },
         ]
       }
+      tb_propostas_kanban_colunas: {
+        Row: {
+          cor: string | null
+          created_at: string
+          dominio: string
+          id: string
+          nome: string
+          ordem: number
+          status_proposta: string | null
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          dominio: string
+          id?: string
+          nome: string
+          ordem?: number
+          status_proposta?: string | null
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          dominio?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          status_proposta?: string | null
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_kanban_colunas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_propostas_lembretes: {
+        Row: {
+          automacao_id: string | null
+          concluido: boolean | null
+          created_at: string
+          data_lembrete: string
+          descricao: string | null
+          dominio: string
+          id: string
+          proposta_id: string
+          titulo: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          automacao_id?: string | null
+          concluido?: boolean | null
+          created_at?: string
+          data_lembrete: string
+          descricao?: string | null
+          dominio: string
+          id?: string
+          proposta_id: string
+          titulo: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          automacao_id?: string | null
+          concluido?: boolean | null
+          created_at?: string
+          data_lembrete?: string
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          proposta_id?: string
+          titulo?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_lembretes_automacao_id_fkey"
+            columns: ["automacao_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_automacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_lembretes_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_lembretes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_propostas_modelos: {
         Row: {
           ativo: boolean
@@ -1357,6 +1539,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tb_propostas_modelos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_propostas_notificacoes: {
+        Row: {
+          automacao_id: string | null
+          created_at: string
+          dominio: string
+          id: string
+          lida: boolean | null
+          mensagem: string | null
+          proposta_id: string
+          titulo: string
+          unidade_id: number | null
+        }
+        Insert: {
+          automacao_id?: string | null
+          created_at?: string
+          dominio: string
+          id?: string
+          lida?: boolean | null
+          mensagem?: string | null
+          proposta_id: string
+          titulo: string
+          unidade_id?: number | null
+        }
+        Update: {
+          automacao_id?: string | null
+          created_at?: string
+          dominio?: string
+          id?: string
+          lida?: boolean | null
+          mensagem?: string | null
+          proposta_id?: string
+          titulo?: string
+          unidade_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_propostas_notificacoes_automacao_id_fkey"
+            columns: ["automacao_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas_automacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_notificacoes_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "tb_propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_propostas_notificacoes_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "tb_unidades"
