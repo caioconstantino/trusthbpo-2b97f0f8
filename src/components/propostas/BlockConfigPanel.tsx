@@ -46,7 +46,7 @@ export interface BlockConfig {
 }
 
 interface BlockConfigPanelProps {
-  blockType: "header" | "items" | "conditions" | "text" | "divider" | "footer";
+  blockType: "header" | "items" | "conditions" | "text" | "divider" | "footer" | "cliente" | "oferta" | "imagem" | "assinatura" | "beneficios" | "prazo";
   config: BlockConfig;
   content?: string;
   onConfigChange: (config: BlockConfig) => void;

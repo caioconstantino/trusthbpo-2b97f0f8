@@ -61,6 +61,24 @@ export interface PropostaItem {
   };
 }
 
+export interface OfertaTier {
+  nome: string;
+  preco: string;
+  descricao?: string;
+  features?: string[];
+  destaque?: boolean;
+  corDestaque?: string;
+}
+
+export interface AssinaturaParty {
+  label: string;
+}
+
+export interface PrazoItem {
+  label: string;
+  data: string;
+}
+
 export interface BlockConfig {
   // Header config
   logoUrl?: string;
@@ -70,7 +88,7 @@ export interface BlockConfig {
   showBorder?: boolean;
   borderColor?: string;
   padding?: string;
-  
+
   // Items config
   headerBgColor?: string;
   headerTextColor?: string;
@@ -78,21 +96,54 @@ export interface BlockConfig {
   rowTextColor?: string;
   footerBgColor?: string;
   footerTextColor?: string;
-  
+
   // Conditions/Text config
   fontSize?: string;
   fontWeight?: string;
-  
+
   // Footer config
   companyName?: string;
   companyPhone?: string;
   companyEmail?: string;
   companyAddress?: string;
+
+  // Oferta (pricing tiers)
+  ofertas?: OfertaTier[];
+
+  // Cliente (customer data fields to show)
+  camposCliente?: string[];
+
+  // Imagem
+  imageUrl?: string;
+  imageWidth?: string;
+  imageCaption?: string;
+
+  // Assinatura
+  partesAssinatura?: AssinaturaParty[];
+
+  // Benefícios
+  colunasBeneficios?: string;
+  iconeBeneficios?: string;
+
+  // Prazo / Timeline
+  itensPrazo?: PrazoItem[];
 }
 
 export interface PropostaBlock {
   id: string;
-  type: "header" | "items" | "conditions" | "text" | "divider" | "footer";
+  type:
+    | "header"
+    | "items"
+    | "conditions"
+    | "text"
+    | "divider"
+    | "footer"
+    | "cliente"
+    | "oferta"
+    | "imagem"
+    | "assinatura"
+    | "beneficios"
+    | "prazo";
   content?: string;
   config?: BlockConfig;
 }
