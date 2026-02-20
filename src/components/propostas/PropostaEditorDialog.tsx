@@ -497,7 +497,7 @@ export function PropostaEditorDialog({
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="layout" className="flex-1 flex flex-col">
+          <TabsContent value="layout" className="flex-1 flex flex-col overflow-hidden">
             <div className="flex gap-4 flex-1 overflow-hidden relative">
               {/* Painel de elementos */}
               <ScrollArea className="w-48 border rounded-lg p-3 flex-shrink-0">
