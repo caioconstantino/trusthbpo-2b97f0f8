@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,12 @@ import {
   Save,
   Settings,
   FileSignature,
+  User,
+  Tag,
+  Image,
+  PenLine,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { usePropostas, Proposta, PropostaBlock, PropostaItem, BlockConfig } from "@/hooks/usePropostas";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,22 +56,34 @@ interface PropostaEditorDialogProps {
   onSaved: () => void;
 }
 
-const blockTypeIcons = {
+const blockTypeIcons: Record<string, React.ElementType> = {
   header: Type,
   items: List,
   conditions: FileText,
   text: Type,
   divider: Minus,
   footer: FileSignature,
+  cliente: User,
+  oferta: Tag,
+  imagem: Image,
+  assinatura: PenLine,
+  beneficios: CheckCircle2,
+  prazo: Clock,
 };
 
-const blockTypeLabels = {
+const blockTypeLabels: Record<string, string> = {
   header: "Cabeçalho",
   items: "Itens da Proposta",
   conditions: "Condições",
   text: "Texto",
   divider: "Divisor",
   footer: "Rodapé",
+  cliente: "Dados do Cliente",
+  oferta: "Oferta / Preços",
+  imagem: "Imagem",
+  assinatura: "Assinatura",
+  beneficios: "Benefícios",
+  prazo: "Prazo / Timeline",
 };
 
 export function PropostaEditorDialog({
