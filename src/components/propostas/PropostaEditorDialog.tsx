@@ -485,19 +485,21 @@ export function PropostaEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Editar Proposta #{proposta.numero}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-[96vw] w-[1280px] h-[93vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <DialogTitle className="text-lg font-semibold">Editar Proposta #{proposta.numero}</DialogTitle>
+        </div>
 
-        <Tabs defaultValue="layout" className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="layout">Layout</TabsTrigger>
-            <TabsTrigger value="itens">Itens</TabsTrigger>
-            <TabsTrigger value="config">Configurações</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="layout" className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 pt-2">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="layout">Layout</TabsTrigger>
+              <TabsTrigger value="itens">Itens</TabsTrigger>
+              <TabsTrigger value="config">Configurações</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="layout" className="flex-1 flex flex-col overflow-hidden">
+          <TabsContent value="layout" className="flex-1 flex flex-col overflow-hidden px-4 pb-4">
             <div className="flex gap-4 flex-1 overflow-hidden relative">
               {/* Painel de elementos */}
               <ScrollArea className="w-48 border rounded-lg p-3 flex-shrink-0">
