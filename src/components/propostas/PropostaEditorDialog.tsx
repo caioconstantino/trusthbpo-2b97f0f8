@@ -405,6 +405,79 @@ export function PropostaEditorDialog({
           </div>
         );
 
+      case "cliente":
+        return (
+          <div className="p-2 rounded text-sm" style={{ backgroundColor: config.backgroundColor || "transparent", color: config.textColor || "inherit" }}>
+            <p className="font-medium mb-1">Dados do Cliente</p>
+            <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+              {(config.camposCliente || ["nome", "email", "telefone"]).map((c) => (
+                <span key={c}>• {c}</span>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "oferta":
+        return (
+          <div className="p-2 rounded text-sm">
+            <div className="flex gap-2">
+              {(config.ofertas || [{ nome: "Plano", preco: "0" }]).map((o, i) => (
+                <div key={i} className="flex-1 border rounded p-2 text-center" style={{ borderColor: o.destaque ? (o.corDestaque || "hsl(var(--primary))") : undefined }}>
+                  <p className="font-medium text-xs">{o.nome}</p>
+                  <p className="text-xs">R$ {o.preco}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "imagem":
+        return (
+          <div className="p-2 rounded text-center">
+            {config.imageUrl ? (
+              <img src={config.imageUrl} alt="" className="max-h-16 mx-auto rounded" style={{ maxWidth: config.imageWidth || "100%" }} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma imagem selecionada</p>
+            )}
+          </div>
+        );
+
+      case "assinatura":
+        return (
+          <div className="p-2 rounded text-sm">
+            <div className="flex gap-4 justify-center">
+              {(config.partesAssinatura || [{ label: "Contratante" }, { label: "Contratado" }]).map((p, i) => (
+                <div key={i} className="text-center">
+                  <div className="border-b border-foreground/30 w-24 mb-1" />
+                  <p className="text-xs">{p.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "beneficios":
+        return (
+          <div className="p-2 rounded text-sm">
+            <p className="font-medium mb-1">Benefícios</p>
+            <div className="text-xs text-muted-foreground">
+              <span>• Lista de benefícios configuráveis</span>
+            </div>
+          </div>
+        );
+
+      case "prazo":
+        return (
+          <div className="p-2 rounded text-sm">
+            <p className="font-medium mb-1">Prazo / Timeline</p>
+            <div className="flex gap-2 text-xs text-muted-foreground">
+              {(config.itensPrazo || [{ label: "Etapa 1", data: "" }]).map((p, i) => (
+                <span key={i} className="bg-muted px-2 py-1 rounded">{p.label}</span>
+              ))}
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -427,9 +500,10 @@ export function PropostaEditorDialog({
           <TabsContent value="layout" className="flex-1 flex flex-col">
             <div className="flex gap-4 flex-1 overflow-hidden relative">
               {/* Painel de elementos */}
-              <div className="w-48 border rounded-lg p-3 space-y-2 flex-shrink-0">
+              <ScrollArea className="w-48 border rounded-lg p-3 flex-shrink-0">
+                <div className="space-y-2">
                 <p className="text-sm font-medium mb-3">Elementos</p>
-                {(["header", "items", "conditions", "text", "divider", "footer"] as const).map(
+                {(["header", "items", "conditions", "text", "divider", "footer", "cliente", "oferta", "imagem", "assinatura", "beneficios", "prazo"] as const).map(
                   (type) => {
                     const Icon = blockTypeIcons[type];
                     return (
@@ -447,6 +521,7 @@ export function PropostaEditorDialog({
                   }
                 )}
               </div>
+              </ScrollArea>
 
               {/* Área de layout */}
               <ScrollArea className="flex-1 border rounded-lg p-4">
