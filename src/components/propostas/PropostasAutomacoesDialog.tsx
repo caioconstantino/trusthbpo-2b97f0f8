@@ -309,16 +309,16 @@ export const PropostasAutomacoesDialog = ({
               <div>
                 <Label>Quando mover DE (opcional)</Label>
                 <Select
-                  value={formData.coluna_origem_id}
+                  value={formData.coluna_origem_id || "any"}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, coluna_origem_id: value }))
+                    setFormData((prev) => ({ ...prev, coluna_origem_id: value === "any" ? "" : value }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Qualquer coluna" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Qualquer coluna</SelectItem>
+                    <SelectItem value="any">Qualquer coluna</SelectItem>
                     {colunas.map((coluna) => (
                       <SelectItem key={coluna.id} value={coluna.id}>
                         <div className="flex items-center gap-2">
