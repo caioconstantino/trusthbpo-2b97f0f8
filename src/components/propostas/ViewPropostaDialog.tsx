@@ -77,14 +77,7 @@ export function ViewPropostaDialog({
     setGeneratingPdf(true);
     try {
       const element = printRef.current;
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        windowWidth: 794, // A4 width at 96dpi
-      });
+      const A4_WIDTH_PX = 794; // A4 at 96dpi
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -98,39 +91,63 @@ export function ViewPropostaDialog({
       const usableWidth = pdfWidth - margin * 2;
       const usableHeight = pdfHeight - margin * 2;
 
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = usableWidth / imgWidth;
-      const scaledHeight = imgHeight * ratio;
-
-      // Split into multiple pages if content is taller than one page
-      let position = 0;
+      // Get all direct children of the print container
+      const children = Array.from(element.children) as HTMLElement[];
+      
+      let currentY = margin; // current Y position on the current page
       let pageNum = 0;
 
-      while (position < scaledHeight) {
-        if (pageNum > 0) {
+      for (const child of children) {
+        // Render each block to its own canvas
+        const blockCanvas = await html2canvas(child, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          windowWidth: A4_WIDTH_PX,
+        });
+
+        const blockImgWidth = blockCanvas.width;
+        const blockImgHeight = blockCanvas.height;
+        const ratio = usableWidth / blockImgWidth;
+        const blockHeightMm = blockImgHeight * ratio;
+
+        // If this block doesn't fit on the current page, start a new page
+        // (unless we're at the very top of a page already)
+        if (currentY + blockHeightMm > pdfHeight - margin && currentY > margin + 1) {
           pdf.addPage();
+          pageNum++;
+          currentY = margin;
         }
 
-        // Calculate which portion of the source canvas to draw
-        const sourceY = position / ratio;
-        const sourceH = Math.min(usableHeight / ratio, imgHeight - sourceY);
-        const destH = sourceH * ratio;
+        // If a single block is taller than one page, slice it
+        if (blockHeightMm > usableHeight) {
+          let slicePos = 0;
+          while (slicePos < blockImgHeight) {
+            if (currentY > margin + 1) {
+              pdf.addPage();
+              pageNum++;
+              currentY = margin;
+            }
+            const sliceH = Math.min(usableHeight / ratio, blockImgHeight - slicePos);
+            const destH = sliceH * ratio;
 
-        // Create a temporary canvas for this page slice
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = imgWidth;
-        pageCanvas.height = sourceH;
-        const ctx = pageCanvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceH, 0, 0, imgWidth, sourceH);
+            const sliceCanvas = document.createElement("canvas");
+            sliceCanvas.width = blockImgWidth;
+            sliceCanvas.height = sliceH;
+            const ctx = sliceCanvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(blockCanvas, 0, slicePos, blockImgWidth, sliceH, 0, 0, blockImgWidth, sliceH);
+            }
+            pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", margin, currentY, usableWidth, destH);
+            slicePos += sliceH;
+            currentY += destH;
+          }
+        } else {
+          const imgData = blockCanvas.toDataURL("image/png");
+          pdf.addImage(imgData, "PNG", margin, currentY, usableWidth, blockHeightMm);
+          currentY += blockHeightMm;
         }
-
-        const pageImgData = pageCanvas.toDataURL("image/png");
-        pdf.addImage(pageImgData, "PNG", margin, margin, usableWidth, destH);
-
-        position += usableHeight;
-        pageNum++;
       }
 
       pdf.save(`proposta-${proposta.numero}.pdf`);
