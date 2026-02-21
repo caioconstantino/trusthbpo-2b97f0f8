@@ -18,7 +18,14 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Cliente {
   id: number;
@@ -61,6 +68,12 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
     observacoes: "",
   });
 
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [masterPassword, setMasterPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   useEffect(() => {
     if (cliente) {
       setFormData({
@@ -78,6 +91,38 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
       });
     }
   }, [cliente]);
+
+  const handleChangePassword = async () => {
+    if (!cliente || !masterPassword || !newPassword) return;
+    
+    if (newPassword.length < 6) {
+      toast({ title: "Erro", description: "A nova senha deve ter pelo menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-change-password", {
+        body: {
+          dominio: cliente.dominio,
+          nova_senha: newPassword,
+          master_password: masterPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Sucesso", description: `Senha alterada com sucesso para o domínio ${cliente.dominio}` });
+      setShowPasswordDialog(false);
+      setMasterPassword("");
+      setNewPassword("");
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,6 +310,19 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
             />
           </div>
 
+          {/* Alterar Senha */}
+          <div className="pt-2 border-t border-slate-600">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPasswordDialog(true)}
+              className="w-full border-amber-600 text-amber-400 hover:bg-amber-900/30 gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              Alterar Senha do Cliente
+            </Button>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <Button
               type="button"
@@ -287,6 +345,68 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
           </div>
         </form>
       </SheetContent>
+
+      {/* Dialog de Alterar Senha */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Alterar Senha - {cliente?.dominio}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-slate-300">Senha Master</Label>
+              <Input
+                type="password"
+                value={masterPassword}
+                onChange={(e) => setMasterPassword(e.target.value)}
+                placeholder="Digite a senha master"
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Nova Senha do Cliente</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  className="bg-slate-700/50 border-slate-600 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setShowPasswordDialog(false); setMasterPassword(""); setNewPassword(""); }}
+              className="border-slate-600 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || !masterPassword || !newPassword}
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                "Alterar Senha"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
