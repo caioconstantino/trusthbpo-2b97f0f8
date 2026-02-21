@@ -83,9 +83,9 @@ export function ViewPropostaDialog({
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        windowWidth: 794, // A4 width at 96dpi
       });
 
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -94,20 +94,44 @@ export function ViewPropostaDialog({
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 5;
+      const usableWidth = pdfWidth - margin * 2;
+      const usableHeight = pdfHeight - margin * 2;
+
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 10;
+      const ratio = usableWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
 
-      pdf.addImage(
-        imgData,
-        "PNG",
-        imgX,
-        imgY,
-        imgWidth * ratio,
-        imgHeight * ratio
-      );
+      // Split into multiple pages if content is taller than one page
+      let position = 0;
+      let pageNum = 0;
+
+      while (position < scaledHeight) {
+        if (pageNum > 0) {
+          pdf.addPage();
+        }
+
+        // Calculate which portion of the source canvas to draw
+        const sourceY = position / ratio;
+        const sourceH = Math.min(usableHeight / ratio, imgHeight - sourceY);
+        const destH = sourceH * ratio;
+
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = sourceH;
+        const ctx = pageCanvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceH, 0, 0, imgWidth, sourceH);
+        }
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        pdf.addImage(pageImgData, "PNG", margin, margin, usableWidth, destH);
+
+        position += usableHeight;
+        pageNum++;
+      }
 
       pdf.save(`proposta-${proposta.numero}.pdf`);
 
