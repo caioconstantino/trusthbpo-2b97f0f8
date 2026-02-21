@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, ShoppingCart, Package } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, TrendingUp, Users, BarChart3, Globe, Sparkles, CheckCircle2, ShoppingCart, Package, Menu, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -11,6 +11,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [hoveredPlan, setHoveredPlan] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Capture referral code from URL and store in sessionStorage
   useEffect(() => {
@@ -55,15 +56,50 @@ export default function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" onClick={() => navigate("/login")} className="hidden sm:inline-flex">
+            <Button variant="ghost" onClick={() => navigate("/login")} className="hidden md:inline-flex">
               Login
             </Button>
-            <Button onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })} className="group">
+            <Button onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })} className="hidden md:inline-flex group">
               Contratar
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background animate-fade-in">
+            <nav className="flex flex-col px-4 py-4 gap-2">
+              <a href="#plataforma" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2">
+                Plataforma
+              </a>
+              <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2">
+                Recursos
+              </a>
+              <a href="#precos" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2">
+                Preços
+              </a>
+              <a href="#cases" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2">
+                Cases
+              </a>
+              <a href="/educacao" className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 flex items-center gap-1">
+                <span>🎓</span> Educação
+              </a>
+              <div className="flex flex-col gap-2 pt-2 border-t border-border">
+                <Button variant="outline" onClick={() => { navigate("/login"); setMobileMenuOpen(false); }} className="w-full">
+                  Login
+                </Button>
+                <Button onClick={() => { document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="w-full group">
+                  Contratar
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
