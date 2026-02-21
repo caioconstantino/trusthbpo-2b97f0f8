@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "./RichTextEditor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -286,7 +287,9 @@ export function BlockPreview({
           </div>
         );
 
-      default:
+      default: {
+        const rawContent = block.content || (block.type === "conditions" ? "Condições de pagamento e entrega..." : "Texto do bloco...");
+        const isHtml = rawContent.includes("<");
         return (
           <div className="w-full rounded-md px-4 py-3 text-sm" style={{
             backgroundColor: cfg.backgroundColor || "#ffffff",
@@ -294,9 +297,14 @@ export function BlockPreview({
             fontSize: cfg.fontSize === "small" ? "11px" : cfg.fontSize === "large" ? "15px" : "13px",
             textAlign: (cfg.alignment as "left" | "center" | "right") || "left",
           }}>
-            {block.content || (block.type === "conditions" ? "Condições de pagamento e entrega..." : "Texto do bloco...")}
+            {isHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: rawContent }} className="[&_p]:my-1 [&_br]:leading-6" />
+            ) : (
+              <div style={{ whiteSpace: "pre-wrap" }}>{rawContent}</div>
+            )}
           </div>
         );
+      }
     }
   };
 
@@ -622,7 +630,12 @@ export function PropertiesPanel({ block, onConfigChange, onContentChange }: {
           {(block.type === "conditions" || block.type === "text") && <>
             <section className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Conteúdo</p>
-              <Textarea value={block.content || ""} onChange={e => onContentChange(e.target.value)} rows={5} placeholder={block.type === "conditions" ? "Condições de pagamento..." : "Digite o texto..."} className="text-sm resize-none" />
+              <RichTextEditor
+                value={block.content || ""}
+                onChange={onContentChange}
+                placeholder={block.type === "conditions" ? "Condições de pagamento..." : "Digite o texto..."}
+                minHeight="100px"
+              />
               <div className="space-y-1.5"><Label className="text-xs">Alinhamento</Label><AlignButtons /></div>
               <div className="space-y-1.5"><Label className="text-xs">Tamanho da Fonte</Label>
                 <Select value={cfg.fontSize || "normal"} onValueChange={v => update("fontSize", v)}>
