@@ -247,34 +247,42 @@ export function ViewPropostaDialog({
           </div>
         );
 
-      case "conditions":
+      case "conditions": {
+        const condContent = block.content || proposta.condicoes || "-";
+        const condIsHtml = condContent.includes("<");
         return (
           <div 
             key={block.id} 
             className="space-y-2 p-4 rounded"
-            style={{ 
-              backgroundColor: config.backgroundColor || "transparent",
-            }}
+            style={{ backgroundColor: config.backgroundColor || "transparent" }}
           >
-            <h3 
-              className="font-semibold text-lg"
-              style={{ color: config.textColor || "#000000" }}
-            >
+            <h3 className="font-semibold text-lg" style={{ color: config.textColor || "#000000" }}>
               Condições
             </h3>
-            <p 
-              className="whitespace-pre-wrap"
-              style={{ 
+            {condIsHtml ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: condContent }}
+                style={{ 
+                  color: config.textColor || "#000000",
+                  fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+                }}
+                className="[&_p]:my-1"
+              />
+            ) : (
+              <p className="whitespace-pre-wrap" style={{ 
                 color: config.textColor || "#000000",
                 fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
-              }}
-            >
-              {block.content || proposta.condicoes || "-"}
-            </p>
+              }}>
+                {condContent}
+              </p>
+            )}
           </div>
         );
+      }
 
-      case "text":
+      case "text": {
+        const textContent = block.content || "";
+        const textIsHtml = textContent.includes("<");
         return (
           <div 
             key={block.id}
@@ -284,17 +292,26 @@ export function ViewPropostaDialog({
               textAlign: config.alignment || "left",
             }}
           >
-            <p 
-              className="whitespace-pre-wrap"
-              style={{ 
+            {textIsHtml ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: textContent }}
+                style={{ 
+                  color: config.textColor || "#000000",
+                  fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
+                }}
+                className="[&_p]:my-1"
+              />
+            ) : (
+              <p className="whitespace-pre-wrap" style={{ 
                 color: config.textColor || "#000000",
                 fontSize: config.fontSize === "small" ? "0.875rem" : config.fontSize === "large" ? "1.125rem" : "1rem",
-              }}
-            >
-              {block.content}
-            </p>
+              }}>
+                {textContent}
+              </p>
+            )}
           </div>
         );
+      }
 
       case "divider":
         return (
