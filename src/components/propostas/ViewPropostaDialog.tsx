@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Send, ShoppingCart, Printer, Loader2 } from "lucide-react";
-import { Proposta, PropostaItem, PropostaBlock, usePropostas } from "@/hooks/usePropostas";
+import { Download, Send, ShoppingCart, Printer, Loader2, CheckCircle2, Star } from "lucide-react";
+import { Proposta, PropostaItem, PropostaBlock, OfertaTier, PrazoItem, AssinaturaParty, usePropostas } from "@/hooks/usePropostas";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -347,6 +347,143 @@ export function ViewPropostaDialog({
             )}
           </div>
         );
+
+      case "cliente": {
+        const campos = config.camposCliente || ["nome", "email", "telefone"];
+        const fieldLabels: Record<string, string> = { nome: "Nome", email: "E-mail", telefone: "Telefone", documento: "Documento", endereco: "Endereço", empresa: "Empresa" };
+        const fieldValues: Record<string, string> = {
+          nome: proposta.cliente_nome || "",
+          email: proposta.cliente_email || "",
+          telefone: proposta.cliente_telefone || "",
+          documento: "", endereco: "", empresa: "",
+        };
+        return (
+          <div key={block.id} className="p-4 rounded" style={{ backgroundColor: config.backgroundColor || "#f8fafc" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: config.textColor || "#334155", opacity: 0.6 }}>Destinatário</p>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              {campos.map((c: string) => (
+                <div key={c} className="text-sm" style={{ color: config.textColor || "#334155" }}>
+                  <span className="font-medium opacity-70">{fieldLabels[c] || c}: </span>
+                  <span>{fieldValues[c] || "—"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case "oferta": {
+        const tiers: OfertaTier[] = config.ofertas || [];
+        return (
+          <div key={block.id} className={`grid gap-4 ${tiers.length === 1 ? "grid-cols-1" : tiers.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {tiers.map((tier, i) => (
+              <div
+                key={i}
+                className="rounded-lg border p-5 flex flex-col gap-2 relative"
+                style={tier.destaque ? { backgroundColor: tier.corDestaque || "#1e3a5f", borderColor: "transparent" } : { backgroundColor: "#ffffff" }}
+              >
+                {tier.destaque && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-0.5 rounded-full flex items-center gap-1">
+                      <Star className="h-3 w-3" /> RECOMENDADO
+                    </span>
+                  </div>
+                )}
+                <p className="text-base font-bold" style={{ color: tier.destaque ? "#ffffff" : "#111827" }}>{tier.nome}</p>
+                <p className="text-2xl font-black" style={{ color: tier.destaque ? "#ffffff" : "#1e3a5f" }}>{tier.preco}</p>
+                {tier.descricao && <p className="text-sm" style={{ color: tier.destaque ? "#ffffffaa" : "#6b7280" }}>{tier.descricao}</p>}
+                <ul className="space-y-1 mt-2">
+                  {(tier.features || []).map((f, fi) => (
+                    <li key={fi} className="flex items-center gap-2 text-sm" style={{ color: tier.destaque ? "#ffffffcc" : "#374151" }}>
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: tier.destaque ? "#ffffff" : "#22c55e" }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      case "beneficios": {
+        const items = (block.content || "").split("\n").filter(Boolean);
+        const cols = parseInt(config.colunasBeneficios || "2");
+        const iconType = config.iconeBeneficios || "check";
+        const IconComp = iconType === "star" ? Star : CheckCircle2;
+        return (
+          <div key={block.id} className="p-4 rounded" style={{ backgroundColor: config.backgroundColor || "#ffffff" }}>
+            <div className={`grid gap-3 ${cols === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+              {items.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm" style={{ color: config.textColor || "#374151" }}>
+                  <IconComp className="h-4 w-4 shrink-0 text-green-500" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case "prazo": {
+        const prazos: PrazoItem[] = config.itensPrazo || [];
+        return (
+          <div key={block.id} className="p-4 rounded" style={{ backgroundColor: config.backgroundColor || "#ffffff" }}>
+            <div className="relative">
+              <div className="absolute left-3 top-0 bottom-0 w-0.5" style={{ backgroundColor: (config.textColor || "#1e3a5f") + "30" }} />
+              <div className="space-y-4">
+                {prazos.map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 pl-10 relative">
+                    <div className="absolute left-0 w-7 h-7 rounded-full border-2 bg-white flex items-center justify-center" style={{ borderColor: config.textColor || "#1e3a5f" }}>
+                      <span className="text-xs font-bold" style={{ color: config.textColor || "#1e3a5f" }}>{i + 1}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium" style={{ color: config.textColor || "#111827" }}>{item.label}</p>
+                    </div>
+                    <span className="text-xs font-mono px-2 py-1 rounded" style={{ backgroundColor: (config.textColor || "#1e3a5f") + "15", color: config.textColor || "#1e3a5f" }}>
+                      {item.data}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      case "imagem":
+        return (
+          <div key={block.id} className="rounded overflow-hidden" style={{ textAlign: (config.alignment as "left" | "center" | "right") || "center" }}>
+            {config.imageUrl ? (
+              <div>
+                <img
+                  src={config.imageUrl}
+                  alt={config.imageCaption || "Imagem"}
+                  className="inline-block rounded"
+                  style={{ width: config.imageWidth === "75" ? "75%" : config.imageWidth === "50" ? "50%" : "100%", objectFit: "cover" }}
+                />
+                {config.imageCaption && <p className="text-sm text-gray-500 mt-1 italic">{config.imageCaption}</p>}
+              </div>
+            ) : null}
+          </div>
+        );
+
+      case "assinatura": {
+        const parties: AssinaturaParty[] = config.partesAssinatura || [{ label: "Cliente" }, { label: "Empresa" }];
+        return (
+          <div key={block.id} className="p-6 rounded" style={{ backgroundColor: config.backgroundColor || "#ffffff" }}>
+            <div className={`grid gap-12 ${parties.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+              {parties.map((party, i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-full border-b-2 border-gray-400 h-12" />
+                  <p className="text-sm font-medium text-gray-600">{party.label}</p>
+                  <p className="text-xs text-gray-400">Assinatura e data</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       default:
         return null;
