@@ -548,36 +548,6 @@ export function ViewPropostaDialog({
           <div ref={printRef} className="p-6 space-y-6 print:p-0 bg-white">
             {/* Renderizar blocos do layout */}
             {proposta.layout.map((block) => renderBlock(block))}
-
-            {/* Informações do cliente */}
-            {proposta.cliente_nome && (
-              <div className="space-y-2 pt-4 border-t">
-                <h3 className="font-semibold text-foreground">Cliente</h3>
-                <div className="text-sm space-y-1 text-foreground">
-                  <p><strong>Nome:</strong> {proposta.cliente_nome}</p>
-                  {proposta.cliente_email && (
-                    <p><strong>Email:</strong> {proposta.cliente_email}</p>
-                  )}
-                  {proposta.cliente_telefone && (
-                    <p><strong>Telefone:</strong> {proposta.cliente_telefone}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Rodapé com validade */}
-            <div className="pt-4 border-t text-sm text-muted-foreground">
-              <p>
-                <strong>Data de Emissão:</strong>{" "}
-                {format(new Date(proposta.created_at), "dd/MM/yyyy", {
-                  locale: ptBR,
-                })}
-              </p>
-              <p>
-                <strong>Válida até:</strong>{" "}
-                {format(dataValidade, "dd/MM/yyyy", { locale: ptBR })}
-              </p>
-            </div>
           </div>
         </ScrollArea>
 
