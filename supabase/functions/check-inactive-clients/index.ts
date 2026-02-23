@@ -16,64 +16,54 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Data de 7 dias atrás
-    const seteDiasAtras = new Date();
-    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-    const seteDiasAtrasISO = seteDiasAtras.toISOString();
+    const hoje = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-    console.log("Verificando clientes inativos há mais de 7 dias...");
-    console.log("Data limite:", seteDiasAtrasISO);
+    console.log("Verificando clientes com pagamento vencido...");
+    console.log("Data de hoje:", hoje);
 
-    // Buscar clientes ativos com last_login_at anterior a 7 dias ou null
-    const { data: clientesInativos, error: fetchError } = await supabaseAdmin
+    // Buscar clientes ativos cujo proximo_pagamento já passou
+    const { data: clientesVencidos, error: fetchError } = await supabaseAdmin
       .from("tb_clientes_saas")
-      .select("id, dominio, razao_social, last_login_at, status")
+      .select("id, dominio, razao_social, proximo_pagamento, status, tipo_conta")
       .eq("status", "Ativo")
-      .or(`last_login_at.lt.${seteDiasAtrasISO},last_login_at.is.null`);
+      .not("tipo_conta", "eq", "aluno")
+      .lt("proximo_pagamento", hoje);
 
     if (fetchError) {
       console.error("Erro ao buscar clientes:", fetchError);
       throw fetchError;
     }
 
-    console.log(`Encontrados ${clientesInativos?.length || 0} clientes para inativar`);
+    console.log(`Encontrados ${clientesVencidos?.length || 0} clientes com pagamento vencido`);
 
-    if (clientesInativos && clientesInativos.length > 0) {
-      // Filtrar apenas os que realmente devem ser inativados
-      // (excluir contas educacionais e empresas adotadas recém-criadas)
-      const clientesParaInativar = clientesInativos.filter(c => {
-        // Se nunca fez login e foi criado há mais de 7 dias, inativar
-        // Se fez login há mais de 7 dias, inativar
-        return true;
-      });
+    let inativados = 0;
 
-      const ids = clientesParaInativar.map(c => c.id);
+    if (clientesVencidos && clientesVencidos.length > 0) {
+      const ids = clientesVencidos.map(c => c.id);
 
-      if (ids.length > 0) {
-        const { error: updateError } = await supabaseAdmin
-          .from("tb_clientes_saas")
-          .update({ status: "Inativo" })
-          .in("id", ids);
+      const { error: updateError } = await supabaseAdmin
+        .from("tb_clientes_saas")
+        .update({ status: "Inativo" })
+        .in("id", ids);
 
-        if (updateError) {
-          console.error("Erro ao atualizar clientes:", updateError);
-          throw updateError;
-        }
-
-        console.log(`${ids.length} clientes inativados com sucesso`);
-        
-        // Log dos clientes inativados
-        clientesParaInativar.forEach(c => {
-          console.log(`- ${c.dominio} (${c.razao_social}) - Último login: ${c.last_login_at || "nunca"}`);
-        });
+      if (updateError) {
+        console.error("Erro ao atualizar clientes:", updateError);
+        throw updateError;
       }
+
+      inativados = ids.length;
+      console.log(`${inativados} clientes inativados com sucesso`);
+
+      clientesVencidos.forEach(c => {
+        console.log(`- ${c.dominio} (${c.razao_social}) - Próximo pagamento: ${c.proximo_pagamento}`);
+      });
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `${clientesInativos?.length || 0} clientes verificados`,
-        inativados: clientesInativos?.length || 0
+        message: `${clientesVencidos?.length || 0} clientes verificados`,
+        inativados
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
