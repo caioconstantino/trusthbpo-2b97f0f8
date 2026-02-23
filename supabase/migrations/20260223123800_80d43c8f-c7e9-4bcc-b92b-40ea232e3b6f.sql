@@ -1,0 +1,1 @@
+UPDATE tb_clientes_saas SET status = 'Ativo' WHERE dominio = 'mattheweco';
