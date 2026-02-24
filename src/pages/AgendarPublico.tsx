@@ -32,6 +32,10 @@ interface AgendaConfig {
   horario_fim: string;
   intervalo_minutos: number;
   dias_funcionamento: number[];
+  logo_url: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  descricao_publica: string | null;
 }
 
 interface AgendaServico {
@@ -279,18 +283,30 @@ export default function AgendarPublico() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4 md:p-8">
+    <div
+      className={!config.cor_secundaria ? "min-h-screen bg-gradient-to-br from-background to-muted/30 p-4 md:p-8" : "min-h-screen p-4 md:p-8"}
+      style={config.cor_secundaria ? {
+        background: `linear-gradient(135deg, ${config.cor_secundaria}, ${config.cor_secundaria}dd)`,
+      } : undefined}
+    >
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          {empresa && (
+          {config.logo_url && (
+            <img src={config.logo_url} alt="Logo" className="max-h-16 mx-auto mb-4 object-contain" />
+          )}
+          {empresa && !config.logo_url && (
             <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
               <Building2 className="h-4 w-4" />
               <span>{empresa.razao_social}</span>
             </div>
           )}
-          <h1 className="text-3xl font-bold">{config.nome}</h1>
-          <p className="text-muted-foreground mt-2">Agende seu horário online</p>
+          <h1 className="text-3xl font-bold" style={config.cor_primaria ? { color: config.cor_primaria } : undefined}>
+            {config.nome}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {config.descricao_publica || "Agende seu horário online"}
+          </p>
         </div>
 
         {/* Progress Steps */}

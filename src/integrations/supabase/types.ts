@@ -17,13 +17,17 @@ export type Database = {
       tb_agenda_config: {
         Row: {
           ativo: boolean
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string
+          descricao_publica: string | null
           dias_funcionamento: number[]
           dominio: string
           horario_fim: string
           horario_inicio: string
           id: string
           intervalo_minutos: number
+          logo_url: string | null
           nome: string
           slug: string
           tipo: string
@@ -32,13 +36,17 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
+          descricao_publica?: string | null
           dias_funcionamento?: number[]
           dominio: string
           horario_fim?: string
           horario_inicio?: string
           id?: string
           intervalo_minutos?: number
+          logo_url?: string | null
           nome?: string
           slug: string
           tipo?: string
@@ -47,13 +55,17 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
+          descricao_publica?: string | null
           dias_funcionamento?: number[]
           dominio?: string
           horario_fim?: string
           horario_inicio?: string
           id?: string
           intervalo_minutos?: number
+          logo_url?: string | null
           nome?: string
           slug?: string
           tipo?: string

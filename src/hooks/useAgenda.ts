@@ -15,6 +15,10 @@ export interface AgendaConfig {
   horario_fim: string;
   intervalo_minutos: number;
   dias_funcionamento: number[];
+  logo_url: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  descricao_publica: string | null;
   created_at: string;
   updated_at: string;
 }
