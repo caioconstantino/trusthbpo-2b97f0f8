@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, KeyRound, Eye, EyeOff, UserPlus } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff, UserPlus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +82,8 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [createMasterPassword, setCreateMasterPassword] = useState("");
+
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   // Check if domain has existing user
   const [hasUser, setHasUser] = useState<boolean | null>(null);
@@ -185,7 +187,32 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDeleteUser = async () => {
+    if (!cliente) return;
+    
+    if (!confirm(`Tem certeza que deseja excluir o usuário de acesso do domínio "${cliente.dominio}"? Esta ação não pode ser desfeita.`)) return;
+
+    setIsDeletingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-change-password", {
+        body: {
+          action: "delete_user",
+          dominio: cliente.dominio,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Sucesso", description: `Usuário excluído com sucesso do domínio ${cliente.dominio}` });
+      setHasUser(false);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
     e.preventDefault();
     if (!cliente) return;
 
@@ -398,6 +425,18 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
               >
                 <KeyRound className="w-4 h-4" />
                 Alterar Senha do Cliente
+              </Button>
+            )}
+            {hasUser && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDeleteUser}
+                disabled={isDeletingUser}
+                className="w-full border-red-600 text-red-400 hover:bg-red-900/30 gap-2"
+              >
+                {isDeletingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Excluir Usuário de Acesso
               </Button>
             )}
             {hasUser === null && (
