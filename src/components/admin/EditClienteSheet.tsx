@@ -213,6 +213,7 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cliente) return;
 
