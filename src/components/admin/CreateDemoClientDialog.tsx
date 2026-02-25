@@ -86,7 +86,7 @@ export const CreateDemoClientDialog = ({
             Criar Cliente Demonstração
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            Cria um cliente já com dados de exemplo: 20 produtos, 5 categorias, 6 clientes, contas a pagar e receber.
+            Cria um cliente demo com fatura zerada, sem expiração, 35+ produtos com fotos, 55+ vendas, categorias, clientes e contas.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,12 +125,13 @@ export const CreateDemoClientDialog = ({
 
           <div className="bg-slate-700/30 rounded-lg p-3 text-sm text-slate-400 space-y-1">
             <p className="font-medium text-slate-300">Dados que serão criados:</p>
-            <ul className="list-disc list-inside space-y-0.5">
-              <li>5 categorias (Bebidas, Alimentos, Limpeza, Higiene, Diversos)</li>
-              <li>20 produtos com preços e estoque</li>
-              <li>6 clientes de exemplo</li>
-              <li>4 contas a pagar</li>
-              <li>3 contas a receber</li>
+             <ul className="list-disc list-inside space-y-0.5">
+              <li>8 categorias variadas</li>
+              <li>35+ produtos com fotos e estoque</li>
+              <li>55+ vendas dos últimos 30 dias</li>
+              <li>8 clientes de exemplo</li>
+              <li>4 contas a pagar e 3 a receber</li>
+              <li>Fatura zerada, nunca expira</li>
               <li>Grupo Administradores com permissões completas</li>
             </ul>
           </div>
