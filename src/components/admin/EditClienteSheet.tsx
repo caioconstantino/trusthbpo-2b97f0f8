@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +74,33 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Create user states
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
+  const [createUserEmail, setCreateUserEmail] = useState("");
+  const [createUserPassword, setCreateUserPassword] = useState("");
+  const [createUserNome, setCreateUserNome] = useState("");
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [createMasterPassword, setCreateMasterPassword] = useState("");
+
+  // Check if domain has existing user
+  const [hasUser, setHasUser] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (cliente) {
+      checkExistingUser(cliente.dominio);
+    }
+  }, [cliente]);
+
+  const checkExistingUser = async (dominio: string) => {
+    const { data } = await supabase
+      .from("tb_usuarios")
+      .select("id")
+      .eq("dominio", dominio)
+      .limit(1);
+    setHasUser(!!(data && data.length > 0));
+  };
+
   useEffect(() => {
     if (cliente) {
       setFormData({
@@ -121,6 +148,44 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!cliente || !createUserEmail || !createUserPassword || !createMasterPassword) return;
+
+    if (createUserPassword.length < 6) {
+      toast({ title: "Erro", description: "A senha deve ter pelo menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-change-password", {
+        body: {
+          action: "create_user",
+          dominio: cliente.dominio,
+          email: createUserEmail,
+          nova_senha: createUserPassword,
+          nome: createUserNome || createUserEmail,
+          master_password: createMasterPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Sucesso", description: `Usuário ${createUserEmail} criado com sucesso para o domínio ${cliente.dominio}` });
+      setShowCreateUserDialog(false);
+      setCreateUserEmail("");
+      setCreateUserPassword("");
+      setCreateUserNome("");
+      setCreateMasterPassword("");
+      setHasUser(true);
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
@@ -310,17 +375,38 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
             />
           </div>
 
-          {/* Alterar Senha */}
-          <div className="pt-2 border-t border-slate-600">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowPasswordDialog(true)}
-              className="w-full border-amber-600 text-amber-400 hover:bg-amber-900/30 gap-2"
-            >
-              <KeyRound className="w-4 h-4" />
-              Alterar Senha do Cliente
-            </Button>
+          {/* Credenciais de Acesso */}
+          <div className="pt-2 border-t border-slate-600 space-y-2">
+            <p className="text-sm font-medium text-slate-300">Credenciais de Acesso</p>
+            {hasUser === false && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setCreateUserEmail(formData.email);
+                  setCreateUserNome(formData.razao_social);
+                  setShowCreateUserDialog(true);
+                }}
+                className="w-full border-green-600 text-green-400 hover:bg-green-900/30 gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                Criar Usuário de Acesso
+              </Button>
+            )}
+            {hasUser && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPasswordDialog(true)}
+                className="w-full border-amber-600 text-amber-400 hover:bg-amber-900/30 gap-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                Alterar Senha do Cliente
+              </Button>
+            )}
+            {hasUser === null && (
+              <p className="text-xs text-slate-500">Verificando credenciais...</p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -402,6 +488,91 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
                 </>
               ) : (
                 "Alterar Senha"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Criar Usuário */}
+      <Dialog open={showCreateUserDialog} onOpenChange={setShowCreateUserDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-green-400" />
+              Criar Usuário - {cliente?.dominio}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-slate-300">Nome</Label>
+              <Input
+                value={createUserNome}
+                onChange={(e) => setCreateUserNome(e.target.value)}
+                placeholder="Nome do usuário"
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Email de Login *</Label>
+              <Input
+                type="email"
+                value={createUserEmail}
+                onChange={(e) => setCreateUserEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Senha *</Label>
+              <div className="relative">
+                <Input
+                  type={showCreatePassword ? "text" : "password"}
+                  value={createUserPassword}
+                  onChange={(e) => setCreateUserPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="bg-slate-700/50 border-slate-600 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePassword(!showCreatePassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-slate-300">Senha Master</Label>
+              <Input
+                type="password"
+                value={createMasterPassword}
+                onChange={(e) => setCreateMasterPassword(e.target.value)}
+                placeholder="Digite a senha master"
+                className="bg-slate-700/50 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setShowCreateUserDialog(false); setCreateMasterPassword(""); setCreateUserPassword(""); }}
+              className="border-slate-600 text-slate-300"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={isCreatingUser || !createUserEmail || !createUserPassword || !createMasterPassword}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isCreatingUser ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Usuário"
               )}
             </Button>
           </DialogFooter>
