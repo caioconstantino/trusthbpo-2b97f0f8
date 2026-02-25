@@ -101,13 +101,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // ACTION: change_password (default) - Requires master password
-    if (!master_password || master_password !== masterPass) {
-      return new Response(
-        JSON.stringify({ error: 'Senha master inválida' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // ACTION: change_password (default) - No master password required
 
     if (!nova_senha) {
       return new Response(
