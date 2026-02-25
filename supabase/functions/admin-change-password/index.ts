@@ -101,6 +101,49 @@ Deno.serve(async (req) => {
       )
     }
 
+    // ACTION: delete_user - Delete auth user and tb_usuarios record
+    if (action === 'delete_user') {
+      const { data: usuario, error: findError } = await supabase
+        .from('tb_usuarios')
+        .select('id, auth_user_id')
+        .eq('dominio', dominio)
+        .limit(1)
+        .single()
+
+      if (findError || !usuario) {
+        return new Response(
+          JSON.stringify({ error: 'Nenhum usuário encontrado para este domínio' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Delete from tb_usuarios first
+      const { error: deleteDbError } = await supabase
+        .from('tb_usuarios')
+        .delete()
+        .eq('id', usuario.id)
+
+      if (deleteDbError) {
+        return new Response(
+          JSON.stringify({ error: 'Erro ao excluir registro: ' + deleteDbError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Delete auth user
+      if (usuario.auth_user_id) {
+        const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(usuario.auth_user_id)
+        if (deleteAuthError) {
+          console.error('Error deleting auth user:', deleteAuthError)
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Usuário excluído com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // ACTION: change_password (default) - No master password required
 
     if (!nova_senha) {
