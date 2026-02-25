@@ -69,7 +69,7 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
   });
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [masterPassword, setMasterPassword] = useState("");
+  const [_masterPassword, _setMasterPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -120,7 +120,7 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
   }, [cliente]);
 
   const handleChangePassword = async () => {
-    if (!cliente || !masterPassword || !newPassword) return;
+    if (!cliente || !newPassword) return;
     
     if (newPassword.length < 6) {
       toast({ title: "Erro", description: "A nova senha deve ter pelo menos 6 caracteres", variant: "destructive" });
@@ -133,7 +133,6 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
         body: {
           dominio: cliente.dominio,
           nova_senha: newPassword,
-          master_password: masterPassword,
         },
       });
 
@@ -142,7 +141,6 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
 
       toast({ title: "Sucesso", description: `Senha alterada com sucesso para o domínio ${cliente.dominio}` });
       setShowPasswordDialog(false);
-      setMasterPassword("");
       setNewPassword("");
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -438,16 +436,6 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-slate-300">Senha Master</Label>
-              <Input
-                type="password"
-                value={masterPassword}
-                onChange={(e) => setMasterPassword(e.target.value)}
-                placeholder="Digite a senha master"
-                className="bg-slate-700/50 border-slate-600 text-white"
-              />
-            </div>
-            <div>
               <Label className="text-slate-300">Nova Senha do Cliente</Label>
               <div className="relative">
                 <Input
@@ -470,14 +458,14 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setShowPasswordDialog(false); setMasterPassword(""); setNewPassword(""); }}
+              onClick={() => { setShowPasswordDialog(false); setNewPassword(""); }}
               className="border-slate-600 text-slate-300"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleChangePassword}
-              disabled={isChangingPassword || !masterPassword || !newPassword}
+              disabled={isChangingPassword || !newPassword}
             >
               {isChangingPassword ? (
                 <>
