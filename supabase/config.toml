@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.admin-change-password]
 verify_jwt = false
+
+[functions.create-demo-client]
+verify_jwt = false

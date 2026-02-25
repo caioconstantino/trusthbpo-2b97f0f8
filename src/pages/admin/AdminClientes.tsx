@@ -54,12 +54,14 @@ import {
   CheckCircle,
   Trash2,
   Handshake,
-  Plus
+  Plus,
+  Sparkles
 } from "lucide-react";
 import { ImportClientesDialog } from "@/components/admin/ImportClientesDialog";
 import { ViewClienteDialog } from "@/components/admin/ViewClienteDialog";
 import { EditClienteSheet } from "@/components/admin/EditClienteSheet";
 import { CreateClienteDialog } from "@/components/admin/CreateClienteDialog";
+import { CreateDemoClientDialog } from "@/components/admin/CreateDemoClientDialog";
 
 interface SaasCliente {
   id: number;
@@ -94,6 +96,7 @@ const AdminClientes = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDemoDialogOpen, setCreateDemoDialogOpen] = useState(false);
   
   // Estados para dialogs
   const [viewCliente, setViewCliente] = useState<SaasCliente | null>(null);
@@ -334,6 +337,10 @@ const AdminClientes = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Clientes SaaS</h2>
           <div className="flex gap-2">
+            <Button onClick={() => setCreateDemoDialogOpen(true)} variant="outline" className="border-amber-600 text-amber-400 hover:bg-amber-600/20">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Criar Demo
+            </Button>
             <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Novo Cliente
@@ -504,6 +511,12 @@ const AdminClientes = () => {
       <ImportClientesDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
+        onSuccess={fetchClientes}
+      />
+
+      <CreateDemoClientDialog
+        open={createDemoDialogOpen}
+        onOpenChange={setCreateDemoDialogOpen}
         onSuccess={fetchClientes}
       />
 
