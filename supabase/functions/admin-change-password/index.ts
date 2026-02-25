@@ -19,22 +19,14 @@ Deno.serve(async (req) => {
 
     const { dominio, nova_senha, master_password, action, email, nome } = await req.json()
 
-    if (!dominio || !master_password) {
+    if (!dominio) {
       return new Response(
-        JSON.stringify({ error: 'dominio e master_password são obrigatórios' }),
+        JSON.stringify({ error: 'dominio é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Validate master password
-    if (master_password !== masterPass) {
-      return new Response(
-        JSON.stringify({ error: 'Senha master inválida' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // ACTION: create_user - Create a new auth user and link to domain
+    // ACTION: create_user - No master password required
     if (action === 'create_user') {
       if (!email || !nova_senha) {
         return new Response(
@@ -109,7 +101,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // ACTION: change_password (default) - Change password of existing user
+    // ACTION: change_password (default) - Requires master password
+    if (!master_password || master_password !== masterPass) {
+      return new Response(
+        JSON.stringify({ error: 'Senha master inválida' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     if (!nova_senha) {
       return new Response(
         JSON.stringify({ error: 'nova_senha é obrigatória' }),

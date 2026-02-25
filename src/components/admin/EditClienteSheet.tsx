@@ -152,7 +152,7 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
   };
 
   const handleCreateUser = async () => {
-    if (!cliente || !createUserEmail || !createUserPassword || !createMasterPassword) return;
+    if (!cliente || !createUserEmail || !createUserPassword) return;
 
     if (createUserPassword.length < 6) {
       toast({ title: "Erro", description: "A senha deve ter pelo menos 6 caracteres", variant: "destructive" });
@@ -168,7 +168,6 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
           email: createUserEmail,
           nova_senha: createUserPassword,
           nome: createUserNome || createUserEmail,
-          master_password: createMasterPassword,
         },
       });
 
@@ -180,7 +179,6 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
       setCreateUserEmail("");
       setCreateUserPassword("");
       setCreateUserNome("");
-      setCreateMasterPassword("");
       setHasUser(true);
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -542,28 +540,18 @@ export function EditClienteSheet({ open, onOpenChange, cliente, onSuccess }: Edi
                 </button>
               </div>
             </div>
-            <div>
-              <Label className="text-slate-300">Senha Master</Label>
-              <Input
-                type="password"
-                value={createMasterPassword}
-                onChange={(e) => setCreateMasterPassword(e.target.value)}
-                placeholder="Digite a senha master"
-                className="bg-slate-700/50 border-slate-600 text-white"
-              />
-            </div>
-          </div>
+           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setShowCreateUserDialog(false); setCreateMasterPassword(""); setCreateUserPassword(""); }}
+              onClick={() => { setShowCreateUserDialog(false); setCreateUserPassword(""); }}
               className="border-slate-600 text-slate-300"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleCreateUser}
-              disabled={isCreatingUser || !createUserEmail || !createUserPassword || !createMasterPassword}
+              disabled={isCreatingUser || !createUserEmail || !createUserPassword}
               className="bg-green-600 hover:bg-green-700"
             >
               {isCreatingUser ? (
