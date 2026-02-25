@@ -508,11 +508,6 @@ Deno.serve(async (req) => {
             ultima_forma_pagamento: 'Pagar.me',
             plano: plan
           }
-          
-          // Atualizar valor_pago se fornecido
-          if (valorPago !== null) {
-            updateData.valor_pago = valorPago
-          }
 
           const { error: updateError } = await supabase
             .from('tb_clientes_saas')
@@ -560,11 +555,6 @@ Deno.serve(async (req) => {
             proximo_pagamento: nextPayment,
             ultima_forma_pagamento: 'Pagar.me',
             cupom: cupom // Link customer to reseller via cupom
-          }
-          
-          // Adicionar valor_pago se fornecido
-          if (valorPago !== null) {
-            insertData.valor_pago = valorPago
           }
 
           const { data: newCustomer, error: insertError } = await supabase
