@@ -40,6 +40,7 @@ import {
   Package,
   Webhook,
   Eye,
+  Pencil,
   Check,
   ExternalLink,
   MessageSquare,
@@ -128,6 +129,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
   const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingIntegracao, setEditingIntegracao] = useState<Integracao | null>(null);
 
   // Logs dialog
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
@@ -218,6 +220,51 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditDialog = (integracao: Integracao) => {
+    setEditingIntegracao(integracao);
+    setNome(integracao.nome);
+    setTipo(integracao.tipo);
+    setDescricao(integracao.descricao || "");
+    setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
+    setDialogOpen(true);
+  };
+
+  const updateIntegracao = async () => {
+    if (!editingIntegracao || !nome.trim()) return;
+    setIsSaving(true);
+    try {
+      const config: Record<string, unknown> = { ...(editingIntegracao.config || {}) };
+      if (tipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
+        config.sessao_id = selectedSessaoId;
+      } else {
+        delete config.sessao_id;
+      }
+
+      const { error } = await supabase
+        .from("tb_integracoes")
+        .update({
+          nome,
+          tipo,
+          descricao: descricao || null,
+          config: config as any,
+        })
+        .eq("id", editingIntegracao.id);
+
+      if (error) throw error;
+      setDialogOpen(false);
+      setEditingIntegracao(null);
+      setNome("");
+      setDescricao("");
+      setSelectedSessaoId("");
+      fetchIntegracoes();
+      toast({ title: "Integração atualizada!" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -371,7 +418,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
               Gerencie seus webhooks e integrações customizadas
             </p>
           </div>
-          <Button onClick={() => { setNome(""); setDescricao(""); setTipo("receber_vendas"); setDialogOpen(true); }}>
+          <Button onClick={() => { setEditingIntegracao(null); setNome(""); setDescricao(""); setTipo("receber_vendas"); setSelectedSessaoId(""); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" />
             Nova Integração
           </Button>
@@ -427,6 +474,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(integracao)} title="Editar">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openLogs(integracao)}>
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -447,9 +497,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Integração</DialogTitle>
+            <DialogTitle>{editingIntegracao ? "Editar Integração" : "Nova Integração"}</DialogTitle>
             <DialogDescription>
-              Configure uma nova integração para receber dados externos
+              {editingIntegracao ? "Atualize as configurações da integração" : "Configure uma nova integração para receber dados externos"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -505,9 +555,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => createIntegracao()} disabled={isSaving || !nome.trim()}>
+            <Button onClick={() => editingIntegracao ? updateIntegracao() : createIntegracao()} disabled={isSaving || !nome.trim()}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Criar Integração
+              {editingIntegracao ? "Salvar Alterações" : "Criar Integração"}
             </Button>
           </DialogFooter>
         </DialogContent>
