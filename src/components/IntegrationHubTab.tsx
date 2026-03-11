@@ -418,7 +418,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
               Gerencie seus webhooks e integrações customizadas
             </p>
           </div>
-          <Button onClick={() => { setNome(""); setDescricao(""); setTipo("receber_vendas"); setDialogOpen(true); }}>
+          <Button onClick={() => { setEditingIntegracao(null); setNome(""); setDescricao(""); setTipo("receber_vendas"); setSelectedSessaoId(""); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" />
             Nova Integração
           </Button>
