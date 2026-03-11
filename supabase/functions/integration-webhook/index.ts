@@ -98,36 +98,71 @@ Deno.serve(async (req) => {
 });
 
 async function processarVendas(supabase: any, integracao: any, payload: any) {
-  // Expected payload: { cliente_nome?, itens: [{ nome, quantidade, preco_unitario }], forma_pagamento?, observacoes? }
+  // Expected payload: {
+  //   cliente_nome?, sessao_id?, desconto_percentual?, acrescimo_percentual?,
+  //   itens: [{ nome, quantidade, preco_unitario, produto_id? }],
+  //   pagamentos: [{ forma_pagamento: "Dinheiro"|"Crédito"|"Débito"|"Pix", valor }]
+  // }
   if (!payload || !Array.isArray(payload.itens) || payload.itens.length === 0) {
-    throw new Error("Payload inválido: envie { itens: [{ nome, quantidade, preco_unitario }] }");
+    throw new Error("Payload inválido: envie { itens: [{ nome, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
   }
 
-  const total = payload.itens.reduce(
+  // Validate sessao_id if provided
+  if (payload.sessao_id) {
+    const { data: sessao, error: sessaoError } = await supabase
+      .from("tb_sessoes_caixa")
+      .select("id, status")
+      .eq("id", payload.sessao_id)
+      .eq("dominio", integracao.dominio)
+      .single();
+
+    if (sessaoError || !sessao) {
+      throw new Error("Sessão de caixa (sessao_id) não encontrada para este domínio.");
+    }
+    if (sessao.status !== "aberto") {
+      throw new Error("Sessão de caixa informada não está aberta.");
+    }
+  }
+
+  const subtotal = payload.itens.reduce(
     (sum: number, item: any) => sum + (item.quantidade || 1) * (item.preco_unitario || 0),
     0
   );
+
+  const descontoPerc = payload.desconto_percentual || 0;
+  const acrescimoPerc = payload.acrescimo_percentual || 0;
+  const descontoVal = (subtotal * descontoPerc) / 100;
+  const acrescimoVal = (subtotal * acrescimoPerc) / 100;
+  const total = subtotal - descontoVal + acrescimoVal;
+
+  const totalPago = Array.isArray(payload.pagamentos)
+    ? payload.pagamentos.reduce((s: number, p: any) => s + (p.valor || 0), 0)
+    : total;
+  const troco = Math.max(0, totalPago - total);
 
   const { data: venda, error: vendaError } = await supabase
     .from("tb_vendas")
     .insert({
       dominio: integracao.dominio,
       unidade_id: integracao.unidade_id,
+      sessao_id: payload.sessao_id || null,
       cliente_nome: payload.cliente_nome || "Integração",
-      forma_pagamento: payload.forma_pagamento || "Outros",
+      subtotal,
+      desconto_percentual: descontoPerc,
+      acrescimo_percentual: acrescimoPerc,
       total,
-      observacoes: payload.observacoes || `Via integração: ${integracao.nome}`,
-      status: "concluida",
-      origem: "integracao",
+      troco,
     })
     .select("id")
     .single();
 
   if (vendaError) throw new Error(`Erro ao criar venda: ${vendaError.message}`);
 
+  // Insert items
   const itensToInsert = payload.itens.map((item: any, idx: number) => ({
     venda_id: venda.id,
     produto_nome: item.nome || `Item ${idx + 1}`,
+    produto_id: item.produto_id || 0,
     quantidade: item.quantidade || 1,
     preco_unitario: item.preco_unitario || 0,
     total: (item.quantidade || 1) * (item.preco_unitario || 0),
@@ -139,7 +174,22 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
 
   if (itensError) throw new Error(`Erro ao criar itens da venda: ${itensError.message}`);
 
-  return `Venda criada com ${payload.itens.length} iten(s). Total: R$ ${total.toFixed(2)}`;
+  // Insert payments
+  if (Array.isArray(payload.pagamentos) && payload.pagamentos.length > 0) {
+    const pagamentosToInsert = payload.pagamentos.map((p: any) => ({
+      venda_id: venda.id,
+      forma_pagamento: p.forma_pagamento || "Outros",
+      valor: p.valor || 0,
+    }));
+
+    const { error: pagError } = await supabase
+      .from("tb_vendas_pagamentos")
+      .insert(pagamentosToInsert);
+
+    if (pagError) throw new Error(`Erro ao registrar pagamentos: ${pagError.message}`);
+  }
+
+  return `Venda criada com ${payload.itens.length} iten(s), vinculada à sessão ${payload.sessao_id || "nenhuma"}. Total: R$ ${total.toFixed(2)}`;
 }
 
 async function processarProdutos(supabase: any, integracao: any, payload: any) {
