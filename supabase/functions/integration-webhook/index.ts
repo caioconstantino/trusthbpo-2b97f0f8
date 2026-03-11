@@ -138,10 +138,10 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     }
   }
 
-  // Resolve produtos by cod_interno
+  // Resolve produtos by cod_interno (also accept produto_id as cod_interno fallback)
   const codigosInternos = payload.itens
-    .map((item: any) => item.cod_interno)
-    .filter(Boolean);
+    .map((item: any) => item.cod_interno || item.produto_id)
+    .filter((v: any) => v && typeof v === "string");
 
   let produtosMap: Record<string, { id: number; nome: string }> = {};
   if (codigosInternos.length > 0) {
