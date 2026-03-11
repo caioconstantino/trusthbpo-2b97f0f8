@@ -770,7 +770,7 @@ export default function Configuracoes() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-6' : 'grid-cols-5'}`}>
+          <TabsList className={`grid w-full h-auto gap-1 ${isPro ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="empresa" className="gap-2 py-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Empresa</span>
@@ -796,6 +796,10 @@ export default function Configuracoes() {
             <TabsTrigger value="permissoes" className="gap-2 py-2">
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Permissões</span>
+            </TabsTrigger>
+            <TabsTrigger value="integracoes" className="gap-2 py-2">
+              <Plug className="h-4 w-4" />
+              <span className="hidden sm:inline">Integrações</span>
             </TabsTrigger>
           </TabsList>
 
