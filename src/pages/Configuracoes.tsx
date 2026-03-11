@@ -55,7 +55,9 @@ import {
   MapPin,
   Monitor,
   Minus,
+  Plug,
 } from "lucide-react";
+import { IntegrationHubTab } from "@/components/IntegrationHubTab";
 
 interface ClienteSaas {
   razao_social: string;
