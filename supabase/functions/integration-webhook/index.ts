@@ -148,7 +148,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     .insert({
       dominio: integracao.dominio,
       unidade_id: integracao.unidade_id,
-      sessao_id: payload.sessao_id || null,
+      sessao_id: sessaoId,
       cliente_nome: payload.cliente_nome || "Integração",
       subtotal,
       desconto_percentual: descontoPerc,
