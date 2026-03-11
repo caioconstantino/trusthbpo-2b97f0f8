@@ -497,9 +497,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Integração</DialogTitle>
+            <DialogTitle>{editingIntegracao ? "Editar Integração" : "Nova Integração"}</DialogTitle>
             <DialogDescription>
-              Configure uma nova integração para receber dados externos
+              {editingIntegracao ? "Atualize as configurações da integração" : "Configure uma nova integração para receber dados externos"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
