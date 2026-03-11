@@ -107,8 +107,11 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     throw new Error("Payload inválido: envie { itens: [{ nome, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
   }
 
+  // Use sessao_id from payload, or fall back to integration config
+  const sessaoId = payload.sessao_id || (integracao.config?.sessao_id) || null;
+
   // Validate sessao_id if provided
-  if (payload.sessao_id) {
+  if (sessaoId) {
     const { data: sessao, error: sessaoError } = await supabase
       .from("tb_sessoes_caixa")
       .select("id, status")
