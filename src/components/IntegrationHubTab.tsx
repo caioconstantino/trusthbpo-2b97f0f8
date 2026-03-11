@@ -125,6 +125,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("receber_vendas");
   const [descricao, setDescricao] = useState("");
+  const [selectedSessaoId, setSelectedSessaoId] = useState("");
+  const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Logs dialog
