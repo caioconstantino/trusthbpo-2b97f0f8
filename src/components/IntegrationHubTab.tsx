@@ -227,7 +227,51 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     }
   };
 
-  const toggleAtivo = async (integracao: Integracao) => {
+  const openEditDialog = (integracao: Integracao) => {
+    setEditingIntegracao(integracao);
+    setNome(integracao.nome);
+    setTipo(integracao.tipo);
+    setDescricao(integracao.descricao || "");
+    setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
+    setDialogOpen(true);
+  };
+
+  const updateIntegracao = async () => {
+    if (!editingIntegracao || !nome.trim()) return;
+    setIsSaving(true);
+    try {
+      const config: Record<string, unknown> = { ...(editingIntegracao.config || {}) };
+      if (tipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
+        config.sessao_id = selectedSessaoId;
+      } else {
+        delete config.sessao_id;
+      }
+
+      const { error } = await supabase
+        .from("tb_integracoes")
+        .update({
+          nome,
+          tipo,
+          descricao: descricao || null,
+          config: config as any,
+        })
+        .eq("id", editingIntegracao.id);
+
+      if (error) throw error;
+      setDialogOpen(false);
+      setEditingIntegracao(null);
+      setNome("");
+      setDescricao("");
+      setSelectedSessaoId("");
+      fetchIntegracoes();
+      toast({ title: "Integração atualizada!" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
     try {
       const { error } = await supabase
         .from("tb_integracoes")
