@@ -107,12 +107,15 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     throw new Error("Payload inválido: envie { itens: [{ nome, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
   }
 
+  // Use sessao_id from payload, or fall back to integration config
+  const sessaoId = payload.sessao_id || (integracao.config?.sessao_id) || null;
+
   // Validate sessao_id if provided
-  if (payload.sessao_id) {
+  if (sessaoId) {
     const { data: sessao, error: sessaoError } = await supabase
       .from("tb_sessoes_caixa")
       .select("id, status")
-      .eq("id", payload.sessao_id)
+      .eq("id", sessaoId)
       .eq("dominio", integracao.dominio)
       .single();
 
@@ -145,7 +148,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     .insert({
       dominio: integracao.dominio,
       unidade_id: integracao.unidade_id,
-      sessao_id: payload.sessao_id || null,
+      sessao_id: sessaoId,
       cliente_nome: payload.cliente_nome || "Integração",
       subtotal,
       desconto_percentual: descontoPerc,
@@ -189,7 +192,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     if (pagError) throw new Error(`Erro ao registrar pagamentos: ${pagError.message}`);
   }
 
-  return `Venda criada com ${payload.itens.length} iten(s), vinculada à sessão ${payload.sessao_id || "nenhuma"}. Total: R$ ${total.toFixed(2)}`;
+  return `Venda criada com ${payload.itens.length} iten(s), vinculada à sessão ${sessaoId || "nenhuma"}. Total: R$ ${total.toFixed(2)}`;
 }
 
 async function processarProdutos(supabase: any, integracao: any, payload: any) {

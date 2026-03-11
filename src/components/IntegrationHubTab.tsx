@@ -125,6 +125,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("receber_vendas");
   const [descricao, setDescricao] = useState("");
+  const [selectedSessaoId, setSelectedSessaoId] = useState("");
+  const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Logs dialog
@@ -144,7 +146,22 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
 
   useEffect(() => {
     fetchIntegracoes();
+    fetchSessoes();
   }, [dominio]);
+
+  const fetchSessoes = async () => {
+    try {
+      const { data } = await supabase
+        .from("tb_sessoes_caixa")
+        .select("id, caixa_nome, usuario_nome, status")
+        .eq("dominio", dominio)
+        .eq("status", "aberto")
+        .order("data_abertura", { ascending: false });
+      setSessoes(data || []);
+    } catch (e) {
+      console.error("Erro ao carregar sessões:", e);
+    }
+  };
 
   const fetchIntegracoes = async () => {
     try {
@@ -171,6 +188,11 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
 
     setIsSaving(true);
     try {
+      const config: Record<string, unknown> = {};
+      if (finalTipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
+        config.sessao_id = selectedSessaoId;
+      }
+
       const { data, error } = await supabase
         .from("tb_integracoes")
         .insert({
@@ -179,6 +201,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
           nome: finalNome,
           tipo: finalTipo,
           descricao: descricao || null,
+          config: config as any,
         })
         .select()
         .single();
@@ -191,6 +214,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setCreatedDialogOpen(true);
       setNome("");
       setDescricao("");
+      setSelectedSessaoId("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
@@ -451,6 +475,27 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                 {TIPOS_INTEGRACAO.find((t) => t.value === tipo)?.desc}
               </p>
             </div>
+            {tipo === "receber_vendas" && (
+              <div className="space-y-2">
+                <Label>PDV / Caixa (opcional)</Label>
+                <Select value={selectedSessaoId} onValueChange={setSelectedSessaoId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um caixa aberto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum (informar no payload)</SelectItem>
+                    {sessoes.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.caixa_nome} - {s.usuario_nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Vincule as vendas recebidas a um caixa aberto. Se não selecionar, o sistema externo deverá enviar o sessao_id no payload.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva a integração" />
