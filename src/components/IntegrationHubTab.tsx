@@ -555,9 +555,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => createIntegracao()} disabled={isSaving || !nome.trim()}>
+            <Button onClick={() => editingIntegracao ? updateIntegracao() : createIntegracao()} disabled={isSaving || !nome.trim()}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Criar Integração
+              {editingIntegracao ? "Salvar Alterações" : "Criar Integração"}
             </Button>
           </DialogFooter>
         </DialogContent>
