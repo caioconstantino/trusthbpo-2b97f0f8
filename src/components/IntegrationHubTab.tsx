@@ -272,6 +272,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     }
   };
 
+  const toggleAtivo = async (integracao: Integracao) => {
     try {
       const { error } = await supabase
         .from("tb_integracoes")
