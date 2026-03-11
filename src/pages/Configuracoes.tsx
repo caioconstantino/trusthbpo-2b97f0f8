@@ -1746,6 +1746,14 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Integrações Tab */}
+          <TabsContent value="integracoes">
+            {userDominio && (
+              <IntegrationHubTab dominio={userDominio} />
+            )}
+          </TabsContent>
+
         </Tabs>
       </div>
 
