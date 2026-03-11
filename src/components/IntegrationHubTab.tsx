@@ -188,6 +188,11 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
 
     setIsSaving(true);
     try {
+      const config: Record<string, unknown> = {};
+      if (finalTipo === "receber_vendas" && selectedSessaoId) {
+        config.sessao_id = selectedSessaoId;
+      }
+
       const { data, error } = await supabase
         .from("tb_integracoes")
         .insert({
@@ -196,6 +201,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
           nome: finalNome,
           tipo: finalTipo,
           descricao: descricao || null,
+          config,
         })
         .select()
         .single();
@@ -208,6 +214,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setCreatedDialogOpen(true);
       setNome("");
       setDescricao("");
+      setSelectedSessaoId("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
