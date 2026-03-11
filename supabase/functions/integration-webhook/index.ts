@@ -115,7 +115,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     const { data: sessao, error: sessaoError } = await supabase
       .from("tb_sessoes_caixa")
       .select("id, status")
-      .eq("id", payload.sessao_id)
+      .eq("id", sessaoId)
       .eq("dominio", integracao.dominio)
       .single();
 
