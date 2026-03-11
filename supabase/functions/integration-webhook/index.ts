@@ -193,7 +193,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     .from("tb_vendas")
     .insert({
       dominio: integracao.dominio,
-      unidade_id: integracao.unidade_id,
+      unidade_id: unidadeId,
       sessao_id: sessaoId,
       cliente_nome: clienteDocumento ? `${clienteNome} (${clienteDocumento})` : clienteNome,
       subtotal,
