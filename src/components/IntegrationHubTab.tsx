@@ -189,7 +189,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     setIsSaving(true);
     try {
       const config: Record<string, unknown> = {};
-      if (finalTipo === "receber_vendas" && selectedSessaoId) {
+      if (finalTipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
         config.sessao_id = selectedSessaoId;
       }
 
