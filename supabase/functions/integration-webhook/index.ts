@@ -207,9 +207,10 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
 
   if (vendaError) throw new Error(`Erro ao criar venda: ${vendaError.message}`);
 
-  // Insert items - resolve by cod_interno
+  // Insert items - resolve by cod_interno or produto_id (as cod_interno)
   const itensToInsert = payload.itens.map((item: any, idx: number) => {
-    const produtoRef = item.cod_interno ? produtosMap[item.cod_interno] : null;
+    const codInterno = item.cod_interno || (typeof item.produto_id === "string" ? item.produto_id : null);
+    const produtoRef = codInterno ? produtosMap[codInterno] : null;
     return {
       venda_id: venda.id,
       produto_nome: produtoRef?.nome || item.nome || `Item ${idx + 1}`,
