@@ -511,9 +511,14 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                   <pre className="text-xs bg-background p-3 rounded-md overflow-x-auto">
 {`{
   "cliente_nome": "João Silva",
-  "forma_pagamento": "Pix",
+  "sessao_id": "uuid-da-sessao-do-caixa (opcional)",
+  "desconto_percentual": 0,
+  "acrescimo_percentual": 0,
   "itens": [
-    { "nome": "Produto A", "quantidade": 2, "preco_unitario": 49.90 }
+    { "nome": "Produto A", "quantidade": 2, "preco_unitario": 49.90, "produto_id": 1 }
+  ],
+  "pagamentos": [
+    { "forma_pagamento": "Pix", "valor": 99.80 }
   ]
 }`}
                   </pre>
