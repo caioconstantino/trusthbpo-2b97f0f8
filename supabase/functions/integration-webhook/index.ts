@@ -107,6 +107,18 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     throw new Error("Payload inválido: envie { itens: [{ cod_interno, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
   }
 
+  // Resolve unidade_id: from integration, or find default for domain
+  let unidadeId = integracao.unidade_id || null;
+  if (!unidadeId) {
+    const { data: unidade } = await supabase
+      .from("tb_unidades")
+      .select("id")
+      .eq("dominio", integracao.dominio)
+      .limit(1)
+      .single();
+    if (unidade) unidadeId = unidade.id;
+  }
+
   // Use sessao_id from payload, or fall back to integration config
   const sessaoId = payload.sessao_id || (integracao.config?.sessao_id) || null;
 
