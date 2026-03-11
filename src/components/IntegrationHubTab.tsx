@@ -40,6 +40,7 @@ import {
   Package,
   Webhook,
   Eye,
+  Pencil,
   Check,
   ExternalLink,
   MessageSquare,
