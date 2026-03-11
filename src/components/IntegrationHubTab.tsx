@@ -560,7 +560,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   "desconto_percentual": 0,
   "acrescimo_percentual": 0,
   "itens": [
-    { "nome": "Produto A", "quantidade": 2, "preco_unitario": 49.90, "produto_id": 1 }
+    { "cod_interno": "PROD001", "quantidade": 2, "preco_unitario": 49.90 }
   ],
   "pagamentos": [
     { "forma_pagamento": "Pix", "valor": 99.80 }

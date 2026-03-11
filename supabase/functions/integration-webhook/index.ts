@@ -100,17 +100,16 @@ Deno.serve(async (req) => {
 async function processarVendas(supabase: any, integracao: any, payload: any) {
   // Expected payload: {
   //   cliente_nome?, sessao_id?, desconto_percentual?, acrescimo_percentual?,
-  //   itens: [{ nome, quantidade, preco_unitario, produto_id? }],
+  //   itens: [{ cod_interno, nome?, quantidade, preco_unitario }],
   //   pagamentos: [{ forma_pagamento: "Dinheiro"|"Crédito"|"Débito"|"Pix", valor }]
   // }
   if (!payload || !Array.isArray(payload.itens) || payload.itens.length === 0) {
-    throw new Error("Payload inválido: envie { itens: [{ nome, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
+    throw new Error("Payload inválido: envie { itens: [{ cod_interno, quantidade, preco_unitario }], pagamentos: [{ forma_pagamento, valor }] }");
   }
 
   // Use sessao_id from payload, or fall back to integration config
   const sessaoId = payload.sessao_id || (integracao.config?.sessao_id) || null;
 
-  // Validate sessao_id if provided
   if (sessaoId) {
     const { data: sessao, error: sessaoError } = await supabase
       .from("tb_sessoes_caixa")
@@ -124,6 +123,26 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     }
     if (sessao.status !== "aberto") {
       throw new Error("Sessão de caixa informada não está aberta.");
+    }
+  }
+
+  // Resolve produtos by cod_interno
+  const codigosInternos = payload.itens
+    .map((item: any) => item.cod_interno)
+    .filter(Boolean);
+
+  let produtosMap: Record<string, { id: number; nome: string }> = {};
+  if (codigosInternos.length > 0) {
+    const { data: produtos } = await supabase
+      .from("tb_produtos")
+      .select("id, nome, codigo")
+      .eq("dominio", integracao.dominio)
+      .in("codigo", codigosInternos);
+
+    if (produtos) {
+      for (const p of produtos) {
+        if (p.codigo) produtosMap[p.codigo] = { id: p.id, nome: p.nome };
+      }
     }
   }
 
@@ -161,15 +180,18 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
 
   if (vendaError) throw new Error(`Erro ao criar venda: ${vendaError.message}`);
 
-  // Insert items
-  const itensToInsert = payload.itens.map((item: any, idx: number) => ({
-    venda_id: venda.id,
-    produto_nome: item.nome || `Item ${idx + 1}`,
-    produto_id: item.produto_id || 0,
-    quantidade: item.quantidade || 1,
-    preco_unitario: item.preco_unitario || 0,
-    total: (item.quantidade || 1) * (item.preco_unitario || 0),
-  }));
+  // Insert items - resolve by cod_interno
+  const itensToInsert = payload.itens.map((item: any, idx: number) => {
+    const produtoRef = item.cod_interno ? produtosMap[item.cod_interno] : null;
+    return {
+      venda_id: venda.id,
+      produto_nome: produtoRef?.nome || item.nome || `Item ${idx + 1}`,
+      produto_id: produtoRef?.id || 0,
+      quantidade: item.quantidade || 1,
+      preco_unitario: item.preco_unitario || 0,
+      total: (item.quantidade || 1) * (item.preco_unitario || 0),
+    };
+  });
 
   const { error: itensError } = await supabase
     .from("tb_vendas_itens")
