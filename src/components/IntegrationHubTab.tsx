@@ -201,7 +201,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
           nome: finalNome,
           tipo: finalTipo,
           descricao: descricao || null,
-          config,
+          config: config as any,
         })
         .select()
         .single();
