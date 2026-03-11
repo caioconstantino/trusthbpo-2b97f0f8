@@ -192,7 +192,7 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     if (pagError) throw new Error(`Erro ao registrar pagamentos: ${pagError.message}`);
   }
 
-  return `Venda criada com ${payload.itens.length} iten(s), vinculada à sessão ${payload.sessao_id || "nenhuma"}. Total: R$ ${total.toFixed(2)}`;
+  return `Venda criada com ${payload.itens.length} iten(s), vinculada à sessão ${sessaoId || "nenhuma"}. Total: R$ ${total.toFixed(2)}`;
 }
 
 async function processarProdutos(supabase: any, integracao: any, payload: any) {
