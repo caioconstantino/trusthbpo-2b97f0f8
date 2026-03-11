@@ -1035,6 +1035,91 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_integracoes: {
+        Row: {
+          ativo: boolean
+          config: Json | null
+          created_at: string
+          descricao: string | null
+          dominio: string
+          id: string
+          nome: string
+          tipo: string
+          unidade_id: number | null
+          updated_at: string
+          webhook_token: string
+        }
+        Insert: {
+          ativo?: boolean
+          config?: Json | null
+          created_at?: string
+          descricao?: string | null
+          dominio: string
+          id?: string
+          nome: string
+          tipo?: string
+          unidade_id?: number | null
+          updated_at?: string
+          webhook_token?: string
+        }
+        Update: {
+          ativo?: boolean
+          config?: Json | null
+          created_at?: string
+          descricao?: string | null
+          dominio?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          unidade_id?: number | null
+          updated_at?: string
+          webhook_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_integracoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "tb_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_integracoes_logs: {
+        Row: {
+          created_at: string
+          id: string
+          integracao_id: string
+          payload: Json | null
+          resposta: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integracao_id: string
+          payload?: Json | null
+          resposta?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integracao_id?: string
+          payload?: Json | null
+          resposta?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_integracoes_logs_integracao_id_fkey"
+            columns: ["integracao_id"]
+            isOneToOne: false
+            referencedRelation: "tb_integracoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_ofertas_produtos: {
         Row: {
           ativo: boolean
