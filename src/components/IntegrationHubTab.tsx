@@ -475,6 +475,27 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                 {TIPOS_INTEGRACAO.find((t) => t.value === tipo)?.desc}
               </p>
             </div>
+            {tipo === "receber_vendas" && (
+              <div className="space-y-2">
+                <Label>PDV / Caixa (opcional)</Label>
+                <Select value={selectedSessaoId} onValueChange={setSelectedSessaoId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um caixa aberto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum (informar no payload)</SelectItem>
+                    {sessoes.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.caixa_nome} - {s.usuario_nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Vincule as vendas recebidas a um caixa aberto. Se não selecionar, o sistema externo deverá enviar o sessao_id no payload.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva a integração" />
