@@ -146,7 +146,22 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
 
   useEffect(() => {
     fetchIntegracoes();
+    fetchSessoes();
   }, [dominio]);
+
+  const fetchSessoes = async () => {
+    try {
+      const { data } = await supabase
+        .from("tb_sessoes_caixa")
+        .select("id, caixa_nome, usuario_nome, status")
+        .eq("dominio", dominio)
+        .eq("status", "aberto")
+        .order("data_abertura", { ascending: false });
+      setSessoes(data || []);
+    } catch (e) {
+      console.error("Erro ao carregar sessões:", e);
+    }
+  };
 
   const fetchIntegracoes = async () => {
     try {
