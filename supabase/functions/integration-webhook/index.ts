@@ -138,10 +138,10 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     }
   }
 
-  // Resolve produtos by cod_interno
+  // Resolve produtos by cod_interno (also accept produto_id as cod_interno fallback)
   const codigosInternos = payload.itens
-    .map((item: any) => item.cod_interno)
-    .filter(Boolean);
+    .map((item: any) => item.cod_interno || item.produto_id)
+    .filter((v: any) => v && typeof v === "string");
 
   let produtosMap: Record<string, { id: number; nome: string }> = {};
   if (codigosInternos.length > 0) {
@@ -207,9 +207,10 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
 
   if (vendaError) throw new Error(`Erro ao criar venda: ${vendaError.message}`);
 
-  // Insert items - resolve by cod_interno
+  // Insert items - resolve by cod_interno or produto_id (as cod_interno)
   const itensToInsert = payload.itens.map((item: any, idx: number) => {
-    const produtoRef = item.cod_interno ? produtosMap[item.cod_interno] : null;
+    const codInterno = item.cod_interno || (typeof item.produto_id === "string" ? item.produto_id : null);
+    const produtoRef = codInterno ? produtosMap[codInterno] : null;
     return {
       venda_id: venda.id,
       produto_nome: produtoRef?.nome || item.nome || `Item ${idx + 1}`,
@@ -225,6 +226,29 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     .insert(itensToInsert);
 
   if (itensError) throw new Error(`Erro ao criar itens da venda: ${itensError.message}`);
+
+  // Deduct stock for resolved products
+  if (unidadeId) {
+    for (const item of itensToInsert) {
+      if (item.produto_id && item.produto_id > 0) {
+        // Try to update existing stock record
+        const { data: estoque } = await supabase
+          .from("tb_estq_unidades")
+          .select("id, quantidade")
+          .eq("produto_id", item.produto_id)
+          .eq("unidade_id", unidadeId)
+          .eq("dominio", integracao.dominio)
+          .maybeSingle();
+
+        if (estoque) {
+          await supabase
+            .from("tb_estq_unidades")
+            .update({ quantidade: Math.max(0, estoque.quantidade - item.quantidade) })
+            .eq("id", estoque.id);
+        }
+      }
+    }
+  }
 
   // Insert payments
   if (Array.isArray(payload.pagamentos) && payload.pagamentos.length > 0) {
