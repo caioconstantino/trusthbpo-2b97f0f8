@@ -146,6 +146,18 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     }
   }
 
+  const frete = payload.frete || 0;
+
+  // Add frete as a line item if > 0
+  if (frete > 0) {
+    payload.itens.push({
+      nome: "Frete",
+      quantidade: 1,
+      preco_unitario: frete,
+      cod_interno: null,
+    });
+  }
+
   const subtotal = payload.itens.reduce(
     (sum: number, item: any) => sum + (item.quantidade || 1) * (item.preco_unitario || 0),
     0
@@ -162,13 +174,16 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
     : total;
   const troco = Math.max(0, totalPago - total);
 
+  const clienteNome = payload.cliente_nome || "Integração";
+  const clienteDocumento = payload.cliente_documento || null;
+
   const { data: venda, error: vendaError } = await supabase
     .from("tb_vendas")
     .insert({
       dominio: integracao.dominio,
       unidade_id: integracao.unidade_id,
       sessao_id: sessaoId,
-      cliente_nome: payload.cliente_nome || "Integração",
+      cliente_nome: clienteDocumento ? `${clienteNome} (${clienteDocumento})` : clienteNome,
       subtotal,
       desconto_percentual: descontoPerc,
       acrescimo_percentual: acrescimoPerc,
