@@ -227,6 +227,29 @@ async function processarVendas(supabase: any, integracao: any, payload: any) {
 
   if (itensError) throw new Error(`Erro ao criar itens da venda: ${itensError.message}`);
 
+  // Deduct stock for resolved products
+  if (unidadeId) {
+    for (const item of itensToInsert) {
+      if (item.produto_id && item.produto_id > 0) {
+        // Try to update existing stock record
+        const { data: estoque } = await supabase
+          .from("tb_estq_unidades")
+          .select("id, quantidade")
+          .eq("produto_id", item.produto_id)
+          .eq("unidade_id", unidadeId)
+          .eq("dominio", integracao.dominio)
+          .maybeSingle();
+
+        if (estoque) {
+          await supabase
+            .from("tb_estq_unidades")
+            .update({ quantidade: Math.max(0, estoque.quantidade - item.quantidade) })
+            .eq("id", estoque.id);
+        }
+      }
+    }
+  }
+
   // Insert payments
   if (Array.isArray(payload.pagamentos) && payload.pagamentos.length > 0) {
     const pagamentosToInsert = payload.pagamentos.map((p: any) => ({
