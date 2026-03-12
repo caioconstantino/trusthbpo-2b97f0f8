@@ -22,6 +22,7 @@ interface Product {
   nome: string;
   codigo: string | null;
   imagem_url: string | null;
+  preco_custo: number | null;
 }
 
 interface PurchaseItem {
@@ -30,6 +31,7 @@ interface PurchaseItem {
   currentStock: number;
   quantityToBuy: number;
   image: string | null;
+  precoCusto: number;
 }
 
 export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogProps) => {
