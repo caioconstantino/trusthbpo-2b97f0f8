@@ -19,8 +19,9 @@ import {
 } from "./ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { format, addMonths } from "date-fns";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 interface Parcela {
   numero: number;
@@ -50,6 +51,7 @@ export const CompletePurchaseDialog = ({
   const [numParcelas, setNumParcelas] = useState(1);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const dominio = localStorage.getItem("user_dominio") || "";
+  const unidadeId = getUnidadeAtivaId();
 
   useEffect(() => {
     if (open && purchaseId) {
@@ -116,12 +118,13 @@ export const CompletePurchaseDialog = ({
       if (itemsError) throw itemsError;
 
       for (const item of items || []) {
+        const effectiveUnidadeId = unidadeId || 1;
         const { data: existing } = await supabase
           .from("tb_estq_unidades")
           .select("id, quantidade")
           .eq("produto_id", item.produto_id)
           .eq("dominio", dominio)
-          .eq("unidade_id", 1)
+          .eq("unidade_id", effectiveUnidadeId)
           .maybeSingle();
 
         if (existing) {
@@ -135,7 +138,7 @@ export const CompletePurchaseDialog = ({
             .insert({
               dominio,
               produto_id: item.produto_id,
-              unidade_id: 1,
+              unidade_id: effectiveUnidadeId,
               quantidade: item.quantidade,
               quantidade_minima: 0
             });
@@ -158,6 +161,7 @@ export const CompletePurchaseDialog = ({
       if (registerPayable && parcelas.length > 0) {
         const contasAInserir = parcelas.map((parcela) => ({
           dominio,
+          unidade_id: unidadeId || null,
           categoria: "COMPRAS",
           descricao: parcelas.length > 1 
             ? `Compra - ${fornecedor || 'Sem fornecedor'} (${parcela.numero}/${parcelas.length})`
@@ -170,7 +174,11 @@ export const CompletePurchaseDialog = ({
           compra_id: purchaseId
         }));
 
-        await supabase.from("tb_contas_pagar").insert(contasAInserir);
+        const { error: contasError } = await supabase.from("tb_contas_pagar").insert(contasAInserir);
+        if (contasError) {
+          console.error("Erro ao criar contas a pagar:", contasError);
+          toast({ title: "Compra concluída, mas houve erro ao gerar contas a pagar", variant: "destructive" });
+        }
       }
 
       toast({ title: "Compra concluída!", description: "Estoque atualizado com sucesso." });
