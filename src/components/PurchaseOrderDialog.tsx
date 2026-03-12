@@ -140,7 +140,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
     setItems(items.filter(item => item.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (items.length === 0) {
       toast({
         title: "Lista vazia",
@@ -150,15 +150,20 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
       return;
     }
 
-    // Aqui você pode implementar a lógica para salvar o pedido de compra
-    console.log("Salvar pedido de compra:", items);
-    
-    toast({
-      title: "Pedido salvo!",
-      description: "O pedido de compra foi salvo com sucesso.",
-    });
+    setSaving(true);
+    const purchaseItems = items.map(item => ({
+      produto_id: item.id,
+      produto_nome: item.name,
+      quantidade: item.quantityToBuy,
+      preco_custo: item.precoCusto,
+    }));
 
-    onOpenChange(false);
+    const success = await createPurchase(purchaseItems);
+    setSaving(false);
+
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   return (
