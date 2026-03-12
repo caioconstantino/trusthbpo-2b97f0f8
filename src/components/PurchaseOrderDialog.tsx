@@ -36,11 +36,13 @@ interface PurchaseItem {
 
 export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogProps) => {
   const { toast } = useToast();
+  const { createPurchase } = usePurchases();
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [items, setItems] = useState<PurchaseItem[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const fetchProducts = async () => {
     const dominio = localStorage.getItem("user_dominio");
