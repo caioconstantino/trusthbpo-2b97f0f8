@@ -118,12 +118,13 @@ export const CompletePurchaseDialog = ({
       if (itemsError) throw itemsError;
 
       for (const item of items || []) {
+        const effectiveUnidadeId = unidadeId || 1;
         const { data: existing } = await supabase
           .from("tb_estq_unidades")
           .select("id, quantidade")
           .eq("produto_id", item.produto_id)
           .eq("dominio", dominio)
-          .eq("unidade_id", 1)
+          .eq("unidade_id", effectiveUnidadeId)
           .maybeSingle();
 
         if (existing) {
@@ -137,7 +138,7 @@ export const CompletePurchaseDialog = ({
             .insert({
               dominio,
               produto_id: item.produto_id,
-              unidade_id: 1,
+              unidade_id: effectiveUnidadeId,
               quantidade: item.quantidade,
               quantidade_minima: 0
             });
