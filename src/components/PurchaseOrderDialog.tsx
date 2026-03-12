@@ -7,9 +7,10 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Package, X } from "lucide-react";
+import { Package, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePurchases } from "@/hooks/usePurchases";
 
 interface PurchaseOrderDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface Product {
   nome: string;
   codigo: string | null;
   imagem_url: string | null;
+  preco_custo: number | null;
 }
 
 interface PurchaseItem {
@@ -29,15 +31,18 @@ interface PurchaseItem {
   currentStock: number;
   quantityToBuy: number;
   image: string | null;
+  precoCusto: number;
 }
 
 export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogProps) => {
   const { toast } = useToast();
+  const { createPurchase } = usePurchases();
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [items, setItems] = useState<PurchaseItem[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const fetchProducts = async () => {
     const dominio = localStorage.getItem("user_dominio");
@@ -45,7 +50,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
 
     const { data, error } = await supabase
       .from("tb_produtos")
-      .select("id, nome, codigo, imagem_url")
+      .select("id, nome, codigo, imagem_url, preco_custo")
       .eq("dominio", dominio)
       .eq("ativo", true)
       .order("nome");
@@ -117,6 +122,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
         currentStock,
         quantityToBuy: 1,
         image: product.imagem_url,
+        precoCusto: product.preco_custo || 0,
       },
     ]);
 
@@ -134,7 +140,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
     setItems(items.filter(item => item.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (items.length === 0) {
       toast({
         title: "Lista vazia",
@@ -144,15 +150,20 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
       return;
     }
 
-    // Aqui você pode implementar a lógica para salvar o pedido de compra
-    console.log("Salvar pedido de compra:", items);
-    
-    toast({
-      title: "Pedido salvo!",
-      description: "O pedido de compra foi salvo com sucesso.",
-    });
+    setSaving(true);
+    const purchaseItems = items.map(item => ({
+      produto_id: item.id,
+      produto_nome: item.name,
+      quantidade: item.quantityToBuy,
+      preco_custo: item.precoCusto,
+    }));
 
-    onOpenChange(false);
+    const success = await createPurchase(purchaseItems);
+    setSaving(false);
+
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -283,7 +294,8 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
 
           {/* Botão Salvar */}
           <div className="flex justify-end pt-4">
-            <Button onClick={handleSave} size="lg">
+            <Button onClick={handleSave} size="lg" disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar Pedido
             </Button>
           </div>
