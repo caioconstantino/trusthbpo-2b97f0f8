@@ -7,9 +7,10 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Package, X } from "lucide-react";
+import { Package, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePurchases } from "@/hooks/usePurchases";
 
 interface PurchaseOrderDialogProps {
   open: boolean;
