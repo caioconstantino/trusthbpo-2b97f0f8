@@ -294,7 +294,8 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
 
           {/* Botão Salvar */}
           <div className="flex justify-end pt-4">
-            <Button onClick={handleSave} size="lg">
+            <Button onClick={handleSave} size="lg" disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar Pedido
             </Button>
           </div>
