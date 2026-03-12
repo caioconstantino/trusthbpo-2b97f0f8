@@ -51,6 +51,7 @@ export const CompletePurchaseDialog = ({
   const [numParcelas, setNumParcelas] = useState(1);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const dominio = localStorage.getItem("user_dominio") || "";
+  const unidadeId = getUnidadeAtivaId();
 
   useEffect(() => {
     if (open && purchaseId) {
