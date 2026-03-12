@@ -161,6 +161,7 @@ export const CompletePurchaseDialog = ({
       if (registerPayable && parcelas.length > 0) {
         const contasAInserir = parcelas.map((parcela) => ({
           dominio,
+          unidade_id: unidadeId || null,
           categoria: "COMPRAS",
           descricao: parcelas.length > 1 
             ? `Compra - ${fornecedor || 'Sem fornecedor'} (${parcela.numero}/${parcelas.length})`
@@ -173,7 +174,11 @@ export const CompletePurchaseDialog = ({
           compra_id: purchaseId
         }));
 
-        await supabase.from("tb_contas_pagar").insert(contasAInserir);
+        const { error: contasError } = await supabase.from("tb_contas_pagar").insert(contasAInserir);
+        if (contasError) {
+          console.error("Erro ao criar contas a pagar:", contasError);
+          toast({ title: "Compra concluída, mas houve erro ao gerar contas a pagar", variant: "destructive" });
+        }
       }
 
       toast({ title: "Compra concluída!", description: "Estoque atualizado com sucesso." });
