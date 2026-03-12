@@ -50,7 +50,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
 
     const { data, error } = await supabase
       .from("tb_produtos")
-      .select("id, nome, codigo, imagem_url")
+      .select("id, nome, codigo, imagem_url, preco_custo")
       .eq("dominio", dominio)
       .eq("ativo", true)
       .order("nome");
