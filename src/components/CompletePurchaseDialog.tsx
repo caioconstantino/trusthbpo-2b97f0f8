@@ -19,8 +19,9 @@ import {
 } from "./ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { format, addMonths } from "date-fns";
+import { getUnidadeAtivaId } from "@/hooks/useUnidadeAtiva";
 
 interface Parcela {
   numero: number;
