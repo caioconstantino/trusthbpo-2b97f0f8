@@ -122,6 +122,7 @@ export const PurchaseOrderDialog = ({ open, onOpenChange }: PurchaseOrderDialogP
         currentStock,
         quantityToBuy: 1,
         image: product.imagem_url,
+        precoCusto: product.preco_custo || 0,
       },
     ]);
 
