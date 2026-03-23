@@ -34,12 +34,12 @@ export function ContratarAgendaDialog({
         throw new Error("Domínio não encontrado");
       }
 
-      const { error } = await supabase
-        .from("tb_clientes_saas")
-        .update({ agenda_ativa: true })
-        .eq("dominio", dominio);
+      const { data, error } = await supabase.functions.invoke("get-customer-data", {
+        body: { dominio, action: "ativar_agenda" },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Sucesso!",
