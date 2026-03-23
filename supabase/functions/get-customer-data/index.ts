@@ -111,6 +111,27 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (action === 'ativar_agenda') {
+      console.log(`Ativando agenda para ${dominio}`)
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update({ agenda_ativa: true })
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error activating agenda:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao ativar agenda' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Agenda ativada com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     if (action === 'update_fechamento_cego' && typeof fechamento_cego === 'boolean') {
       console.log(`Updating Fechamento Cego for ${dominio}: ${fechamento_cego}`)
       const { error: updateError } = await supabase
