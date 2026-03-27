@@ -6,7 +6,8 @@ import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
 import { ProductLimitAlert } from "@/components/ProductLimitAlert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, ArrowLeftRight, Loader2, Package } from "lucide-react";
+import { ShoppingCart, ArrowLeftRight, Loader2, Package, FileSpreadsheet } from "lucide-react";
+import { ImportProdutosDialog } from "@/components/ImportProdutosDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useProductLimit } from "@/hooks/useProductLimit";
 import { NoPermission } from "@/components/NoPermission";
@@ -15,6 +16,7 @@ const Produtos = () => {
   const { canView, canEdit, isLoading: permissionsLoading } = usePermissions();
   const productLimit = useProductLimit();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   const handleProductAdded = () => {
@@ -56,13 +58,21 @@ const Produtos = () => {
           <div className="flex gap-3">
             <Button 
               variant="secondary" 
-              className="gap-2 bg-slate-700 hover:bg-slate-800 text-white"
+              className="gap-2"
+              onClick={() => setShowImportDialog(true)}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              IMPORTAR XLSX
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="gap-2"
               onClick={() => setShowPurchaseDialog(true)}
             >
               <ShoppingCart className="w-4 h-4" />
               PEDIDO DE COMPRA
             </Button>
-            <Button variant="secondary" className="gap-2 bg-slate-700 hover:bg-slate-800 text-white">
+            <Button variant="secondary" className="gap-2">
               <ArrowLeftRight className="w-4 h-4" />
               TRANSFERÊNCIA
             </Button>
@@ -93,6 +103,11 @@ const Produtos = () => {
       <PurchaseOrderDialog
         open={showPurchaseDialog}
         onOpenChange={setShowPurchaseDialog}
+      />
+      <ImportProdutosDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={handleProductAdded}
       />
     </DashboardLayout>
   );
