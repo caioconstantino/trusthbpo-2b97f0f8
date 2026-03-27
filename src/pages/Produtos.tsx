@@ -104,6 +104,11 @@ const Produtos = () => {
         open={showPurchaseDialog}
         onOpenChange={setShowPurchaseDialog}
       />
+      <ImportProdutosDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={handleProductAdded}
+      />
     </DashboardLayout>
   );
 };
