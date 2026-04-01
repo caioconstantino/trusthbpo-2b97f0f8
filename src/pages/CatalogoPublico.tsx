@@ -26,20 +26,11 @@ const CatalogoPublico = () => {
 
     const fetchCatalogo = async () => {
       try {
-        const { data, error: fnError } = await supabase.functions.invoke("catalogo-publico", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          body: null,
-        });
-
-        // Use fetch directly since we need query params
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/catalogo-publico?dominio=${encodeURIComponent(dominio)}`;
         
         const res = await fetch(url, {
           headers: {
             "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
           },
         });
 
