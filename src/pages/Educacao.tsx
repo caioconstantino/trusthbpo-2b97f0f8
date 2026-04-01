@@ -543,6 +543,8 @@ export default function Educacao() {
           </div>
         </div>
       </footer>
+
+      <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
     </div>
   );
 }
