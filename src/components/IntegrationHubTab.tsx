@@ -248,6 +248,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     setTipo(integracao.tipo);
     setDescricao(integracao.descricao || "");
     setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
+    setCallbackUrl((integracao.config as any)?.callback_url || "");
     setDialogOpen(true);
   };
 
