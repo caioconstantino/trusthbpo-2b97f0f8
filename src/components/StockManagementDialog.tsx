@@ -98,6 +98,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
     try {
       const unitId = parseInt(selectedUnitId);
       const delta = movementType === "Entrada" ? qty : -qty;
+      console.log("[StockManagement] movementType:", movementType, "qty:", qty, "delta:", delta);
 
       // Check if stock record exists for this product+unit
       const { data: existing, error: fetchErr } = await supabase
@@ -112,6 +113,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
 
       if (existing) {
         const newQty = Math.max(0, existing.quantidade + delta);
+        console.log("[StockManagement] existing:", existing.quantidade, "newQty:", newQty);
         const { error: updateErr } = await supabase
           .from("tb_estq_unidades")
           .update({ quantidade: newQty, updated_at: new Date().toISOString() })
