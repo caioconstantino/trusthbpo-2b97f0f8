@@ -69,6 +69,14 @@ const Produtos = () => {
             <Button 
               variant="secondary" 
               className="gap-2"
+              onClick={() => setShowImportImagensDialog(true)}
+            >
+              <ImageIcon className="w-4 h-4" />
+              IMPORTAR IMAGENS
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="gap-2"
               onClick={() => setShowPurchaseDialog(true)}
             >
               <ShoppingCart className="w-4 h-4" />
