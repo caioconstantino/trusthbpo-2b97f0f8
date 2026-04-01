@@ -231,6 +231,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setNome("");
       setDescricao("");
       setSelectedSessaoId("");
+      setCallbackUrl("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
