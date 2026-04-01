@@ -260,6 +260,8 @@ export function AppSidebar() {
           navigate("/agenda");
         }}
       />
+
+      <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
     </Sidebar>
   );
 }
