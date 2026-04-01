@@ -92,6 +92,26 @@ export const useSales = () => {
         console.error("Error inserting payments:", pagamentosError);
       }
 
+      // Decrease stock for each sold item
+      const effectiveUnidadeId = unidadeId || 1;
+      for (const item of saleData.cartItems) {
+        const produtoId = parseInt(item.id);
+        const { data: existing } = await supabase
+          .from("tb_estq_unidades")
+          .select("id, quantidade")
+          .eq("produto_id", produtoId)
+          .eq("dominio", dominio)
+          .eq("unidade_id", effectiveUnidadeId)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from("tb_estq_unidades")
+            .update({ quantidade: existing.quantidade - item.quantity })
+            .eq("id", existing.id);
+        }
+      }
+
       // Fire-and-forget: notify stock sync integrations
       try {
         const prodIds = saleData.cartItems.map(item => parseInt(item.id));
