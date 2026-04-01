@@ -18,6 +18,7 @@ const Produtos = () => {
   const productLimit = useProductLimit();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showImportImagensDialog, setShowImportImagensDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   const handleProductAdded = () => {
