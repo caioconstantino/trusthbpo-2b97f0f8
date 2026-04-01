@@ -250,7 +250,7 @@ export function AppSidebar() {
         }}
       />
 
-      <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
+      
     </Sidebar>
   );
 }
