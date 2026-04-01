@@ -74,6 +74,9 @@ const App = () => (
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/sessoes-pdv" element={<ProtectedRoute><SessoesPdv /></ProtectedRoute>} />
             
+            {/* Public Catalog */}
+            <Route path="/catalogo/:dominio" element={<CatalogoPublico />} />
+            
             {/* Public Scheduling */}
             <Route path="/agendar/:slug" element={<AgendarPublico />} />
             <Route path="/evento/:slug" element={<AgendarEventoPublico />} />

@@ -119,6 +119,11 @@ const Produtos = () => {
         onOpenChange={setShowImportDialog}
         onSuccess={handleProductAdded}
       />
+      <ImportImagensProdutosDialog
+        open={showImportImagensDialog}
+        onOpenChange={setShowImportImagensDialog}
+        onSuccess={handleProductAdded}
+      />
     </DashboardLayout>
   );
 };

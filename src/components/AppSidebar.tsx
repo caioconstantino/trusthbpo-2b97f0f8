@@ -126,6 +126,25 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))}
                 
+                {/* Catálogo público */}
+                {canView("produtos") && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="flex items-center gap-3 cursor-pointer"
+                      onClick={() => {
+                        navigator.clipboard.writeText(catalogoUrl);
+                        import("sonner").then(({ toast }) => toast.success("Link do catálogo copiado!"));
+                      }}
+                    >
+                      <BookOpen className="w-5 h-5" />
+                      <span className="flex items-center gap-2">
+                        Catálogo
+                        <Copy className="w-3 h-3 text-muted-foreground" />
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+
                 {/* Agenda item with lock if not active */}
                 {canView("agenda") && (
                   <SidebarMenuItem>
