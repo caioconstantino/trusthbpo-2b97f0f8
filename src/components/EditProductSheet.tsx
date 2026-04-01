@@ -470,6 +470,7 @@ export const EditProductSheet = ({
         open={showStockDialog}
         onOpenChange={setShowStockDialog}
         productName={product?.nome || ""}
+        productId={product?.id}
       />
       <StockTransferDialog
         open={showTransferDialog}
