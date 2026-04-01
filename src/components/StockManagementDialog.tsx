@@ -131,7 +131,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
         if (insertErr) throw insertErr;
       }
 
-      // Sync stock out (fire-and-forget)
+      // Sync stock out (fire-and-forget) - send delta for external sync
       try {
         const { data: prod } = await supabase
           .from("tb_produtos")
@@ -140,19 +140,11 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
           .maybeSingle();
 
         if (prod?.codigo) {
-          const { data: updatedStock } = await supabase
-            .from("tb_estq_unidades")
-            .select("quantidade")
-            .eq("produto_id", productId)
-            .eq("unidade_id", unitId)
-            .eq("dominio", dominio)
-            .maybeSingle();
-
           supabase.functions.invoke("sync-stock-out", {
             body: {
               dominio,
               unidade_id: unitId,
-              produtos: [{ codigo: prod.codigo, quantidade: updatedStock?.quantidade ?? 0 }],
+              produtos: [{ codigo: prod.codigo, quantidade: delta }],
             },
           }).catch(() => {});
         }
