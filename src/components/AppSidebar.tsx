@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdoptCompanyDialog } from "./AdoptCompanyDialog";
 import { OfertasEspeciaisDialog } from "./OfertasEspeciaisDialog";
 import { ContratarAgendaDialog } from "./ContratarAgendaDialog";
-import { DownloadsDialog } from "./DownloadsDialog";
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
