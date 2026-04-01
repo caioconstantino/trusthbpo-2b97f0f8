@@ -82,6 +82,9 @@ export function AppSidebar() {
     { icon: FileSignature, label: "Propostas", path: "/propostas", modulo: "propostas" },
   ];
 
+  const dominio = localStorage.getItem("user_dominio") || "";
+  const catalogoUrl = `${window.location.origin}/catalogo/${dominio}`;
+
   const financeItems = [
     { icon: Wallet, label: "Contas a Pagar", path: "/contas-pagar", modulo: "contas_pagar" },
     { icon: CreditCard, label: "Contas a Receber", path: "/contas-receber", modulo: "contas_receber" },
