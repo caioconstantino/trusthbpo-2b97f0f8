@@ -205,6 +205,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       if (finalTipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
         config.sessao_id = selectedSessaoId;
       }
+      if (finalTipo === "sincronizar_estoque" && callbackUrl.trim()) {
+        config.callback_url = callbackUrl.trim();
+      }
 
       const { data, error } = await supabase
         .from("tb_integracoes")
