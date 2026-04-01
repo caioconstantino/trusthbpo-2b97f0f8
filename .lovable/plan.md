@@ -1,58 +1,61 @@
 
 
-## Plan: Image Import for Products + Public Catalog Module
+## Plan: Integração de Estoque Sincronizado com Site
 
-### What will be built
+### O que será construído
 
-**1. Product Image Import (via XLSX + ZIP)**
-- User uploads a ZIP file containing product images and an XLSX mapping file
-- The XLSX has two columns: `codigo` (product code) and `imagem` (image filename inside the ZIP)
-- The system matches each image to an existing product by `codigo`, uploads the image to the `produtos` storage bucket, and updates `imagem_url` on `tb_produtos`
-- New component: `ImportImagensProdutosDialog` accessible from the Products page
+Um novo tipo de integração **"sincronizar_estoque"** que mantém o estoque do Trusth e do site externo sempre em sincronia, com:
 
-**2. Public Catalog Module**
-- A new public route `/catalogo/:dominio` (no authentication required)
-- Displays products with: name, sale price, available stock quantity, and photo
-- Filters only active products (`ativo = true`) with stock > 0
-- Responsive grid layout, similar to the public scheduling page pattern
-- A link to the catalog will be available in the sidebar/settings for the user to copy and share
+1. **Carga inicial de estoque** — botão que envia todo o estoque atual para o site via webhook
+2. **Trusth → Site** — quando uma venda ou compra altera estoque no Trusth, notifica o site automaticamente
+3. **Site → Trusth** — quando o site envia uma venda via webhook, o estoque no Trusth é atualizado
+
+### Como funciona
+
+```text
+┌──────────┐    webhook POST     ┌──────────┐
+│   Site    │ ──────────────────► │  Trusth  │  (venda do site → baixa estoque)
+│ externo  │ ◄────────────────── │          │  (venda/compra Trusth → notifica site)
+└──────────┘   callback URL      └──────────┘
+```
+
+O site configura uma **URL de callback** na integração. Sempre que o estoque mudar no Trusth, ele faz POST para essa URL com `{ produto_codigo, quantidade_atual }`.
 
 ---
 
-### Technical Details
+### Detalhes Técnicos
 
-**Files to create:**
-- `src/components/ImportImagensProdutosDialog.tsx` — Dialog with two inputs: ZIP of images + XLSX mapping (codigo → image filename). Parses XLSX, extracts images from ZIP (using JSZip), matches by codigo, uploads to `produtos` bucket, updates `tb_produtos.imagem_url`
-- `src/pages/CatalogoPublico.tsx` — Public page that fetches products + stock for a given domain via an edge function (since RLS requires auth)
-- `supabase/functions/catalogo-publico/index.ts` — Edge function that receives `dominio` as param and returns active products with stock info (joins `tb_produtos` + `tb_estq_unidades`), no auth required
+**1. Novo tipo de integração no Hub**
+- Adicionar `sincronizar_estoque` em `TIPOS_INTEGRACAO` e `INTEGRACOES_PRONTAS` no `IntegrationHubTab.tsx`
+- Campo extra `config.callback_url` — URL do site para receber atualizações de estoque
+- Botão "Carga Inicial" visível para integrações deste tipo
 
-**Files to modify:**
-- `src/pages/Produtos.tsx` — Add "IMPORTAR IMAGENS" button
-- `src/App.tsx` — Add `/catalogo/:dominio` public route
-- `src/components/AppSidebar.tsx` — Add "Catálogo" menu item with copy-link functionality
-- `package.json` — Add `jszip` dependency for ZIP extraction
+**2. Edge Function `sync-stock-out` (nova)**
+- Recebe `{ dominio, unidade_id, produtos: [{ codigo, quantidade }] }` 
+- Busca a integração ativa tipo `sincronizar_estoque` para o domínio
+- Faz POST para o `callback_url` configurado com o payload de estoque
+- Loga em `tb_integracoes_logs`
 
-**Database changes:**
-- None required. `tb_produtos.imagem_url` already exists. Storage bucket `produtos` already exists and is public.
+**3. Edge Function `integration-webhook` (modificar)**
+- Novo handler para `tipo === "sincronizar_estoque"`: recebe vendas do site, baixa estoque no Trusth, e retorna estoque atualizado
+- Payload esperado do site: `{ itens: [{ cod_interno, quantidade }] }` (mesmo formato de vendas simplificado)
 
-**Edge function `catalogo-publico`:**
-- Accepts `dominio` query param
-- Uses service role to query `tb_produtos` (active, with stock) joined with `tb_estq_unidades`
-- Returns: `id`, `nome`, `preco_venda`, `imagem_url`, `quantidade` (stock)
-- No JWT verification needed
+**4. Notificação automática Trusth → Site**
+- No `useSales.ts`: após salvar venda, chamar `sync-stock-out` com os produtos vendidos
+- No `CompletePurchaseDialog.tsx`: após concluir compra (estoque sobe), chamar `sync-stock-out`
+- Chamadas são fire-and-forget (não bloqueiam a operação principal)
 
-**Image import flow:**
-1. User downloads XLSX template with columns: `codigo`, `imagem`
-2. User fills in mapping (e.g., `BRA26AZUL` → `camisa_brasil.jpg`)
-3. User uploads the XLSX + a ZIP containing the image files
-4. System reads XLSX, extracts matching images from ZIP
-5. For each match: uploads image to `produtos/{dominio}/{codigo}.ext` in storage
-6. Updates `tb_produtos.imagem_url` for each matched product
-7. Shows summary of successful/failed uploads
+**5. Carga inicial**
+- Botão no `IntegrationHubTab` que busca todos os produtos + estoque do domínio/unidade e envia tudo via `sync-stock-out`
 
-**Public catalog page:**
-- Clean, responsive product grid with cards
-- Each card shows: product image (or placeholder), name, price formatted as BRL, stock quantity
-- Search/filter by name
-- Domain branding from `tb_clientes_saas.razao_social`
+**Arquivos a criar:**
+- `supabase/functions/sync-stock-out/index.ts`
+
+**Arquivos a modificar:**
+- `src/components/IntegrationHubTab.tsx` — novo tipo, campo callback_url, botão carga inicial
+- `supabase/functions/integration-webhook/index.ts` — handler `sincronizar_estoque`
+- `src/hooks/useSales.ts` — notificar após venda
+- `src/components/CompletePurchaseDialog.tsx` — notificar após compra concluída
+
+**Sem alterações no banco de dados** — usa tabelas e campos existentes (`tb_integracoes.config` para `callback_url`).
 
