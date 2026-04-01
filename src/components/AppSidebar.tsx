@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature, BookOpen, Copy } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature, BookOpen, Copy, Download } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdoptCompanyDialog } from "./AdoptCompanyDialog";
 import { OfertasEspeciaisDialog } from "./OfertasEspeciaisDialog";
 import { ContratarAgendaDialog } from "./ContratarAgendaDialog";
+import { DownloadsDialog } from "./DownloadsDialog";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -35,6 +36,7 @@ export function AppSidebar() {
   const [ofertasDialogOpen, setOfertasDialogOpen] = useState(false);
   const [agendaAtiva, setAgendaAtiva] = useState(false);
   const [contratarAgendaOpen, setContratarAgendaOpen] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
 
@@ -200,6 +202,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        {/* Downloads */}
+        <Button
+          onClick={() => setDownloadsOpen(true)}
+          variant="outline"
+          className={`w-full gap-2 ${isCollapsed ? "p-2" : ""}`}
+          size={isCollapsed ? "icon" : "default"}
+        >
+          <Download className="h-4 w-4" />
+          {!isCollapsed && <span>Downloads</span>}
+        </Button>
+
         {/* Botão Ofertas Especiais para todos */}
         <Button
           onClick={() => setOfertasDialogOpen(true)}
@@ -247,6 +260,8 @@ export function AppSidebar() {
           navigate("/agenda");
         }}
       />
+
+      <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
     </Sidebar>
   );
 }
