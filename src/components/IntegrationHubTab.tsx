@@ -73,6 +73,7 @@ interface IntegracaoLog {
 const TIPOS_INTEGRACAO = [
   { value: "receber_vendas", label: "Receber Vendas", icon: ShoppingCart, desc: "Receba vendas de outros sistemas automaticamente" },
   { value: "receber_produtos", label: "Receber Produtos", icon: Package, desc: "Importe produtos de sistemas externos" },
+  { value: "sincronizar_estoque", label: "Sincronizar Estoque", icon: Package, desc: "Sincronize estoque bidirecional com seu site/e-commerce" },
   { value: "webhook_personalizado", label: "Webhook Genérico", icon: Webhook, desc: "Receba qualquer dado via webhook" },
 ];
 
