@@ -202,6 +202,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        {/* Downloads */}
+        <Button
+          onClick={() => setDownloadsOpen(true)}
+          variant="outline"
+          className={`w-full gap-2 ${isCollapsed ? "p-2" : ""}`}
+          size={isCollapsed ? "icon" : "default"}
+        >
+          <Download className="h-4 w-4" />
+          {!isCollapsed && <span>Downloads</span>}
+        </Button>
+
         {/* Botão Ofertas Especiais para todos */}
         <Button
           onClick={() => setOfertasDialogOpen(true)}
