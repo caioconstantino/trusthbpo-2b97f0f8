@@ -98,6 +98,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
     try {
       const unitId = parseInt(selectedUnitId);
       const delta = movementType === "Entrada" ? qty : -qty;
+      console.log("[StockManagement] movementType:", movementType, "qty:", qty, "delta:", delta);
 
       // Check if stock record exists for this product+unit
       const { data: existing, error: fetchErr } = await supabase
@@ -112,6 +113,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
 
       if (existing) {
         const newQty = Math.max(0, existing.quantidade + delta);
+        console.log("[StockManagement] existing:", existing.quantidade, "newQty:", newQty);
         const { error: updateErr } = await supabase
           .from("tb_estq_unidades")
           .update({ quantidade: newQty, updated_at: new Date().toISOString() })
@@ -131,7 +133,7 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
         if (insertErr) throw insertErr;
       }
 
-      // Sync stock out (fire-and-forget)
+      // Sync stock out (fire-and-forget) - send delta for external sync
       try {
         const { data: prod } = await supabase
           .from("tb_produtos")
@@ -140,19 +142,11 @@ export const StockManagementDialog = ({ open, onOpenChange, productName, product
           .maybeSingle();
 
         if (prod?.codigo) {
-          const { data: updatedStock } = await supabase
-            .from("tb_estq_unidades")
-            .select("quantidade")
-            .eq("produto_id", productId)
-            .eq("unidade_id", unitId)
-            .eq("dominio", dominio)
-            .maybeSingle();
-
           supabase.functions.invoke("sync-stock-out", {
             body: {
               dominio,
               unidade_id: unitId,
-              produtos: [{ codigo: prod.codigo, quantidade: updatedStock?.quantidade ?? 0 }],
+              produtos: [{ codigo: prod.codigo, quantidade: delta }],
             },
           }).catch(() => {});
         }
