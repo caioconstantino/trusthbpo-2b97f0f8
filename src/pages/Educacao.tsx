@@ -533,6 +533,10 @@ export default function Educacao() {
               © 2024 TrustHBPO. Todos os direitos reservados.
             </p>
             <div className="flex gap-6">
+              <button onClick={() => setDownloadsOpen(true)} className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors flex items-center gap-1">
+                <Download className="w-3 h-3" />
+                Downloads
+              </button>
               <a href="#" className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors">Termos de Uso</a>
               <a href="#" className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors">Privacidade</a>
             </div>
