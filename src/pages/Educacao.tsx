@@ -33,6 +33,7 @@ import logo from "@/assets/logo.webp";
 export default function Educacao() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
