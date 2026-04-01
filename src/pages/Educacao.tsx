@@ -22,15 +22,18 @@ import {
   Briefcase,
   Star,
   Quote,
-  ChevronRight
+  ChevronRight,
+  Download
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { DownloadsDialog } from "@/components/DownloadsDialog";
 import logo from "@/assets/logo.webp";
 
 export default function Educacao() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -530,12 +533,18 @@ export default function Educacao() {
               © 2024 TrustHBPO. Todos os direitos reservados.
             </p>
             <div className="flex gap-6">
+              <button onClick={() => setDownloadsOpen(true)} className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors flex items-center gap-1">
+                <Download className="w-3 h-3" />
+                Downloads
+              </button>
               <a href="#" className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors">Termos de Uso</a>
               <a href="#" className="text-white/40 hover:text-[#D4AF37] text-sm transition-colors">Privacidade</a>
             </div>
           </div>
         </div>
       </footer>
+
+      <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
     </div>
   );
 }
