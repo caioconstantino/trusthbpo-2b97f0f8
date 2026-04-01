@@ -94,20 +94,27 @@ export const useSales = () => {
 
       // Fire-and-forget: notify stock sync integrations
       try {
-        const produtosSync = saleData.cartItems.map(item => ({
-          codigo: item.id, // will be matched by code in the edge function
-          quantidade: item.quantity,
-        }));
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
-        const { data: session } = await supabase.auth.getSession();
-        fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.session?.access_token || ""}`,
-          },
-          body: JSON.stringify({ dominio, unidade_id: unidadeId, produtos: produtosSync }),
-        }).catch(() => {});
+        const prodIds = saleData.cartItems.map(item => parseInt(item.id));
+        const { data: prods } = await supabase.from("tb_produtos").select("id, codigo").in("id", prodIds);
+        const codeMap = new Map((prods || []).map(p => [p.id, p.codigo]));
+        const produtosSync = saleData.cartItems
+          .filter(item => codeMap.get(parseInt(item.id)))
+          .map(item => ({
+            codigo: codeMap.get(parseInt(item.id)),
+            quantidade: item.quantity,
+          }));
+        if (produtosSync.length > 0) {
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+          const { data: session } = await supabase.auth.getSession();
+          fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.session?.access_token || ""}`,
+            },
+            body: JSON.stringify({ dominio, unidade_id: unidadeId, produtos: produtosSync }),
+          }).catch(() => {});
+        }
       } catch {}
 
       return { id: venda.id, createdAt: venda.created_at };
