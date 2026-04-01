@@ -557,6 +557,18 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {integracao.tipo === "sincronizar_estoque" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => handleCargaInicial(integracao)}
+                            disabled={isSyncingInitial}
+                          >
+                            {isSyncingInitial ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Carga Inicial
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(integracao)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
