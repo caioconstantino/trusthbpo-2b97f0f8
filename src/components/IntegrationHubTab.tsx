@@ -73,6 +73,7 @@ interface IntegracaoLog {
 const TIPOS_INTEGRACAO = [
   { value: "receber_vendas", label: "Receber Vendas", icon: ShoppingCart, desc: "Receba vendas de outros sistemas automaticamente" },
   { value: "receber_produtos", label: "Receber Produtos", icon: Package, desc: "Importe produtos de sistemas externos" },
+  { value: "sincronizar_estoque", label: "Sincronizar Estoque", icon: Package, desc: "Sincronize estoque bidirecional com seu site/e-commerce" },
   { value: "webhook_personalizado", label: "Webhook Genérico", icon: Webhook, desc: "Receba qualquer dado via webhook" },
 ];
 
@@ -91,6 +92,14 @@ const INTEGRACOES_PRONTAS = [
     descricao: "Sincronize produtos com seu sistema de gestão",
     icon: Package,
     tipo: "receber_produtos",
+    em_breve: false,
+  },
+  {
+    id: "sync_estoque",
+    nome: "Estoque Sincronizado",
+    descricao: "Mantenha o estoque do site e do Trusth sempre em sincronia",
+    icon: Package,
+    tipo: "sincronizar_estoque",
     em_breve: false,
   },
   {
@@ -127,8 +136,10 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [tipo, setTipo] = useState("receber_vendas");
   const [descricao, setDescricao] = useState("");
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState("");
   const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncingInitial, setIsSyncingInitial] = useState(false);
   const [editingIntegracao, setEditingIntegracao] = useState<Integracao | null>(null);
 
   // Logs dialog
@@ -194,6 +205,9 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       if (finalTipo === "receber_vendas" && selectedSessaoId && selectedSessaoId !== "nenhum") {
         config.sessao_id = selectedSessaoId;
       }
+      if (finalTipo === "sincronizar_estoque" && callbackUrl.trim()) {
+        config.callback_url = callbackUrl.trim();
+      }
 
       const { data, error } = await supabase
         .from("tb_integracoes")
@@ -217,6 +231,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setNome("");
       setDescricao("");
       setSelectedSessaoId("");
+      setCallbackUrl("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
@@ -233,6 +248,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     setTipo(integracao.tipo);
     setDescricao(integracao.descricao || "");
     setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
+    setCallbackUrl((integracao.config as any)?.callback_url || "");
     setDialogOpen(true);
   };
 
@@ -245,6 +261,11 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
         config.sessao_id = selectedSessaoId;
       } else {
         delete config.sessao_id;
+      }
+      if (tipo === "sincronizar_estoque" && callbackUrl.trim()) {
+        config.callback_url = callbackUrl.trim();
+      } else {
+        delete config.callback_url;
       }
 
       const { error } = await supabase
@@ -263,6 +284,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setNome("");
       setDescricao("");
       setSelectedSessaoId("");
+      setCallbackUrl("");
       fetchIntegracoes();
       toast({ title: "Integração atualizada!" });
     } catch (error: any) {
@@ -333,6 +355,67 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     } else {
       setCopiedEndpoint(true);
       setTimeout(() => setCopiedEndpoint(false), 2000);
+    }
+  };
+
+  const handleCargaInicial = async (integracao: Integracao) => {
+    setIsSyncingInitial(true);
+    try {
+      const effectiveUnidadeId = integracao.unidade_id || unidadeId || 1;
+
+      // Get all products with stock for this domain/unit
+      const { data: estoque } = await supabase
+        .from("tb_estq_unidades")
+        .select("produto_id, quantidade")
+        .eq("dominio", dominio)
+        .eq("unidade_id", effectiveUnidadeId);
+
+      if (!estoque || estoque.length === 0) {
+        toast({ title: "Nenhum estoque encontrado", description: "Não há produtos com estoque para sincronizar.", variant: "destructive" });
+        return;
+      }
+
+      const produtoIds = estoque.map((e) => e.produto_id);
+      const { data: produtos } = await supabase
+        .from("tb_produtos")
+        .select("id, codigo")
+        .in("id", produtoIds)
+        .eq("dominio", dominio);
+
+      const produtosMap = new Map((produtos || []).map((p) => [p.id, p.codigo]));
+
+      const payload = estoque
+        .filter((e) => produtosMap.get(e.produto_id))
+        .map((e) => ({
+          codigo: produtosMap.get(e.produto_id),
+          quantidade: e.quantidade,
+        }));
+
+      if (payload.length === 0) {
+        toast({ title: "Nenhum produto com código", description: "Os produtos no estoque não possuem código interno.", variant: "destructive" });
+        return;
+      }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+      const { data: session } = await supabase.auth.getSession();
+      await fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          dominio,
+          unidade_id: effectiveUnidadeId,
+          produtos: payload,
+        }),
+      });
+
+      toast({ title: "Carga inicial enviada!", description: `${payload.length} produto(s) sincronizado(s) com o site.` });
+    } catch (error: any) {
+      toast({ title: "Erro na carga inicial", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSyncingInitial(false);
     }
   };
 
@@ -418,7 +501,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
               Gerencie seus webhooks e integrações customizadas
             </p>
           </div>
-          <Button onClick={() => { setEditingIntegracao(null); setNome(""); setDescricao(""); setTipo("receber_vendas"); setSelectedSessaoId(""); setDialogOpen(true); }}>
+          <Button onClick={() => { setEditingIntegracao(null); setNome(""); setDescricao(""); setTipo("receber_vendas"); setSelectedSessaoId(""); setCallbackUrl(""); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" />
             Nova Integração
           </Button>
@@ -474,6 +557,18 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {integracao.tipo === "sincronizar_estoque" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => handleCargaInicial(integracao)}
+                            disabled={isSyncingInitial}
+                          >
+                            {isSyncingInitial ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Carga Inicial
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(integracao)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -543,6 +638,19 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   Vincule as vendas recebidas a um caixa aberto. Se não selecionar, o sistema externo deverá enviar o sessao_id no payload.
+                </p>
+              </div>
+            )}
+            {tipo === "sincronizar_estoque" && (
+              <div className="space-y-2">
+                <Label>URL de Callback do Site</Label>
+                <Input
+                  value={callbackUrl}
+                  onChange={(e) => setCallbackUrl(e.target.value)}
+                  placeholder="https://meusite.com/api/estoque"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL para onde o Trusth enviará atualizações de estoque via POST. O site também pode enviar vendas para o endpoint do webhook usando o token.
                 </p>
               </div>
             )}
@@ -626,6 +734,23 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   ]
 }`}
                   </pre>
+                )}
+                {createdIntegracao.tipo === "sincronizar_estoque" && (
+                  <>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      O site deve enviar vendas para o endpoint acima para baixar o estoque no Trusth:
+                    </p>
+                    <pre className="text-xs bg-background p-3 rounded-md overflow-x-auto">
+{`{
+  "itens": [
+    { "cod_interno": "PROD001", "quantidade": 2 }
+  ]
+}`}
+                    </pre>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      O Trusth enviará atualizações de estoque automaticamente para a URL de callback configurada.
+                    </p>
+                  </>
                 )}
               </div>
             </div>

@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
         resposta = await processarVendas(supabase, integracao, payload);
       } else if (integracao.tipo === "receber_produtos") {
         resposta = await processarProdutos(supabase, integracao, payload);
+      } else if (integracao.tipo === "sincronizar_estoque") {
+        resposta = await processarEstoqueSite(supabase, integracao, payload);
       } else {
         // webhook_personalizado - just log
         resposta = "Webhook genérico recebido e registrado.";
@@ -291,4 +293,78 @@ async function processarProdutos(supabase: any, integracao: any, payload: any) {
   if (error) throw new Error(`Erro ao inserir produtos: ${error.message}`);
 
   return `${payload.produtos.length} produto(s) importado(s) com sucesso.`;
+}
+
+async function processarEstoqueSite(supabase: any, integracao: any, payload: any) {
+  // Expected payload: { itens: [{ cod_interno, quantidade }] }
+  // This represents a sale from the external site — decrease stock in Trusth
+  if (!payload || !Array.isArray(payload.itens) || payload.itens.length === 0) {
+    throw new Error("Payload inválido: envie { itens: [{ cod_interno, quantidade }] }");
+  }
+
+  let unidadeId = integracao.unidade_id || null;
+  if (!unidadeId) {
+    const { data: unidade } = await supabase
+      .from("tb_unidades")
+      .select("id")
+      .eq("dominio", integracao.dominio)
+      .limit(1)
+      .single();
+    if (unidade) unidadeId = unidade.id;
+  }
+
+  // Resolve products by cod_interno
+  const codigos = payload.itens
+    .map((item: any) => item.cod_interno)
+    .filter((v: any) => v && typeof v === "string");
+
+  let produtosMap: Record<string, number> = {};
+  if (codigos.length > 0) {
+    const { data: produtos } = await supabase
+      .from("tb_produtos")
+      .select("id, codigo")
+      .eq("dominio", integracao.dominio)
+      .in("codigo", codigos);
+
+    if (produtos) {
+      for (const p of produtos) {
+        if (p.codigo) produtosMap[p.codigo] = p.id;
+      }
+    }
+  }
+
+  const resultados: string[] = [];
+
+  for (const item of payload.itens) {
+    const produtoId = item.cod_interno ? produtosMap[item.cod_interno] : null;
+    if (!produtoId) {
+      resultados.push(`${item.cod_interno}: produto não encontrado`);
+      continue;
+    }
+
+    const quantidade = item.quantidade || 1;
+
+    if (unidadeId) {
+      const { data: estoque } = await supabase
+        .from("tb_estq_unidades")
+        .select("id, quantidade")
+        .eq("produto_id", produtoId)
+        .eq("unidade_id", unidadeId)
+        .eq("dominio", integracao.dominio)
+        .maybeSingle();
+
+      if (estoque) {
+        const novaQtd = Math.max(0, estoque.quantidade - quantidade);
+        await supabase
+          .from("tb_estq_unidades")
+          .update({ quantidade: novaQtd })
+          .eq("id", estoque.id);
+        resultados.push(`${item.cod_interno}: ${estoque.quantidade} → ${novaQtd}`);
+      } else {
+        resultados.push(`${item.cod_interno}: sem registro de estoque`);
+      }
+    }
+  }
+
+  return `Estoque atualizado para ${resultados.length} item(ns). ${resultados.join("; ")}`;
 }
