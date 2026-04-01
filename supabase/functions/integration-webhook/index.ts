@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
         resposta = await processarVendas(supabase, integracao, payload);
       } else if (integracao.tipo === "receber_produtos") {
         resposta = await processarProdutos(supabase, integracao, payload);
+      } else if (integracao.tipo === "sincronizar_estoque") {
+        resposta = await processarEstoqueSite(supabase, integracao, payload);
       } else {
         // webhook_personalizado - just log
         resposta = "Webhook genérico recebido e registrado.";
