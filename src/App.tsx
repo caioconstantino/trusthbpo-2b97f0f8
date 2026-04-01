@@ -42,6 +42,7 @@ import RevendaLanding from "./pages/RevendaLanding";
 import RevendaDashboard from "./pages/RevendaDashboard";
 import RevendaLogin from "./pages/RevendaLogin";
 import Checkout from "./pages/Checkout";
+import CatalogoPublico from "./pages/CatalogoPublico";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,9 @@ const App = () => (
             <Route path="/propostas" element={<ProtectedRoute><Propostas /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/sessoes-pdv" element={<ProtectedRoute><SessoesPdv /></ProtectedRoute>} />
+            
+            {/* Public Catalog */}
+            <Route path="/catalogo/:dominio" element={<CatalogoPublico />} />
             
             {/* Public Scheduling */}
             <Route path="/agendar/:slug" element={<AgendarPublico />} />

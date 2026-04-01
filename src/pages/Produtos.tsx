@@ -6,8 +6,9 @@ import { PurchaseOrderDialog } from "@/components/PurchaseOrderDialog";
 import { ProductLimitAlert } from "@/components/ProductLimitAlert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, ArrowLeftRight, Loader2, Package, FileSpreadsheet } from "lucide-react";
+import { ShoppingCart, ArrowLeftRight, Loader2, Package, FileSpreadsheet, ImageIcon } from "lucide-react";
 import { ImportProdutosDialog } from "@/components/ImportProdutosDialog";
+import { ImportImagensProdutosDialog } from "@/components/ImportImagensProdutosDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useProductLimit } from "@/hooks/useProductLimit";
 import { NoPermission } from "@/components/NoPermission";
@@ -17,6 +18,7 @@ const Produtos = () => {
   const productLimit = useProductLimit();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showImportImagensDialog, setShowImportImagensDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   const handleProductAdded = () => {
@@ -67,6 +69,14 @@ const Produtos = () => {
             <Button 
               variant="secondary" 
               className="gap-2"
+              onClick={() => setShowImportImagensDialog(true)}
+            >
+              <ImageIcon className="w-4 h-4" />
+              IMPORTAR IMAGENS
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="gap-2"
               onClick={() => setShowPurchaseDialog(true)}
             >
               <ShoppingCart className="w-4 h-4" />
@@ -107,6 +117,11 @@ const Produtos = () => {
       <ImportProdutosDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
+        onSuccess={handleProductAdded}
+      />
+      <ImportImagensProdutosDialog
+        open={showImportImagensDialog}
+        onOpenChange={setShowImportImagensDialog}
         onSuccess={handleProductAdded}
       />
     </DashboardLayout>
