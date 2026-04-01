@@ -136,8 +136,10 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [tipo, setTipo] = useState("receber_vendas");
   const [descricao, setDescricao] = useState("");
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState("");
   const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncingInitial, setIsSyncingInitial] = useState(false);
   const [editingIntegracao, setEditingIntegracao] = useState<Integracao | null>(null);
 
   // Logs dialog
