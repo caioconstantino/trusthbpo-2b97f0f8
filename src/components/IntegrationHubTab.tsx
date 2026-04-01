@@ -262,6 +262,11 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       } else {
         delete config.sessao_id;
       }
+      if (tipo === "sincronizar_estoque" && callbackUrl.trim()) {
+        config.callback_url = callbackUrl.trim();
+      } else {
+        delete config.callback_url;
+      }
 
       const { error } = await supabase
         .from("tb_integracoes")
