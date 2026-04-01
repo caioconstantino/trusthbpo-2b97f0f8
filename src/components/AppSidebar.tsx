@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature, BookOpen, Copy } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
