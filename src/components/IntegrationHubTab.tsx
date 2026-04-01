@@ -735,6 +735,23 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
 }`}
                   </pre>
                 )}
+                {createdIntegracao.tipo === "sincronizar_estoque" && (
+                  <>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      O site deve enviar vendas para o endpoint acima para baixar o estoque no Trusth:
+                    </p>
+                    <pre className="text-xs bg-background p-3 rounded-md overflow-x-auto">
+{`{
+  "itens": [
+    { "cod_interno": "PROD001", "quantidade": 2 }
+  ]
+}`}
+                    </pre>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      O Trusth enviará atualizações de estoque automaticamente para a URL de callback configurada.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}
