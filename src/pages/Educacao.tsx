@@ -22,10 +22,12 @@ import {
   Briefcase,
   Star,
   Quote,
-  ChevronRight
+  ChevronRight,
+  Download
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { DownloadsDialog } from "@/components/DownloadsDialog";
 import logo from "@/assets/logo.webp";
 
 export default function Educacao() {
