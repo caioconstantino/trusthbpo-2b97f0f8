@@ -95,6 +95,14 @@ const INTEGRACOES_PRONTAS = [
     em_breve: false,
   },
   {
+    id: "sync_estoque",
+    nome: "Estoque Sincronizado",
+    descricao: "Mantenha o estoque do site e do Trusth sempre em sincronia",
+    icon: Package,
+    tipo: "sincronizar_estoque",
+    em_breve: false,
+  },
+  {
     id: "whatsapp",
     nome: "WhatsApp",
     descricao: "Notificações e atendimento via WhatsApp",
