@@ -36,6 +36,7 @@ export function AppSidebar() {
   const [ofertasDialogOpen, setOfertasDialogOpen] = useState(false);
   const [agendaAtiva, setAgendaAtiva] = useState(false);
   const [contratarAgendaOpen, setContratarAgendaOpen] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
 
