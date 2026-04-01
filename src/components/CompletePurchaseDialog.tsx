@@ -181,6 +181,38 @@ export const CompletePurchaseDialog = ({
         }
       }
 
+      // Fire-and-forget: notify stock sync integrations about stock increase
+      try {
+        const produtosSync = (items || []).map((item: any) => ({
+          codigo: String(item.produto_id),
+          quantidade: item.quantidade,
+        }));
+        // Get product codes
+        const prodIds = (items || []).map((i: any) => i.produto_id);
+        const { data: prods } = await supabase.from("tb_produtos").select("id, codigo").in("id", prodIds);
+        const codeMap = new Map((prods || []).map((p: any) => [p.id, p.codigo]));
+        const syncPayload = (items || [])
+          .filter((i: any) => codeMap.get(i.produto_id))
+          .map((i: any) => {
+            const effectiveUId = unidadeId || 1;
+            // We need to get updated stock
+            return { codigo: codeMap.get(i.produto_id), quantidade: i.quantidade };
+          });
+
+        if (syncPayload.length > 0) {
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+          const { data: session } = await supabase.auth.getSession();
+          fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.session?.access_token || ""}`,
+            },
+            body: JSON.stringify({ dominio, unidade_id: unidadeId || 1, produtos: syncPayload }),
+          }).catch(() => {});
+        }
+      } catch {}
+
       toast({ title: "Compra concluída!", description: "Estoque atualizado com sucesso." });
       onComplete();
       onOpenChange(false);

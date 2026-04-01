@@ -92,6 +92,24 @@ export const useSales = () => {
         console.error("Error inserting payments:", pagamentosError);
       }
 
+      // Fire-and-forget: notify stock sync integrations
+      try {
+        const produtosSync = saleData.cartItems.map(item => ({
+          codigo: item.id, // will be matched by code in the edge function
+          quantidade: item.quantity,
+        }));
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+        const { data: session } = await supabase.auth.getSession();
+        fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.session?.access_token || ""}`,
+          },
+          body: JSON.stringify({ dominio, unidade_id: unidadeId, produtos: produtosSync }),
+        }).catch(() => {});
+      } catch {}
+
       return { id: venda.id, createdAt: venda.created_at };
     } catch (error) {
       console.error("Error saving sale:", error);

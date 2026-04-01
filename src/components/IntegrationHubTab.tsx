@@ -641,6 +641,19 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                 </p>
               </div>
             )}
+            {tipo === "sincronizar_estoque" && (
+              <div className="space-y-2">
+                <Label>URL de Callback do Site</Label>
+                <Input
+                  value={callbackUrl}
+                  onChange={(e) => setCallbackUrl(e.target.value)}
+                  placeholder="https://meusite.com/api/estoque"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL para onde o Trusth enviará atualizações de estoque via POST. O site também pode enviar vendas para o endpoint do webhook usando o token.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva a integração" />
