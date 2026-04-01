@@ -284,6 +284,7 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setNome("");
       setDescricao("");
       setSelectedSessaoId("");
+      setCallbackUrl("");
       fetchIntegracoes();
       toast({ title: "Integração atualizada!" });
     } catch (error: any) {
