@@ -42,6 +42,7 @@ import RevendaLanding from "./pages/RevendaLanding";
 import RevendaDashboard from "./pages/RevendaDashboard";
 import RevendaLogin from "./pages/RevendaLogin";
 import Checkout from "./pages/Checkout";
+import CatalogoPublico from "./pages/CatalogoPublico";
 
 const queryClient = new QueryClient();
 
