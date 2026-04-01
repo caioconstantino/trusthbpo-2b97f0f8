@@ -358,6 +358,67 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     }
   };
 
+  const handleCargaInicial = async (integracao: Integracao) => {
+    setIsSyncingInitial(true);
+    try {
+      const effectiveUnidadeId = integracao.unidade_id || unidadeId || 1;
+
+      // Get all products with stock for this domain/unit
+      const { data: estoque } = await supabase
+        .from("tb_estq_unidades")
+        .select("produto_id, quantidade")
+        .eq("dominio", dominio)
+        .eq("unidade_id", effectiveUnidadeId);
+
+      if (!estoque || estoque.length === 0) {
+        toast({ title: "Nenhum estoque encontrado", description: "Não há produtos com estoque para sincronizar.", variant: "destructive" });
+        return;
+      }
+
+      const produtoIds = estoque.map((e) => e.produto_id);
+      const { data: produtos } = await supabase
+        .from("tb_produtos")
+        .select("id, codigo")
+        .in("id", produtoIds)
+        .eq("dominio", dominio);
+
+      const produtosMap = new Map((produtos || []).map((p) => [p.id, p.codigo]));
+
+      const payload = estoque
+        .filter((e) => produtosMap.get(e.produto_id))
+        .map((e) => ({
+          codigo: produtosMap.get(e.produto_id),
+          quantidade: e.quantidade,
+        }));
+
+      if (payload.length === 0) {
+        toast({ title: "Nenhum produto com código", description: "Os produtos no estoque não possuem código interno.", variant: "destructive" });
+        return;
+      }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+      const { data: session } = await supabase.auth.getSession();
+      await fetch(`https://${projectId}.supabase.co/functions/v1/sync-stock-out`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          dominio,
+          unidade_id: effectiveUnidadeId,
+          produtos: payload,
+        }),
+      });
+
+      toast({ title: "Carga inicial enviada!", description: `${payload.length} produto(s) sincronizado(s) com o site.` });
+    } catch (error: any) {
+      toast({ title: "Erro na carga inicial", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSyncingInitial(false);
+    }
+  };
+
   const tipoLabel = (tipo: string) => {
     return TIPOS_INTEGRACAO.find((t) => t.value === tipo)?.label || tipo;
   };
