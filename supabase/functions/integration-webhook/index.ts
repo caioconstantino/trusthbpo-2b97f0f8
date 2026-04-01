@@ -342,7 +342,7 @@ async function processarEstoqueSite(supabase: any, integracao: any, payload: any
       continue;
     }
 
-    const quantidade = item.quantidade || 1;
+    const quantidade = Math.abs(item.quantidade || 1);
 
     if (unidadeId) {
       const { data: estoque } = await supabase
