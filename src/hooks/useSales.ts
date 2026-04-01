@@ -101,7 +101,7 @@ export const useSales = () => {
           .filter(item => codeMap.get(parseInt(item.id)))
           .map(item => ({
             codigo: codeMap.get(parseInt(item.id)),
-            quantidade: item.quantity,
+            quantidade: -item.quantity,
           }));
         if (produtosSync.length > 0) {
           const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
