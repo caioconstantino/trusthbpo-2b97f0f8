@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   LogOut,
   LayoutDashboard,
@@ -16,7 +16,8 @@ import {
   Search,
   Eye,
   Building,
-  Handshake
+  Handshake,
+  Upload
 } from "lucide-react";
 import {
   Table,
@@ -41,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ImportAlunosDialog } from "@/components/admin/ImportAlunosDialog";
 
 interface EmpresaAdotada {
   id: number;
@@ -88,10 +90,12 @@ interface Professor {
 const AdminAlunos = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEscola, setSelectedEscola] = useState<string>("all");
   const [selectedProfessor, setSelectedProfessor] = useState<string>("all");
   const [viewAluno, setViewAluno] = useState<Aluno | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: escolas = [] } = useQuery({
     queryKey: ["admin-escolas-filter"],
@@ -335,9 +339,18 @@ const AdminAlunos = () => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Alunos</h2>
-          <Badge variant="secondary" className="text-lg px-4 py-1">
-            {filteredAlunos.length} alunos
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setImportOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Alunos
+            </Button>
+            <Badge variant="secondary" className="text-lg px-4 py-1">
+              {filteredAlunos.length} alunos
+            </Badge>
+          </div>
         </div>
 
         {/* Filters */}
@@ -578,6 +591,14 @@ const AdminAlunos = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ImportAlunosDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["admin-alunos"] });
+        }}
+      />
     </div>
   );
 };
