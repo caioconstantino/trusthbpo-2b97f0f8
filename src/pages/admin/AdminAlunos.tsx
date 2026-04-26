@@ -591,6 +591,14 @@ const AdminAlunos = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ImportAlunosDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["admin-alunos"] });
+        }}
+      />
     </div>
   );
 };
