@@ -11,12 +11,15 @@ interface Produto {
   preco_venda: number;
   imagem_url: string | null;
   quantidade: number;
+  codigo: string | null;
+  codigo_barras: string | null;
 }
 
 const CatalogoPublico = () => {
   const { dominio } = useParams<{ dominio: string }>();
   const [empresa, setEmpresa] = useState("");
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -43,6 +46,7 @@ const CatalogoPublico = () => {
 
         setEmpresa(result.empresa);
         setProdutos(result.produtos || []);
+        setRedirectUrl(result.redirect_url || null);
       } catch (err: any) {
         setError("Erro ao carregar catálogo");
       } finally {
@@ -56,6 +60,23 @@ const CatalogoPublico = () => {
   const filtered = produtos.filter((p) =>
     p.nome.toLowerCase().includes(search.toLowerCase())
   );
+
+  const buildRedirectUrl = (produto: Produto): string | null => {
+    if (!redirectUrl) return null;
+    const replacements: Record<string, string> = {
+      "{sku}": produto.codigo || "",
+      "{codigo}": produto.codigo || "",
+      "{codigo_barras}": produto.codigo_barras || "",
+      "{id}": String(produto.id),
+      "{nome}": encodeURIComponent(produto.nome || ""),
+      "{preco}": String(produto.preco_venda ?? ""),
+    };
+    let url = redirectUrl;
+    Object.entries(replacements).forEach(([key, value]) => {
+      url = url.split(key).join(value);
+    });
+    return url;
+  };
 
   if (loading) {
     return (
@@ -110,10 +131,17 @@ const CatalogoPublico = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filtered.map((produto) => (
-              <div
+            {filtered.map((produto) => {
+              const href = buildRedirectUrl(produto);
+              const Wrapper: any = href ? "a" : "div";
+              const wrapperProps = href
+                ? { href, target: "_blank", rel: "noopener noreferrer" }
+                : {};
+              return (
+              <Wrapper
                 key={produto.id}
-                className="bg-card border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                {...wrapperProps}
+                className={`bg-card border rounded-lg overflow-hidden hover:shadow-md transition-shadow block ${href ? "cursor-pointer" : ""}`}
               >
                 <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
                   {produto.imagem_url ? (
@@ -136,8 +164,8 @@ const CatalogoPublico = () => {
                     {produto.quantidade > 0 ? `${produto.quantidade} em estoque` : "Sem estoque"}
                   </Badge>
                 </div>
-              </div>
-            ))}
+              </Wrapper>
+            );})}
           </div>
         )}
       </main>
