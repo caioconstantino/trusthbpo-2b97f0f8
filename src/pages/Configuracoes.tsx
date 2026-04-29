@@ -251,6 +251,8 @@ export default function Configuracoes() {
         setEmpresaQuantidadeAdicional(clienteData.cliente.empresas_adicionais || 0);
         setUsuarioQuantidadeAdicional(clienteData.cliente.usuarios_adicionais || 0);
         setFechamentoCego(clienteData.cliente.fechamento_cego || false);
+        setCatalogoRedirectUrl(clienteData.cliente.catalogo_redirect_url || "");
+        setCatalogoRedirectAtivo(clienteData.cliente.catalogo_redirect_ativo || false);
       }
 
       // Fetch users
