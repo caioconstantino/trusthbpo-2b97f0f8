@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const body = await req.json()
-    const { dominio, action, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, fechamento_cego } = body
+    const { dominio, action, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, fechamento_cego, catalogo_redirect_url, catalogo_redirect_ativo } = body
 
     if (!dominio) {
       return new Response(
@@ -153,10 +153,38 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (action === 'update_catalogo_redirect') {
+      const updateData: Record<string, unknown> = {}
+      if (typeof catalogo_redirect_url === 'string' || catalogo_redirect_url === null) {
+        updateData.catalogo_redirect_url = catalogo_redirect_url
+      }
+      if (typeof catalogo_redirect_ativo === 'boolean') {
+        updateData.catalogo_redirect_ativo = catalogo_redirect_ativo
+      }
+
+      const { error: updateError } = await supabase
+        .from('tb_clientes_saas')
+        .update(updateData)
+        .eq('dominio', dominio)
+
+      if (updateError) {
+        console.error('Error updating catalogo redirect:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Erro ao atualizar configuração do catálogo' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Catálogo atualizado com sucesso' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Default: fetch customer data
     const { data: cliente, error } = await supabase
       .from('tb_clientes_saas')
-      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, agenda_ativa, fechamento_cego')
+      .select('razao_social, email, telefone, cpf_cnpj, dominio, plano, status, ultimo_pagamento, proximo_pagamento, tipo_conta, aluno_id, pdvs_adicionais, empresas_adicionais, usuarios_adicionais, produtos_adicionais, agenda_ativa, fechamento_cego, catalogo_redirect_url, catalogo_redirect_ativo')
       .eq('dominio', dominio)
       .maybeSingle()
 
