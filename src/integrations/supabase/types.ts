@@ -494,6 +494,8 @@ export type Database = {
         Row: {
           agenda_ativa: boolean
           aluno_id: string | null
+          catalogo_redirect_ativo: boolean
+          catalogo_redirect_url: string | null
           cpf_cnpj: string | null
           created_at: string | null
           cupom: string | null
@@ -522,6 +524,8 @@ export type Database = {
         Insert: {
           agenda_ativa?: boolean
           aluno_id?: string | null
+          catalogo_redirect_ativo?: boolean
+          catalogo_redirect_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           cupom?: string | null
@@ -550,6 +554,8 @@ export type Database = {
         Update: {
           agenda_ativa?: boolean
           aluno_id?: string | null
+          catalogo_redirect_ativo?: boolean
+          catalogo_redirect_url?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           cupom?: string | null
