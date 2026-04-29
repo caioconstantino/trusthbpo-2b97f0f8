@@ -1771,6 +1771,134 @@ export default function Configuracoes() {
             )}
           </TabsContent>
 
+          {/* Catálogo Tab */}
+          <TabsContent value="catalogo" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Configurações do Catálogo
+                </CardTitle>
+                <CardDescription>
+                  Configure como seu catálogo público se comporta quando um cliente clica em um produto.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {userDominio && (
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Link do seu catálogo</Label>
+                      <p className="text-xs text-muted-foreground break-all">
+                        {`${window.location.origin}/catalogo/${userDominio}`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/catalogo/${userDominio}`);
+                        toast({ title: "Link copiado!" });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="catalogo-redirect-ativo" className="text-base">
+                      Redirecionar produto para link externo
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Quando ativado, ao clicar em um produto no catálogo o cliente será enviado para o link configurado abaixo.
+                    </p>
+                  </div>
+                  <Switch
+                    id="catalogo-redirect-ativo"
+                    checked={catalogoRedirectAtivo}
+                    onCheckedChange={setCatalogoRedirectAtivo}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="catalogo-redirect-url">Link de redirecionamento</Label>
+                  <Textarea
+                    id="catalogo-redirect-url"
+                    placeholder="https://www.cartaximports.com.br/produto/{sku}"
+                    value={catalogoRedirectUrl}
+                    onChange={(e) => setCatalogoRedirectUrl(e.target.value)}
+                    rows={2}
+                    className="font-mono text-sm"
+                  />
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-2">
+                    <p className="font-medium text-foreground">Variáveis dinâmicas disponíveis:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li><code className="bg-background px-1.5 py-0.5 rounded">{"{sku}"}</code> ou <code className="bg-background px-1.5 py-0.5 rounded">{"{codigo}"}</code> – Código interno do produto</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded">{"{codigo_barras}"}</code> – Código de barras</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded">{"{id}"}</code> – ID interno</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded">{"{nome}"}</code> – Nome do produto (URL-encoded)</li>
+                      <li><code className="bg-background px-1.5 py-0.5 rounded">{"{preco}"}</code> – Preço de venda</li>
+                    </ul>
+                    <p className="text-muted-foreground">
+                      Exemplo: <code className="bg-background px-1.5 py-0.5 rounded">https://meusite.com/p/{"{sku}"}</code> vira <code className="bg-background px-1.5 py-0.5 rounded">https://meusite.com/p/ABC123</code>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      if (!userDominio) return;
+                      setIsSavingCatalogo(true);
+                      try {
+                        const { error } = await supabase.functions.invoke("get-customer-data", {
+                          body: {
+                            dominio: userDominio,
+                            action: "update_catalogo_redirect",
+                            catalogo_redirect_url: catalogoRedirectUrl.trim() || null,
+                            catalogo_redirect_ativo: catalogoRedirectAtivo,
+                          },
+                        });
+                        if (error) throw error;
+                        toast({ title: "Configurações do catálogo salvas!" });
+                        if (cliente) {
+                          setCliente({
+                            ...cliente,
+                            catalogo_redirect_url: catalogoRedirectUrl.trim() || null,
+                            catalogo_redirect_ativo: catalogoRedirectAtivo,
+                          });
+                        }
+                      } catch (err: any) {
+                        toast({
+                          title: "Erro ao salvar",
+                          description: err.message,
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsSavingCatalogo(false);
+                      }
+                    }}
+                    disabled={isSavingCatalogo}
+                  >
+                    {isSavingCatalogo ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar configurações"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
 
