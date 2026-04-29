@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -56,6 +58,8 @@ import {
   Monitor,
   Minus,
   Plug,
+  BookOpen,
+  Copy,
 } from "lucide-react";
 import { IntegrationHubTab } from "@/components/IntegrationHubTab";
 
@@ -75,6 +79,8 @@ interface ClienteSaas {
   produtos_adicionais?: number;
   agenda_ativa?: boolean;
   fechamento_cego?: boolean;
+  catalogo_redirect_url?: string | null;
+  catalogo_redirect_ativo?: boolean;
 }
 
 interface Usuario {
