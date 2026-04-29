@@ -204,6 +204,11 @@ export default function Configuracoes() {
   const [isSavingFechamentoCego, setIsSavingFechamentoCego] = useState(false);
   const PRECO_PDV_ADICIONAL = 10; // R$ 10,00
 
+  // Catálogo states
+  const [catalogoRedirectUrl, setCatalogoRedirectUrl] = useState("");
+  const [catalogoRedirectAtivo, setCatalogoRedirectAtivo] = useState(false);
+  const [isSavingCatalogo, setIsSavingCatalogo] = useState(false);
+
   // Empresa adicional states
   const [empresaQuantidadeAdicional, setEmpresaQuantidadeAdicional] = useState(0);
   const [isSavingEmpresas, setIsSavingEmpresas] = useState(false);
