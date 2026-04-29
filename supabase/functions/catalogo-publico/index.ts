@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // Get company info
     const { data: cliente } = await supabase
       .from("tb_clientes_saas")
-      .select("razao_social, dominio")
+      .select("razao_social, dominio, catalogo_redirect_url, catalogo_redirect_ativo")
       .eq("dominio", dominio)
       .eq("status", "Ativo")
       .single();
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     // Get active products with stock
     const { data: produtos, error } = await supabase
       .from("tb_produtos")
-      .select("id, nome, preco_venda, imagem_url, codigo")
+      .select("id, nome, preco_venda, imagem_url, codigo, codigo_barras")
       .eq("dominio", dominio)
       .eq("ativo", true)
       .order("nome");
@@ -70,11 +70,17 @@ Deno.serve(async (req) => {
       nome: p.nome,
       preco_venda: p.preco_venda,
       imagem_url: p.imagem_url,
+      codigo: p.codigo,
+      codigo_barras: p.codigo_barras,
       quantidade: stockMap[p.id] || 0,
     }));
 
     return new Response(
-      JSON.stringify({ empresa: cliente.razao_social, produtos: result }),
+      JSON.stringify({
+        empresa: cliente.razao_social,
+        redirect_url: cliente.catalogo_redirect_ativo ? cliente.catalogo_redirect_url : null,
+        produtos: result,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
