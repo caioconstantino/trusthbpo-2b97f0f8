@@ -449,6 +449,52 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     }
   };
 
+  const handleCargaInicialProdutos = async (integracao: Integracao) => {
+    setIsSyncingInitial(true);
+    try {
+      const effectiveUnidadeId = integracao.unidade_id || unidadeId || null;
+
+      let q = supabase
+        .from("tb_produtos")
+        .select("id, codigo, nome, preco_venda, preco_custo, categoria_id, imagem_url, codigo_barras")
+        .eq("dominio", dominio)
+        .eq("ativo", true);
+      if (effectiveUnidadeId) q = q.eq("unidade_id", effectiveUnidadeId);
+      const { data: produtos, error } = await q;
+      if (error) throw error;
+
+      const lista = (produtos || []).filter((p) => p.codigo);
+      if (lista.length === 0) {
+        toast({ title: "Nenhum produto", description: "Sem produtos com código (SKU) para enviar.", variant: "destructive" });
+        return;
+      }
+
+      const projectIdLocal = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+      const { data: session } = await supabase.auth.getSession();
+      const resp = await fetch(`https://${projectIdLocal}.supabase.co/functions/v1/sync-products-out`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          dominio,
+          unidade_id: effectiveUnidadeId,
+          produtos: lista,
+          action: "upsert",
+          integracao_id: integracao.id,
+        }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(json?.error || "Falha ao enviar carga inicial");
+      toast({ title: "Carga inicial enviada!", description: `${json.sent ?? lista.length} produto(s) enviados ao site.` });
+    } catch (error: any) {
+      toast({ title: "Erro na carga inicial", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSyncingInitial(false);
+    }
+  };
+
   const tipoLabel = (tipo: string) => {
     return TIPOS_INTEGRACAO.find((t) => t.value === tipo)?.label || tipo;
   };
