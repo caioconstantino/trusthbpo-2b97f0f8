@@ -1,61 +1,106 @@
+## Plano: Integração "Enviar Produtos para Site"
 
-
-## Plan: Integração de Estoque Sincronizado com Site
-
-### O que será construído
-
-Um novo tipo de integração **"sincronizar_estoque"** que mantém o estoque do Trusth e do site externo sempre em sincronia, com:
-
-1. **Carga inicial de estoque** — botão que envia todo o estoque atual para o site via webhook
-2. **Trusth → Site** — quando uma venda ou compra altera estoque no Trusth, notifica o site automaticamente
-3. **Site → Trusth** — quando o site envia uma venda via webhook, o estoque no Trusth é atualizado
+Nova integração que envia o cadastro de produtos do Trusth para um site externo (POST `/sync-products`), com carga inicial e sincronização automática quando produtos são criados/editados/excluídos.
 
 ### Como funciona
 
 ```text
-┌──────────┐    webhook POST     ┌──────────┐
-│   Site    │ ──────────────────► │  Trusth  │  (venda do site → baixa estoque)
-│ externo  │ ◄────────────────── │          │  (venda/compra Trusth → notifica site)
-└──────────┘   callback URL      └──────────┘
+┌──────────┐  POST /sync-products  ┌──────────┐
+│  Trusth  │ ───────────────────►  │   Site   │
+│          │  payload {produtos}   │ externo  │
+└──────────┘                       └──────────┘
 ```
 
-O site configura uma **URL de callback** na integração. Sempre que o estoque mudar no Trusth, ele faz POST para essa URL com `{ produto_codigo, quantidade_atual }`.
+A integração armazena:
+- `endpoint_url` — URL completa do `/sync-products` do site
+- `apikey` — chave do header `apikey`
+
+Sempre que um produto é criado, atualizado ou excluído no Trusth, dispara um POST para o endpoint do site, no formato ERP documentado.
 
 ---
 
-### Detalhes Técnicos
+### 1. Novo tipo de integração no Hub
 
-**1. Novo tipo de integração no Hub**
-- Adicionar `sincronizar_estoque` em `TIPOS_INTEGRACAO` e `INTEGRACOES_PRONTAS` no `IntegrationHubTab.tsx`
-- Campo extra `config.callback_url` — URL do site para receber atualizações de estoque
-- Botão "Carga Inicial" visível para integrações deste tipo
+Em `IntegrationHubTab.tsx`:
 
-**2. Edge Function `sync-stock-out` (nova)**
-- Recebe `{ dominio, unidade_id, produtos: [{ codigo, quantidade }] }` 
-- Busca a integração ativa tipo `sincronizar_estoque` para o domínio
-- Faz POST para o `callback_url` configurado com o payload de estoque
-- Loga em `tb_integracoes_logs`
+- Adicionar `enviar_produtos` em `TIPOS_INTEGRACAO` (icon Package, label "Enviar Produtos para Site")
+- Adicionar card em `INTEGRACOES_PRONTAS`: "Catálogo do Site" — descricao "Envie e mantenha seu catálogo de produtos sincronizado com seu site"
+- No diálogo de criar/editar, quando `tipo === "enviar_produtos"`:
+  - Campo **URL do endpoint** (`config.endpoint_url`) — ex: `https://qkwypgohprykzhuhqmwr.supabase.co/functions/v1/sync-products`
+  - Campo **API Key** (`config.apikey`) — armazenado em `tb_integracoes.config`
+- Botão **"Carga Inicial"** para integrações deste tipo: lê todos os produtos do domínio/unidade e envia em lote via nova edge function `sync-products-out`
 
-**3. Edge Function `integration-webhook` (modificar)**
-- Novo handler para `tipo === "sincronizar_estoque"`: recebe vendas do site, baixa estoque no Trusth, e retorna estoque atualizado
-- Payload esperado do site: `{ itens: [{ cod_interno, quantidade }] }` (mesmo formato de vendas simplificado)
+### 2. Nova Edge Function `sync-products-out`
 
-**4. Notificação automática Trusth → Site**
-- No `useSales.ts`: após salvar venda, chamar `sync-stock-out` com os produtos vendidos
-- No `CompletePurchaseDialog.tsx`: após concluir compra (estoque sobe), chamar `sync-stock-out`
-- Chamadas são fire-and-forget (não bloqueiam a operação principal)
+`supabase/functions/sync-products-out/index.ts` (verify_jwt = false, registrada em `config.toml`)
 
-**5. Carga inicial**
-- Botão no `IntegrationHubTab` que busca todos os produtos + estoque do domínio/unidade e envia tudo via `sync-stock-out`
+Entrada:
+```json
+{
+  "dominio": "...",
+  "unidade_id": 1,
+  "produtos": [{ id, codigo, nome, ... }],   // opcional - se omitido, busca todos
+  "action": "upsert" | "delete",
+  "integracao_id": "..."  // opcional - se omitido, busca todas ativas tipo enviar_produtos
+}
+```
 
-**Arquivos a criar:**
-- `supabase/functions/sync-stock-out/index.ts`
+Lógica:
+1. Busca integrações ativas tipo `enviar_produtos` para o domínio (filtrando por `integracao_id` se passado)
+2. Para cada integração, monta payload no formato ERP:
+   ```json
+   { "produtos": [
+     { "codigo", "nome", "preco", "preco_compra", "estoque",
+       "categoria", "imagem", "codigo_barras" }
+   ] }
+   ```
+   Para `action: "delete"`: `{ "codigo": "...", "action": "delete" }`
+3. Faz `POST` para `config.endpoint_url` com headers `apikey` e `Content-Type`
+4. Loga em `tb_integracoes_logs` (status sucesso/erro + resposta)
+5. Suporta produtos em lote (envia tudo num único POST por integração)
 
-**Arquivos a modificar:**
-- `src/components/IntegrationHubTab.tsx` — novo tipo, campo callback_url, botão carga inicial
-- `supabase/functions/integration-webhook/index.ts` — handler `sincronizar_estoque`
-- `src/hooks/useSales.ts` — notificar após venda
-- `src/components/CompletePurchaseDialog.tsx` — notificar após compra concluída
+Para obter o estoque, faz join com `tb_estq_unidades` pela `unidade_id` da integração; categoria via `tb_categorias`.
 
-**Sem alterações no banco de dados** — usa tabelas e campos existentes (`tb_integracoes.config` para `callback_url`).
+### 3. Disparo automático nos hooks de produtos
 
+Adicionar chamadas fire-and-forget para `sync-products-out`:
+
+- **`src/components/ProductForm.tsx`** — após criar produto (upsert)
+- **`src/components/EditProductSheet.tsx`** — após salvar edição (upsert)
+- **`src/components/ProductsTable.tsx`** — após excluir produto (delete, envia só o `codigo`)
+- **`src/components/ImportProdutosDialog.tsx`** — após importação XLSX (upsert em lote)
+
+Helper utilitário `src/lib/syncProductsToSite.ts` para evitar duplicação:
+```ts
+export async function syncProductsToSite(dominio, unidadeId, produtos, action = "upsert") {
+  // chama sync-products-out fire-and-forget
+}
+```
+
+### 4. Botão "Carga Inicial" no Hub
+
+No `IntegrationHubTab.tsx`, função `handleCargaInicialProdutos(integracao)`:
+- Busca todos os produtos ativos do domínio/unidade
+- Chama `sync-products-out` com a lista completa, `action: "upsert"`, `integracao_id` específico
+- Mostra toast com total enviado
+
+### 5. Arquivos
+
+**Criar:**
+- `supabase/functions/sync-products-out/index.ts`
+- `src/lib/syncProductsToSite.ts`
+
+**Modificar:**
+- `supabase/config.toml` — registrar `[functions.sync-products-out] verify_jwt = false`
+- `src/components/IntegrationHubTab.tsx` — novo tipo, campos endpoint/apikey, botão carga inicial
+- `src/components/ProductForm.tsx` — chamar sync após criar
+- `src/components/EditProductSheet.tsx` — chamar sync após editar
+- `src/components/ProductsTable.tsx` — chamar sync após excluir
+- `src/components/ImportProdutosDialog.tsx` — chamar sync após importar
+
+**Sem alterações no banco** — usa `tb_integracoes.config` (jsonb) para guardar `endpoint_url` e `apikey`.
+
+### Observações de segurança
+
+- `apikey` fica em `tb_integracoes.config` protegido por RLS (apenas usuários do domínio veem)
+- Envios são fire-and-forget no client, com logging server-side em `tb_integracoes_logs` para auditoria/debug

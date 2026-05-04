@@ -74,6 +74,7 @@ const TIPOS_INTEGRACAO = [
   { value: "receber_vendas", label: "Receber Vendas", icon: ShoppingCart, desc: "Receba vendas de outros sistemas automaticamente" },
   { value: "receber_produtos", label: "Receber Produtos", icon: Package, desc: "Importe produtos de sistemas externos" },
   { value: "sincronizar_estoque", label: "Sincronizar Estoque", icon: Package, desc: "Sincronize estoque bidirecional com seu site/e-commerce" },
+  { value: "enviar_produtos", label: "Enviar Produtos para Site", icon: Package, desc: "Envie e mantenha o catálogo de produtos sincronizado com um site externo" },
   { value: "webhook_personalizado", label: "Webhook Genérico", icon: Webhook, desc: "Receba qualquer dado via webhook" },
 ];
 
@@ -100,6 +101,14 @@ const INTEGRACOES_PRONTAS = [
     descricao: "Mantenha o estoque do site e do Trusth sempre em sincronia",
     icon: Package,
     tipo: "sincronizar_estoque",
+    em_breve: false,
+  },
+  {
+    id: "enviar_catalogo",
+    nome: "Catálogo do Site",
+    descricao: "Envie e mantenha seu catálogo de produtos sincronizado com seu site",
+    icon: Package,
+    tipo: "enviar_produtos",
     em_breve: false,
   },
   {
@@ -137,6 +146,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [descricao, setDescricao] = useState("");
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
   const [callbackUrl, setCallbackUrl] = useState("");
+  const [endpointUrl, setEndpointUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncingInitial, setIsSyncingInitial] = useState(false);
@@ -208,6 +219,10 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       if (finalTipo === "sincronizar_estoque" && callbackUrl.trim()) {
         config.callback_url = callbackUrl.trim();
       }
+      if (finalTipo === "enviar_produtos") {
+        if (endpointUrl.trim()) config.endpoint_url = endpointUrl.trim();
+        if (apiKey.trim()) config.apikey = apiKey.trim();
+      }
 
       const { data, error } = await supabase
         .from("tb_integracoes")
@@ -232,6 +247,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setDescricao("");
       setSelectedSessaoId("");
       setCallbackUrl("");
+      setEndpointUrl("");
+      setApiKey("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
@@ -249,6 +266,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     setDescricao(integracao.descricao || "");
     setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
     setCallbackUrl((integracao.config as any)?.callback_url || "");
+    setEndpointUrl((integracao.config as any)?.endpoint_url || "");
+    setApiKey((integracao.config as any)?.apikey || "");
     setDialogOpen(true);
   };
 
@@ -266,6 +285,15 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
         config.callback_url = callbackUrl.trim();
       } else {
         delete config.callback_url;
+      }
+      if (tipo === "enviar_produtos") {
+        if (endpointUrl.trim()) config.endpoint_url = endpointUrl.trim();
+        else delete config.endpoint_url;
+        if (apiKey.trim()) config.apikey = apiKey.trim();
+        else delete config.apikey;
+      } else {
+        delete config.endpoint_url;
+        delete config.apikey;
       }
 
       const { error } = await supabase
@@ -285,6 +313,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setDescricao("");
       setSelectedSessaoId("");
       setCallbackUrl("");
+      setEndpointUrl("");
+      setApiKey("");
       fetchIntegracoes();
       toast({ title: "Integração atualizada!" });
     } catch (error: any) {
@@ -412,6 +442,52 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       });
 
       toast({ title: "Carga inicial enviada!", description: `${payload.length} produto(s) sincronizado(s) com o site.` });
+    } catch (error: any) {
+      toast({ title: "Erro na carga inicial", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSyncingInitial(false);
+    }
+  };
+
+  const handleCargaInicialProdutos = async (integracao: Integracao) => {
+    setIsSyncingInitial(true);
+    try {
+      const effectiveUnidadeId = integracao.unidade_id || unidadeId || null;
+
+      let q = supabase
+        .from("tb_produtos")
+        .select("id, codigo, nome, preco_venda, preco_custo, categoria_id, imagem_url, codigo_barras")
+        .eq("dominio", dominio)
+        .eq("ativo", true);
+      if (effectiveUnidadeId) q = q.eq("unidade_id", effectiveUnidadeId);
+      const { data: produtos, error } = await q;
+      if (error) throw error;
+
+      const lista = (produtos || []).filter((p) => p.codigo);
+      if (lista.length === 0) {
+        toast({ title: "Nenhum produto", description: "Sem produtos com código (SKU) para enviar.", variant: "destructive" });
+        return;
+      }
+
+      const projectIdLocal = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dymdchhxabwaxownoxtz";
+      const { data: session } = await supabase.auth.getSession();
+      const resp = await fetch(`https://${projectIdLocal}.supabase.co/functions/v1/sync-products-out`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          dominio,
+          unidade_id: effectiveUnidadeId,
+          produtos: lista,
+          action: "upsert",
+          integracao_id: integracao.id,
+        }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(json?.error || "Falha ao enviar carga inicial");
+      toast({ title: "Carga inicial enviada!", description: `${json.sent ?? lista.length} produto(s) enviados ao site.` });
     } catch (error: any) {
       toast({ title: "Erro na carga inicial", description: error.message, variant: "destructive" });
     } finally {
@@ -569,6 +645,18 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                             Carga Inicial
                           </Button>
                         )}
+                        {integracao.tipo === "enviar_produtos" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => handleCargaInicialProdutos(integracao)}
+                            disabled={isSyncingInitial}
+                          >
+                            {isSyncingInitial ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Carga Inicial
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(integracao)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -653,6 +741,33 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                   URL para onde o Trusth enviará atualizações de estoque via POST. O site também pode enviar vendas para o endpoint do webhook usando o token.
                 </p>
               </div>
+            )}
+            {tipo === "enviar_produtos" && (
+              <>
+                <div className="space-y-2">
+                  <Label>URL do Endpoint do Site</Label>
+                  <Input
+                    value={endpointUrl}
+                    onChange={(e) => setEndpointUrl(e.target.value)}
+                    placeholder="https://meusite.com/functions/v1/sync-products"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    URL completa do endpoint do site que receberá os produtos via POST.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>API Key</Label>
+                  <Input
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Chave enviada no header apikey"
+                    type="password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Será enviada no header <code>apikey</code> de cada requisição.
+                  </p>
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>

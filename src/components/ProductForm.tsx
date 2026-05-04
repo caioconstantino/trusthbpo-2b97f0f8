@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
+import { syncProductsToSite } from "@/lib/syncProductsToSite";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -189,6 +190,23 @@ export const ProductForm = ({ onProductAdded, disabled = false }: { onProductAdd
         variant: "destructive"
       });
       return;
+    }
+
+    // Sync to external sites (fire-and-forget)
+    if (formData.code) {
+      syncProductsToSite(
+        dominio,
+        unidadeId ? parseInt(unidadeId) : null,
+        [{
+          codigo: formData.code,
+          nome: formData.name,
+          preco: parseFloat(formData.salePrice),
+          preco_compra: parseFloat(formData.costPrice),
+          categoria: formData.categoryName || null,
+          imagem: imagemUrl,
+          codigo_barras: formData.barcode || null,
+        }],
+      );
     }
 
     toast({
