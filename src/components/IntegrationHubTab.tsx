@@ -74,6 +74,7 @@ const TIPOS_INTEGRACAO = [
   { value: "receber_vendas", label: "Receber Vendas", icon: ShoppingCart, desc: "Receba vendas de outros sistemas automaticamente" },
   { value: "receber_produtos", label: "Receber Produtos", icon: Package, desc: "Importe produtos de sistemas externos" },
   { value: "sincronizar_estoque", label: "Sincronizar Estoque", icon: Package, desc: "Sincronize estoque bidirecional com seu site/e-commerce" },
+  { value: "enviar_produtos", label: "Enviar Produtos para Site", icon: Package, desc: "Envie e mantenha o catálogo de produtos sincronizado com um site externo" },
   { value: "webhook_personalizado", label: "Webhook Genérico", icon: Webhook, desc: "Receba qualquer dado via webhook" },
 ];
 
@@ -100,6 +101,14 @@ const INTEGRACOES_PRONTAS = [
     descricao: "Mantenha o estoque do site e do Trusth sempre em sincronia",
     icon: Package,
     tipo: "sincronizar_estoque",
+    em_breve: false,
+  },
+  {
+    id: "enviar_catalogo",
+    nome: "Catálogo do Site",
+    descricao: "Envie e mantenha seu catálogo de produtos sincronizado com seu site",
+    icon: Package,
+    tipo: "enviar_produtos",
     em_breve: false,
   },
   {
