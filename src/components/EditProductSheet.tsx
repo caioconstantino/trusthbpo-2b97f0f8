@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { syncProductsToSite } from "@/lib/syncProductsToSite";
 import {
   Sheet,
   SheetContent,
