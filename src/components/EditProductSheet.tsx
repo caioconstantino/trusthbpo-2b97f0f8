@@ -252,6 +252,25 @@ export const EditProductSheet = ({
       description: "O produto foi atualizado com sucesso.",
     });
 
+    // Sync to external sites (fire-and-forget)
+    if (formData.code) {
+      const dominio = localStorage.getItem("user_dominio") || "";
+      const unidadeRaw = localStorage.getItem("unidade_ativa_id");
+      syncProductsToSite(
+        dominio,
+        unidadeRaw ? parseInt(unidadeRaw) : null,
+        [{
+          codigo: formData.code,
+          nome: formData.name,
+          preco: parseFloat(formData.salePrice),
+          preco_compra: parseFloat(formData.costPrice),
+          categoria: formData.categoryName || null,
+          imagem: imagemUrl,
+          codigo_barras: formData.barcode || null,
+        }],
+      );
+    }
+
     onProductUpdated();
   };
 
