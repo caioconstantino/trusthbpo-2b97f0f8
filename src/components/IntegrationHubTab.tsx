@@ -146,6 +146,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
   const [descricao, setDescricao] = useState("");
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
   const [callbackUrl, setCallbackUrl] = useState("");
+  const [endpointUrl, setEndpointUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [sessoes, setSessoes] = useState<{ id: string; caixa_nome: string; usuario_nome: string; status: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncingInitial, setIsSyncingInitial] = useState(false);
@@ -217,6 +219,10 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       if (finalTipo === "sincronizar_estoque" && callbackUrl.trim()) {
         config.callback_url = callbackUrl.trim();
       }
+      if (finalTipo === "enviar_produtos") {
+        if (endpointUrl.trim()) config.endpoint_url = endpointUrl.trim();
+        if (apiKey.trim()) config.apikey = apiKey.trim();
+      }
 
       const { data, error } = await supabase
         .from("tb_integracoes")
@@ -241,6 +247,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setDescricao("");
       setSelectedSessaoId("");
       setCallbackUrl("");
+      setEndpointUrl("");
+      setApiKey("");
       fetchIntegracoes();
 
       toast({ title: "Integração criada!", description: "Token e endpoint gerados com sucesso." });
@@ -258,6 +266,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
     setDescricao(integracao.descricao || "");
     setSelectedSessaoId((integracao.config as any)?.sessao_id || "nenhum");
     setCallbackUrl((integracao.config as any)?.callback_url || "");
+    setEndpointUrl((integracao.config as any)?.endpoint_url || "");
+    setApiKey((integracao.config as any)?.apikey || "");
     setDialogOpen(true);
   };
 
@@ -275,6 +285,15 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
         config.callback_url = callbackUrl.trim();
       } else {
         delete config.callback_url;
+      }
+      if (tipo === "enviar_produtos") {
+        if (endpointUrl.trim()) config.endpoint_url = endpointUrl.trim();
+        else delete config.endpoint_url;
+        if (apiKey.trim()) config.apikey = apiKey.trim();
+        else delete config.apikey;
+      } else {
+        delete config.endpoint_url;
+        delete config.apikey;
       }
 
       const { error } = await supabase
@@ -294,6 +313,8 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
       setDescricao("");
       setSelectedSessaoId("");
       setCallbackUrl("");
+      setEndpointUrl("");
+      setApiKey("");
       fetchIntegracoes();
       toast({ title: "Integração atualizada!" });
     } catch (error: any) {
