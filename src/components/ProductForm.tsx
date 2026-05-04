@@ -191,6 +191,23 @@ export const ProductForm = ({ onProductAdded, disabled = false }: { onProductAdd
       return;
     }
 
+    // Sync to external sites (fire-and-forget)
+    if (formData.code) {
+      syncProductsToSite(
+        dominio,
+        unidadeId ? parseInt(unidadeId) : null,
+        [{
+          codigo: formData.code,
+          nome: formData.name,
+          preco: parseFloat(formData.salePrice),
+          preco_compra: parseFloat(formData.costPrice),
+          categoria: formData.categoryName || null,
+          imagem: imagemUrl,
+          codigo_barras: formData.barcode || null,
+        }],
+      );
+    }
+
     toast({
       title: "Produto cadastrado!",
       description: "O produto foi adicionado com sucesso.",
