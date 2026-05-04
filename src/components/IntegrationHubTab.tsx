@@ -730,6 +730,33 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                 </p>
               </div>
             )}
+            {tipo === "enviar_produtos" && (
+              <>
+                <div className="space-y-2">
+                  <Label>URL do Endpoint do Site</Label>
+                  <Input
+                    value={endpointUrl}
+                    onChange={(e) => setEndpointUrl(e.target.value)}
+                    placeholder="https://meusite.com/functions/v1/sync-products"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    URL completa do endpoint do site que receberá os produtos via POST.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>API Key</Label>
+                  <Input
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Chave enviada no header apikey"
+                    type="password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Será enviada no header <code>apikey</code> de cada requisição.
+                  </p>
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva a integração" />
