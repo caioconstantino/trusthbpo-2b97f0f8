@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { syncProductsToSite } from "@/lib/syncProductsToSite";
 import { Button } from "./ui/button";
 import { Pencil, Trash2, Package } from "lucide-react";
 import {
@@ -88,6 +89,9 @@ export const ProductsTable = () => {
   const handleDelete = async () => {
     if (!deleteProductId) return;
 
+    // Lookup codigo before soft-delete to inform external sites
+    const target = products.find((p) => p.id === deleteProductId);
+
     const { error } = await supabase
       .from("tb_produtos")
       .update({ ativo: false })
@@ -100,6 +104,17 @@ export const ProductsTable = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    if (target?.codigo) {
+      const dominio = localStorage.getItem("user_dominio") || "";
+      const unidadeRaw = localStorage.getItem("unidade_ativa_id");
+      syncProductsToSite(
+        dominio,
+        unidadeRaw ? parseInt(unidadeRaw) : null,
+        [{ codigo: target.codigo, action: "delete" }],
+        "delete",
+      );
     }
 
     toast({
