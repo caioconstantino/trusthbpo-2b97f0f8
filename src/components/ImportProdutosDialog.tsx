@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
+import { syncProductsToSite } from "@/lib/syncProductsToSite";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -172,6 +173,21 @@ export function ImportProdutosDialog({ open, onOpenChange, onSuccess }: ImportPr
 
       const { error } = await supabase.from("tb_produtos").insert(insertData);
       if (error) throw error;
+
+      // Sync imported products to external sites (fire-and-forget)
+      const syncPayload = validProdutos
+        .filter((p) => p.codigo)
+        .map((p) => ({
+          codigo: p.codigo,
+          nome: p.nome,
+          preco: p.preco_venda,
+          preco_compra: p.preco_custo,
+          categoria: p.categoria || null,
+          codigo_barras: p.codigo_barras || null,
+        }));
+      if (syncPayload.length > 0) {
+        syncProductsToSite(dominio, unidadeId ? parseInt(unidadeId) : null, syncPayload);
+      }
 
       toast({ title: "Importação concluída", description: `${validProdutos.length} produto(s) importado(s) com sucesso.` });
       onSuccess();
