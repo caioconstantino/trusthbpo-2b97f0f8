@@ -767,6 +767,28 @@ export function IntegrationHubTab({ dominio, unidadeId }: Props) {
                     Será enviada no header <code>apikey</code> de cada requisição.
                   </p>
                 </div>
+                {editingIntegracao && (
+                  <div className="rounded-md border bg-muted/40 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">Carga Inicial de Produtos</p>
+                        <p className="text-xs text-muted-foreground">
+                          Envia agora todos os produtos ativos do domínio para o site configurado.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleCargaInicialProdutos(editingIntegracao)}
+                        disabled={isSyncingInitial}
+                      >
+                        {isSyncingInitial ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                        Enviar Carga Inicial
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
             <div className="space-y-2">
