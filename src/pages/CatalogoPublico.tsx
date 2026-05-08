@@ -57,9 +57,15 @@ const CatalogoPublico = () => {
     fetchCatalogo();
   }, [dominio]);
 
-  const filtered = produtos.filter((p) =>
-    p.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = produtos.filter((p) => {
+    const q = search.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      p.nome.toLowerCase().includes(q) ||
+      (p.codigo || "").toLowerCase().includes(q) ||
+      (p.codigo_barras || "").toLowerCase().includes(q)
+    );
+  });
 
   const buildRedirectUrl = (produto: Produto): string | null => {
     if (!redirectUrl) return null;
