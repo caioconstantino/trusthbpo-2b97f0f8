@@ -2282,6 +2282,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_dominio: { Args: never; Returns: string }
       get_next_proposta_numero: {
         Args: { p_dominio: string; p_unidade_id: number }
         Returns: number
