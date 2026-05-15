@@ -28,12 +28,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DownloadsDialog } from "@/components/DownloadsDialog";
+import { EstagioFormDialog } from "@/components/EstagioFormDialog";
 import logo from "@/assets/logo.webp";
 
 export default function Educacao() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
+  const [estagioOpen, setEstagioOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
