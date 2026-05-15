@@ -7,6 +7,8 @@ import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, TrendingUp, Loader2, Calendar, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Briefcase } from "lucide-react";
+import { EstagioFormDialog } from "@/components/EstagioFormDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -83,6 +85,8 @@ const Index = () => {
   const { unidadeAtiva, isLoading: unidadeLoading } = useUnidadeAtiva();
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [estagioOpen, setEstagioOpen] = useState(false);
+  const [isAluno, setIsAluno] = useState(false);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('hoje');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>({
@@ -126,6 +130,22 @@ const Index = () => {
       fetchDashboardData();
     }
   }, [unidadeAtiva, periodFilter, customDateRange]);
+
+  useEffect(() => {
+    const checkAluno = async () => {
+      const dominio = localStorage.getItem("user_dominio");
+      if (!dominio) return;
+      try {
+        const { data } = await supabase.functions.invoke("get-customer-data", {
+          body: { dominio },
+        });
+        if (data?.cliente?.tipo_conta === "aluno") setIsAluno(true);
+      } catch (e) {
+        console.error("Erro ao verificar tipo de conta:", e);
+      }
+    };
+    checkAluno();
+  }, []);
 
   const getDateRange = (period: PeriodFilter) => {
     const hoje = new Date();
@@ -531,6 +551,17 @@ const Index = () => {
   return (
     <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
       <div className="space-y-6">
+        {isAluno && (
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setEstagioOpen(true)}
+              className="bg-gradient-to-r from-[#D4AF37] to-[#E0C158] hover:from-[#C9A227] hover:to-[#D4AF37] text-[#0A1E3F] font-bold shadow-md"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Quero estagiar na TrustHBPO
+            </Button>
+          </div>
+        )}
         {/* Period Filter - Top */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-lg border">
           <div className="flex items-center gap-2">
@@ -866,6 +897,7 @@ const Index = () => {
 
       {/* Tutorial */}
       <DashboardTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
+      <EstagioFormDialog open={estagioOpen} onOpenChange={setEstagioOpen} />
     </DashboardLayout>
   );
 };
