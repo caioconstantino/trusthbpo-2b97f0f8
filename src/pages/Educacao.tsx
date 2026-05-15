@@ -591,6 +591,7 @@ export default function Educacao() {
       </footer>
 
       <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
+      <EstagioFormDialog open={estagioOpen} onOpenChange={setEstagioOpen} />
     </div>
   );
 }
