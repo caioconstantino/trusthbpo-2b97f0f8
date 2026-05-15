@@ -131,6 +131,22 @@ const Index = () => {
     }
   }, [unidadeAtiva, periodFilter, customDateRange]);
 
+  useEffect(() => {
+    const checkAluno = async () => {
+      const dominio = localStorage.getItem("user_dominio");
+      if (!dominio) return;
+      try {
+        const { data } = await supabase.functions.invoke("get-customer-data", {
+          body: { dominio },
+        });
+        if (data?.cliente?.tipo_conta === "aluno") setIsAluno(true);
+      } catch (e) {
+        console.error("Erro ao verificar tipo de conta:", e);
+      }
+    };
+    checkAluno();
+  }, []);
+
   const getDateRange = (period: PeriodFilter) => {
     const hoje = new Date();
     let inicio: Date;
