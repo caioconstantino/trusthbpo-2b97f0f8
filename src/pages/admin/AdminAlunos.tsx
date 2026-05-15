@@ -17,7 +17,9 @@ import {
   Eye,
   Building,
   Handshake,
-  Upload
+  Upload,
+  Briefcase,
+  Download
 } from "lucide-react";
 import {
   Table,
@@ -74,6 +76,17 @@ interface Aluno {
   } | null;
   empresa_adotada: EmpresaAdotada | null;
   ultimo_login: string | null;
+  estagio: {
+    id: string;
+    nome: string;
+    email: string;
+    telefone: string | null;
+    areas_interesse: string[];
+    mensagem: string | null;
+    curriculo_url: string | null;
+    status: string;
+    created_at: string;
+  } | null;
 }
 
 interface Escola {
@@ -172,6 +185,7 @@ const AdminAlunos = () => {
           let escola = null;
           let empresa_adotada = null;
           let ultimo_login = null;
+          let estagio = null;
 
           if (aluno.professor_id) {
             const { data: profData } = await supabase
@@ -206,12 +220,22 @@ const AdminAlunos = () => {
             ultimo_login = empresa_adotada.last_login_at;
           }
 
+          // Buscar candidatura de estágio pelo email do aluno
+          const { data: estagioData } = await supabase
+            .from("tb_estagios_candidatos")
+            .select("id, nome, email, telefone, areas_interesse, mensagem, curriculo_url, status, created_at")
+            .ilike("email", aluno.email)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          estagio = estagioData?.[0] || null;
+
           return {
             ...aluno,
             professor,
             escola,
             empresa_adotada,
             ultimo_login,
+            estagio,
           };
         })
       );
@@ -247,6 +271,12 @@ const AdminAlunos = () => {
       return phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
     }
     return phone.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  };
+
+  const handleDownloadCV = async (path: string) => {
+    const { data, error } = await supabase.storage.from("curriculos").createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) return;
+    window.open(data.signedUrl, "_blank");
   };
 
   return (
@@ -422,6 +452,7 @@ const AdminAlunos = () => {
                       <TableHead className="text-slate-400">Escola</TableHead>
                       <TableHead className="text-slate-400">Professor</TableHead>
                       <TableHead className="text-slate-400">Empresa Adotada</TableHead>
+                      <TableHead className="text-slate-400">Estágio</TableHead>
                       <TableHead className="text-slate-400">Último Login</TableHead>
                       <TableHead className="text-slate-400">Ações</TableHead>
                     </TableRow>
@@ -444,6 +475,16 @@ const AdminAlunos = () => {
                             </div>
                           ) : (
                             <span className="text-slate-500 italic">Sem empresa</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {aluno.estagio ? (
+                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30">
+                              <Briefcase className="w-3 h-3 mr-1" />
+                              Candidatou-se
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500 text-xs italic">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-slate-300">
@@ -586,6 +627,67 @@ const AdminAlunos = () => {
                 <p className="text-white">
                   {format(new Date(viewAluno.created_at), "dd/MM/yyyy 'às' HH:mm")}
                 </p>
+              </div>
+
+              {/* Candidatura de Estágio */}
+              <div className="border-t border-slate-700 pt-4">
+                <p className="text-sm text-slate-400 mb-2 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" /> Candidatura de Estágio
+                </p>
+                {viewAluno.estagio ? (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-slate-400">Nome:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.nome}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Email:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.email}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Telefone:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.telefone || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Status:</span>
+                        <Badge variant="secondary" className="ml-2">{viewAluno.estagio.status}</Badge>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-400">Enviado em:</span>
+                        <span className="text-white ml-2">
+                          {format(new Date(viewAluno.estagio.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">Áreas de interesse:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {viewAluno.estagio.areas_interesse.map((a) => (
+                          <Badge key={a} variant="outline" className="text-amber-300 border-amber-500/40">{a}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    {viewAluno.estagio.mensagem && (
+                      <div>
+                        <span className="text-slate-400 block mb-1">Mensagem:</span>
+                        <p className="text-white whitespace-pre-wrap">{viewAluno.estagio.mensagem}</p>
+                      </div>
+                    )}
+                    {viewAluno.estagio.curriculo_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => handleDownloadCV(viewAluno.estagio!.curriculo_url!)}
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Baixar currículo
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">Não se candidatou ao estágio</p>
+                )}
               </div>
             </div>
           )}
