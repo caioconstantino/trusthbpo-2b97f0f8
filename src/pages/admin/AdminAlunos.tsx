@@ -220,11 +220,11 @@ const AdminAlunos = () => {
             ultimo_login = empresa_adotada.last_login_at;
           }
 
-          // Buscar candidatura de estágio pelo email do aluno
+          // Buscar candidatura de estágio pelo email OU nome do aluno
           const { data: estagioData } = await supabase
             .from("tb_estagios_candidatos")
             .select("id, nome, email, telefone, areas_interesse, mensagem, curriculo_url, status, created_at")
-            .ilike("email", aluno.email)
+            .or(`email.ilike.${aluno.email},nome.ilike.${aluno.nome}`)
             .order("created_at", { ascending: false })
             .limit(1);
           estagio = estagioData?.[0] || null;
