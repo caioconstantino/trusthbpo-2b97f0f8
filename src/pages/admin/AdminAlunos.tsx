@@ -628,6 +628,67 @@ const AdminAlunos = () => {
                   {format(new Date(viewAluno.created_at), "dd/MM/yyyy 'às' HH:mm")}
                 </p>
               </div>
+
+              {/* Candidatura de Estágio */}
+              <div className="border-t border-slate-700 pt-4">
+                <p className="text-sm text-slate-400 mb-2 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" /> Candidatura de Estágio
+                </p>
+                {viewAluno.estagio ? (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-slate-400">Nome:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.nome}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Email:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.email}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Telefone:</span>
+                        <span className="text-white ml-2">{viewAluno.estagio.telefone || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Status:</span>
+                        <Badge variant="secondary" className="ml-2">{viewAluno.estagio.status}</Badge>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-400">Enviado em:</span>
+                        <span className="text-white ml-2">
+                          {format(new Date(viewAluno.estagio.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-1">Áreas de interesse:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {viewAluno.estagio.areas_interesse.map((a) => (
+                          <Badge key={a} variant="outline" className="text-amber-300 border-amber-500/40">{a}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    {viewAluno.estagio.mensagem && (
+                      <div>
+                        <span className="text-slate-400 block mb-1">Mensagem:</span>
+                        <p className="text-white whitespace-pre-wrap">{viewAluno.estagio.mensagem}</p>
+                      </div>
+                    )}
+                    {viewAluno.estagio.curriculo_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => handleDownloadCV(viewAluno.estagio!.curriculo_url!)}
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Baixar currículo
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">Não se candidatou ao estágio</p>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
