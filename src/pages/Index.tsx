@@ -85,6 +85,8 @@ const Index = () => {
   const { unidadeAtiva, isLoading: unidadeLoading } = useUnidadeAtiva();
   const [activeTab, setActiveTab] = useState("operacional");
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [estagioOpen, setEstagioOpen] = useState(false);
+  const [isAluno, setIsAluno] = useState(false);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('hoje');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>({
