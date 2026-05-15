@@ -551,6 +551,17 @@ const Index = () => {
   return (
     <DashboardLayout onTutorialClick={() => setTutorialOpen(true)}>
       <div className="space-y-6">
+        {isAluno && (
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setEstagioOpen(true)}
+              className="bg-gradient-to-r from-[#D4AF37] to-[#E0C158] hover:from-[#C9A227] hover:to-[#D4AF37] text-[#0A1E3F] font-bold shadow-md"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Quero estagiar na TrustHBPO
+            </Button>
+          </div>
+        )}
         {/* Period Filter - Top */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-lg border">
           <div className="flex items-center gap-2">
