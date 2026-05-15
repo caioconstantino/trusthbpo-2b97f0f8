@@ -452,6 +452,7 @@ const AdminAlunos = () => {
                       <TableHead className="text-slate-400">Escola</TableHead>
                       <TableHead className="text-slate-400">Professor</TableHead>
                       <TableHead className="text-slate-400">Empresa Adotada</TableHead>
+                      <TableHead className="text-slate-400">Estágio</TableHead>
                       <TableHead className="text-slate-400">Último Login</TableHead>
                       <TableHead className="text-slate-400">Ações</TableHead>
                     </TableRow>
@@ -474,6 +475,16 @@ const AdminAlunos = () => {
                             </div>
                           ) : (
                             <span className="text-slate-500 italic">Sem empresa</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {aluno.estagio ? (
+                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30">
+                              <Briefcase className="w-3 h-3 mr-1" />
+                              Candidatou-se
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-500 text-xs italic">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-slate-300">
