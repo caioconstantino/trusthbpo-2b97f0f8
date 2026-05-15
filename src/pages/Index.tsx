@@ -897,6 +897,7 @@ const Index = () => {
 
       {/* Tutorial */}
       <DashboardTutorial open={tutorialOpen} onOpenChange={setTutorialOpen} />
+      <EstagioFormDialog open={estagioOpen} onOpenChange={setEstagioOpen} />
     </DashboardLayout>
   );
 };
