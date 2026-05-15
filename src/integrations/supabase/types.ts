@@ -859,6 +859,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tb_estagios_candidatos: {
+        Row: {
+          areas_interesse: string[]
+          created_at: string
+          curriculo_url: string | null
+          email: string
+          id: string
+          mensagem: string | null
+          nome: string
+          status: string
+          telefone: string | null
+        }
+        Insert: {
+          areas_interesse?: string[]
+          created_at?: string
+          curriculo_url?: string | null
+          email: string
+          id?: string
+          mensagem?: string | null
+          nome: string
+          status?: string
+          telefone?: string | null
+        }
+        Update: {
+          areas_interesse?: string[]
+          created_at?: string
+          curriculo_url?: string | null
+          email?: string
+          id?: string
+          mensagem?: string | null
+          nome?: string
+          status?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       tb_estq_unidades: {
         Row: {
           created_at: string | null

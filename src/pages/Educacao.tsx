@@ -28,12 +28,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { DownloadsDialog } from "@/components/DownloadsDialog";
+import { EstagioFormDialog } from "@/components/EstagioFormDialog";
 import logo from "@/assets/logo.webp";
 
 export default function Educacao() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
+  const [estagioOpen, setEstagioOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -390,6 +392,50 @@ export default function Educacao() {
         </div>
       </section>
 
+      {/* Banner Estágio */}
+      <section id="estagio" className="py-20 bg-gradient-to-r from-[#D4AF37] via-[#E0C158] to-[#D4AF37] relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-1/4 w-72 h-72 bg-[#0A1E3F] rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#0A1E3F] rounded-full blur-[150px]" />
+        </div>
+        <div className="container mx-auto px-4 relative">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div className="space-y-6 animate-fade-in">
+              <Badge className="bg-[#0A1E3F] text-[#D4AF37] border-[#0A1E3F] hover:bg-[#0A1E3F]/90">
+                <Briefcase className="w-4 h-4 mr-2" />
+                Oportunidade
+              </Badge>
+              <h2 className="text-4xl md:text-5xl font-bold text-[#0A1E3F] leading-tight">
+                Gostaria de <span className="underline decoration-[#0A1E3F]/30">estagiar</span> com a gente?
+              </h2>
+              <p className="text-lg text-[#0A1E3F]/80 max-w-xl">
+                Estamos sempre em busca de novos talentos. Envie seu currículo, escolha suas
+                áreas de interesse e faça parte do time TrustHBPO.
+              </p>
+              <Button
+                size="lg"
+                onClick={() => setEstagioOpen(true)}
+                className="bg-[#0A1E3F] hover:bg-[#0A1E3F]/90 text-[#D4AF37] font-bold h-14 px-8 group"
+              >
+                Quero me candidatar
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
+            <div className="hidden lg:flex justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#0A1E3F]/20 rounded-3xl blur-3xl" />
+                <div className="relative bg-[#0A1E3F] rounded-3xl p-10 shadow-2xl border border-[#0A1E3F]">
+                  <Briefcase className="w-32 h-32 text-[#D4AF37] mx-auto" />
+                  <p className="text-white text-center mt-6 text-lg font-semibold">
+                    Construa sua carreira <br /> com propósito
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Depoimentos */}
       <section id="depoimentos" className="py-24 bg-white">
         <div className="container mx-auto px-4">
@@ -545,6 +591,7 @@ export default function Educacao() {
       </footer>
 
       <DownloadsDialog open={downloadsOpen} onOpenChange={setDownloadsOpen} />
+      <EstagioFormDialog open={estagioOpen} onOpenChange={setEstagioOpen} />
     </div>
   );
 }
