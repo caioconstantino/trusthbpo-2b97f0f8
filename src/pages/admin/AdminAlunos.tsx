@@ -17,7 +17,9 @@ import {
   Eye,
   Building,
   Handshake,
-  Upload
+  Upload,
+  Briefcase,
+  Download
 } from "lucide-react";
 import {
   Table,
@@ -74,6 +76,17 @@ interface Aluno {
   } | null;
   empresa_adotada: EmpresaAdotada | null;
   ultimo_login: string | null;
+  estagio: {
+    id: string;
+    nome: string;
+    email: string;
+    telefone: string | null;
+    areas_interesse: string[];
+    mensagem: string | null;
+    curriculo_url: string | null;
+    status: string;
+    created_at: string;
+  } | null;
 }
 
 interface Escola {
@@ -172,6 +185,7 @@ const AdminAlunos = () => {
           let escola = null;
           let empresa_adotada = null;
           let ultimo_login = null;
+          let estagio = null;
 
           if (aluno.professor_id) {
             const { data: profData } = await supabase
@@ -206,12 +220,22 @@ const AdminAlunos = () => {
             ultimo_login = empresa_adotada.last_login_at;
           }
 
+          // Buscar candidatura de estágio pelo email do aluno
+          const { data: estagioData } = await supabase
+            .from("tb_estagios_candidatos")
+            .select("id, nome, email, telefone, areas_interesse, mensagem, curriculo_url, status, created_at")
+            .ilike("email", aluno.email)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          estagio = estagioData?.[0] || null;
+
           return {
             ...aluno,
             professor,
             escola,
             empresa_adotada,
             ultimo_login,
+            estagio,
           };
         })
       );
@@ -247,6 +271,12 @@ const AdminAlunos = () => {
       return phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
     }
     return phone.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  };
+
+  const handleDownloadCV = async (path: string) => {
+    const { data, error } = await supabase.storage.from("curriculos").createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) return;
+    window.open(data.signedUrl, "_blank");
   };
 
   return (
