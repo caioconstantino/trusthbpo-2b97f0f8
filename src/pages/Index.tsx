@@ -7,6 +7,8 @@ import { DashboardTutorial } from "@/components/DashboardTutorial";
 import { Accordion } from "@/components/ui/accordion";
 import { Package, Archive, TrendingUp, Loader2, Calendar, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Briefcase } from "lucide-react";
+import { EstagioFormDialog } from "@/components/EstagioFormDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
