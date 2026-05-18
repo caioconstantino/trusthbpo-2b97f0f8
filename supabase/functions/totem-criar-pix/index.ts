@@ -42,15 +42,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    const phones = {
+      mobile_phone: { country_code: "55", area_code: "11", number: "999999999" },
+    };
+    const customer: Record<string, unknown> = {
+      name: "Cliente Totem",
+      type: "individual",
+      email: "totem@trusthbpo.app",
+      phones,
+    };
+    if (cpf) customer.document = cpf.replace(/\D/g, "");
+
     const orderPayload = {
       items: cartItems.slice(0, 20).map((i) => ({
         amount: Math.round(i.preco * 100),
         description: (i.nome || "Produto").substring(0, 64),
         quantity: i.quantidade,
       })),
-      customer: cpf
-        ? { name: "Cliente Totem", type: "individual", document: cpf.replace(/\D/g, ""), email: "totem@trusthbpo.app" }
-        : { name: "Cliente Totem", type: "individual", email: "totem@trusthbpo.app" },
+      customer,
       payments: [{ payment_method: "pix", pix: { expires_in: 600 } }],
       metadata: { origem: "totem", totem_id: totem.id, dominio: totem.dominio },
     };
