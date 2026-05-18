@@ -42,6 +42,7 @@ import EducacaoEmpresas from "./pages/admin/educacao/EducacaoEmpresas";
 import EducacaoContratos from "./pages/admin/educacao/EducacaoContratos";
 import EducacaoEstagios from "./pages/admin/educacao/EducacaoEstagios";
 import EducacaoFaturamento from "./pages/admin/educacao/EducacaoFaturamento";
+import EducacaoProcessos from "./pages/admin/educacao/EducacaoProcessos";
 import { EducacaoAdminProtectedRoute } from "./components/EducacaoAdminProtectedRoute";
 import CriarUsuario from "./pages/CriarUsuario";
 import Configuracoes from "./pages/Configuracoes";
@@ -107,6 +108,7 @@ const App = () => (
             <Route path="/admin/educacao/alunos" element={<EducacaoAdminProtectedRoute><EducacaoAlunos /></EducacaoAdminProtectedRoute>} />
             <Route path="/admin/educacao/empresas" element={<EducacaoAdminProtectedRoute><EducacaoEmpresas /></EducacaoAdminProtectedRoute>} />
             <Route path="/admin/educacao/contratos" element={<EducacaoAdminProtectedRoute><EducacaoContratos /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/processos" element={<EducacaoAdminProtectedRoute><EducacaoProcessos /></EducacaoAdminProtectedRoute>} />
             <Route path="/admin/educacao/estagios" element={<EducacaoAdminProtectedRoute><EducacaoEstagios /></EducacaoAdminProtectedRoute>} />
             <Route path="/admin/educacao/faturamento" element={<EducacaoAdminProtectedRoute><EducacaoFaturamento /></EducacaoAdminProtectedRoute>} />
             
