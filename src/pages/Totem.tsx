@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, ShoppingCart, Plus, Minus, Trash2, X, QrCode, CreditCard, CheckCircle2, ArrowLeft, Search } from "lucide-react";
+import { ScanLine, ShoppingCart, Plus, Minus, Trash2, QrCode, CreditCard, CheckCircle2, ArrowLeft, Search, Package } from "lucide-react";
 import { toast } from "sonner";
 
 type Produto = {
@@ -398,9 +398,4 @@ export default function Totem() {
       </aside>
     </div>
   );
-}
-
-// Pequeno fallback para Package icon (evita import duplicado)
-function Package({ className }: { className?: string }) {
-  return <ShoppingCart className={className} />;
 }
