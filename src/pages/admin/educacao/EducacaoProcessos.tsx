@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2, Users, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, X, Save } from "lucide-react";
 
 interface Processo {
   id: string;
@@ -50,6 +52,8 @@ const EducacaoProcessos = () => {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Processo>>(empty);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  const [edit, setEdit] = useState<Partial<Processo>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -169,6 +173,39 @@ const EducacaoProcessos = () => {
 
   const proc = processos.find(p => p.id === detalheId);
 
+  // Carrega valores editáveis sempre que abrir/trocar processo
+  useEffect(() => {
+    if (proc) setEdit({
+      empresa_id: proc.empresa_id,
+      contrato_id: proc.contrato_id,
+      qtd_vagas: proc.qtd_vagas,
+      valor_total: Number(proc.valor_total),
+      observacoes: proc.observacoes,
+      data_solicitacao: proc.data_solicitacao,
+      data_pagamento: proc.data_pagamento,
+    });
+  }, [detalheId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const editContratosEmpresa = contratos.filter(c => c.empresa_id === edit.empresa_id);
+
+  const salvarEdicao = async () => {
+    if (!detalheId) return;
+    setSaving(true);
+    const { error } = await supabase.from("tb_edu_processos").update({
+      empresa_id: edit.empresa_id,
+      contrato_id: edit.contrato_id || null,
+      qtd_vagas: Number(edit.qtd_vagas || 1),
+      valor_total: Number(edit.valor_total || 0),
+      observacoes: edit.observacoes || null,
+      data_solicitacao: edit.data_solicitacao,
+      data_pagamento: edit.data_pagamento || null,
+    }).eq("id", detalheId);
+    setSaving(false);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Alterações salvas" });
+    load();
+  };
+
   return (
     <EducacaoAdminLayout>
       <div className="max-w-[1600px] mx-auto">
@@ -282,27 +319,80 @@ const EducacaoProcessos = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog detalhe / candidatos */}
-        <Dialog open={!!detalheId} onOpenChange={(o) => !o && setDetalheId(null)}>
-          <DialogContent className="max-w-2xl">
+        {/* Painel lateral de detalhe / edição inline */}
+        <Sheet open={!!detalheId} onOpenChange={(o) => !o && setDetalheId(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
             {proc && (
               <>
-                <DialogHeader>
-                  <DialogTitle>{empresaNome(proc.empresa_id)}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div><p className="text-muted-foreground text-xs">Vagas</p><p className="font-semibold">{proc.qtd_vagas}</p></div>
-                    <div><p className="text-muted-foreground text-xs">Valor total</p><p className="font-semibold">{fmt(Number(proc.valor_total))}</p></div>
-                    <div><p className="text-muted-foreground text-xs">Coluna</p><p className="font-semibold">{COLUNAS.find(c => c.id === proc.coluna)?.label}</p></div>
+                <SheetHeader>
+                  <SheetTitle>{empresaNome(proc.empresa_id)}</SheetTitle>
+                  <SheetDescription>
+                    <Badge variant="secondary">{COLUNAS.find(c => c.id === proc.coluna)?.label}</Badge>
+                    <span className="ml-2 text-xs">Solicitado em {proc.data_solicitacao}</span>
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>Empresa</Label>
+                    <Select value={edit.empresa_id} onValueChange={(v) => setEdit({ ...edit, empresa_id: v, contrato_id: null })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{empresas.map(e => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
-                  {proc.observacoes && <p className="text-sm bg-muted p-3 rounded">{proc.observacoes}</p>}
 
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Label>Candidatos vinculados ({candidatosDe(proc.id).length}/{proc.qtd_vagas})</Label>
+                    <Label>Contrato</Label>
+                    <Select
+                      value={edit.contrato_id || ""}
+                      onValueChange={(v) => {
+                        const c = contratos.find(x => x.id === v);
+                        const qtd = Number(edit.qtd_vagas || 1);
+                        setEdit({ ...edit, contrato_id: v, valor_total: c ? c.valor_mensal_por_estagiario * qtd : edit.valor_total });
+                      }}
+                      disabled={!edit.empresa_id}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Selecione contrato" /></SelectTrigger>
+                      <SelectContent>{editContratosEmpresa.map(c => <SelectItem key={c.id} value={c.id}>{c.numero || c.id.slice(0,8)} — {fmt(Number(c.valor_mensal_por_estagiario))}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Qtd. vagas</Label>
+                      <Input type="number" min={1} value={edit.qtd_vagas ?? 1} onChange={(e) => {
+                        const qtd = Number(e.target.value);
+                        const c = contratos.find(x => x.id === edit.contrato_id);
+                        setEdit({ ...edit, qtd_vagas: qtd, valor_total: c ? c.valor_mensal_por_estagiario * qtd : edit.valor_total });
+                      }} />
                     </div>
-                    <div className="space-y-2 mb-3">
+                    <div>
+                      <Label>Valor total (R$)</Label>
+                      <Input type="number" step="0.01" value={edit.valor_total ?? 0} onChange={(e) => setEdit({ ...edit, valor_total: Number(e.target.value) })} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Data solicitação</Label><Input type="date" value={edit.data_solicitacao || ""} onChange={(e) => setEdit({ ...edit, data_solicitacao: e.target.value })} /></div>
+                    <div><Label>Data pagamento</Label><Input type="date" value={edit.data_pagamento || ""} onChange={(e) => setEdit({ ...edit, data_pagamento: e.target.value || null })} /></div>
+                  </div>
+
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea rows={4} value={edit.observacoes || ""} onChange={(e) => setEdit({ ...edit, observacoes: e.target.value })} />
+                  </div>
+
+                  <Button onClick={salvarEdicao} disabled={saving}
+                    className="w-full bg-gradient-to-r from-[#D4AF37] to-[#E0C158] text-slate-900 hover:opacity-90">
+                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar alterações
+                  </Button>
+
+                  <Separator />
+
+                  <div>
+                    <Label>Candidatos vinculados ({candidatosDe(proc.id).length}/{proc.qtd_vagas})</Label>
+                    <div className="space-y-2 my-2">
                       {candidatosDe(proc.id).map(c => (
                         <div key={c.id} className="flex items-center justify-between bg-muted p-2 rounded">
                           <span className="text-sm">{alunoNome(c.aluno_id)}</span>
@@ -317,6 +407,8 @@ const EducacaoProcessos = () => {
                     </Select>
                   </div>
 
+                  <Separator />
+
                   <div>
                     <Label>Mover para</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -325,15 +417,17 @@ const EducacaoProcessos = () => {
                       ))}
                     </div>
                   </div>
+
+                  <Separator />
+
+                  <Button variant="destructive" className="w-full" onClick={() => { remove(proc.id); setDetalheId(null); }}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Excluir processo
+                  </Button>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => { setForm(proc); setDetalheId(null); setOpen(true); }}>Editar dados</Button>
-                  <Button onClick={() => setDetalheId(null)}>Fechar</Button>
-                </DialogFooter>
               </>
             )}
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       </div>
     </EducacaoAdminLayout>
   );
