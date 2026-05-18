@@ -823,6 +823,219 @@ export type Database = {
           },
         ]
       }
+      tb_edu_contratos: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          empresa_id: string
+          id: string
+          numero: string | null
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_mensal_por_estagiario: number
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          empresa_id: string
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_mensal_por_estagiario?: number
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          empresa_id?: string
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_mensal_por_estagiario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_edu_contratos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_edu_empresas: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          observacoes: string | null
+          razao_social: string
+          responsavel: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          observacoes?: string | null
+          razao_social: string
+          responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          observacoes?: string | null
+          razao_social?: string
+          responsavel?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tb_edu_estagios: {
+        Row: {
+          aluno_id: string
+          contrato_id: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          aluno_id: string
+          contrato_id: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          aluno_id?: string
+          contrato_id?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_edu_estagios_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "tb_alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_edu_estagios_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_edu_estagios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tb_edu_faturas: {
+        Row: {
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          qtd_estagiarios: number
+          status: string
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          competencia: string
+          contrato_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          qtd_estagiarios?: number
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          competencia?: string
+          contrato_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          qtd_estagiarios?: number
+          status?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_edu_faturas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_edu_faturas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_escolas: {
         Row: {
           auth_user_id: string | null
