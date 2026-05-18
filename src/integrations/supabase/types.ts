@@ -826,6 +826,7 @@ export type Database = {
       tb_edu_contratos: {
         Row: {
           created_at: string
+          dados_avaliacao: Json
           data_fim: string | null
           data_inicio: string
           empresa_id: string
@@ -838,6 +839,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dados_avaliacao?: Json
           data_fim?: string | null
           data_inicio: string
           empresa_id: string
@@ -850,6 +852,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dados_avaliacao?: Json
           data_fim?: string | null
           data_inicio?: string
           empresa_id?: string
