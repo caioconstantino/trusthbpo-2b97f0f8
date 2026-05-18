@@ -24,6 +24,8 @@ import Propostas from "./pages/Propostas";
 import AgendarPublico from "./pages/AgendarPublico";
 import AgendarEventoPublico from "./pages/AgendarEventoPublico";
 import SessoesPdv from "./pages/SessoesPdv";
+import Totens from "./pages/Totens";
+import Totem from "./pages/Totem";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -82,6 +84,10 @@ const App = () => (
             <Route path="/propostas" element={<ProtectedRoute><Propostas /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/sessoes-pdv" element={<ProtectedRoute><SessoesPdv /></ProtectedRoute>} />
+            <Route path="/totens" element={<ProtectedRoute><Totens /></ProtectedRoute>} />
+
+            {/* Totem público (fullscreen, sem auth) */}
+            <Route path="/totem/:slug" element={<Totem />} />
             
             {/* Public Catalog */}
             <Route path="/catalogo/:dominio" element={<CatalogoPublico />} />
