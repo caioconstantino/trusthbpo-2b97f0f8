@@ -35,6 +35,14 @@ import AdminAlunos from "./pages/admin/AdminAlunos";
 import AdminFinanceiro from "./pages/admin/AdminFinanceiro";
 import AdminRevendas from "./pages/admin/AdminRevendas";
 import AdminOfertas from "./pages/admin/AdminOfertas";
+import EducacaoLogin from "./pages/admin/educacao/EducacaoLogin";
+import EducacaoDashboard from "./pages/admin/educacao/EducacaoDashboard";
+import EducacaoAlunos from "./pages/admin/educacao/EducacaoAlunos";
+import EducacaoEmpresas from "./pages/admin/educacao/EducacaoEmpresas";
+import EducacaoContratos from "./pages/admin/educacao/EducacaoContratos";
+import EducacaoEstagios from "./pages/admin/educacao/EducacaoEstagios";
+import EducacaoFaturamento from "./pages/admin/educacao/EducacaoFaturamento";
+import { EducacaoAdminProtectedRoute } from "./components/EducacaoAdminProtectedRoute";
 import CriarUsuario from "./pages/CriarUsuario";
 import Configuracoes from "./pages/Configuracoes";
 import CadastroAluno from "./pages/CadastroAluno";
@@ -92,6 +100,15 @@ const App = () => (
             <Route path="/admin/financeiro" element={<AdminProtectedRoute><AdminFinanceiro /></AdminProtectedRoute>} />
             <Route path="/admin/revendas" element={<AdminProtectedRoute><AdminRevendas /></AdminProtectedRoute>} />
             <Route path="/admin/ofertas" element={<AdminProtectedRoute><AdminOfertas /></AdminProtectedRoute>} />
+
+            {/* Painel Educação */}
+            <Route path="/admin/educacao/login" element={<EducacaoLogin />} />
+            <Route path="/admin/educacao" element={<EducacaoAdminProtectedRoute><EducacaoDashboard /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/alunos" element={<EducacaoAdminProtectedRoute><EducacaoAlunos /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/empresas" element={<EducacaoAdminProtectedRoute><EducacaoEmpresas /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/contratos" element={<EducacaoAdminProtectedRoute><EducacaoContratos /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/estagios" element={<EducacaoAdminProtectedRoute><EducacaoEstagios /></EducacaoAdminProtectedRoute>} />
+            <Route path="/admin/educacao/faturamento" element={<EducacaoAdminProtectedRoute><EducacaoFaturamento /></EducacaoAdminProtectedRoute>} />
             
             {/* Public Registration Routes */}
             <Route path="/cadastro/aluno/:slug" element={<CadastroAluno />} />
