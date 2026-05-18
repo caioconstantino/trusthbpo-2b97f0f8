@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature, BookOpen, Copy } from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, ShoppingBag, Wallet, CreditCard, FileText, Building2, Sparkles, Gift, Calendar, Lock, FileSignature, BookOpen, Copy, Monitor } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -80,6 +80,7 @@ export function AppSidebar() {
     { icon: Package, label: "Produtos", path: "/produtos", modulo: "produtos" },
     { icon: Users, label: "Clientes", path: "/clientes", modulo: "clientes" },
     { icon: ShoppingCart, label: "PDV", path: "/pdv", modulo: "pdv" },
+    { icon: Monitor, label: "Totens", path: "/totens", modulo: "pdv" },
     { icon: ShoppingBag, label: "Compras", path: "/compras", modulo: "compras" },
     { icon: FileSignature, label: "Propostas", path: "/propostas", modulo: "propostas" },
   ];
