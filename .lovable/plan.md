@@ -1,106 +1,59 @@
-## Plano: Integração "Enviar Produtos para Site"
+# Painel Admin — Educação
 
-Nova integração que envia o cadastro de produtos do Trusth para um site externo (POST `/sync-products`), com carga inicial e sincronização automática quando produtos são criados/editados/excluídos.
+Painel separado para gestão da operação educacional (alunos, empresas contratantes, contratos, estágios ativos e faturamento).
 
-### Como funciona
+## Acesso
 
-```text
-┌──────────┐  POST /sync-products  ┌──────────┐
-│  Trusth  │ ───────────────────►  │   Site   │
-│          │  payload {produtos}   │ externo  │
-└──────────┘                       └──────────┘
+- Nova role `admin_educacao` na tabela `user_roles` (enum `app_role`).
+- Login dedicado em `/admin/educacao/login`.
+- Rota protegida `EducacaoAdminProtectedRoute` (mesma lógica do `AdminProtectedRoute`, validando a role `admin_educacao` OU `admin`).
+- Layout próprio com sidebar dourada para diferenciar do `/admin` comercial.
+
+## Páginas
+
+```
+/admin/educacao/login         → Login
+/admin/educacao               → Dashboard (KPIs)
+/admin/educacao/alunos        → Lista de alunos (reaproveita query de tb_alunos)
+/admin/educacao/empresas      → CRUD de empresas contratantes
+/admin/educacao/contratos     → CRUD de contratos (empresa + valor mensal + vigência)
+/admin/educacao/estagios      → Estagiários ativos (aluno + empresa + contrato)
+/admin/educacao/faturamento   → Faturas mensais geradas por estágio ativo
 ```
 
-A integração armazena:
-- `endpoint_url` — URL completa do `/sync-products` do site
-- `apikey` — chave do header `apikey`
+## Banco de dados
 
-Sempre que um produto é criado, atualizado ou excluído no Trusth, dispara um POST para o endpoint do site, no formato ERP documentado.
+Novas tabelas:
 
----
+- **tb_edu_empresas** — empresas que contratam estagiários
+  - razao_social, cnpj, email, telefone, responsavel, endereco, observacoes, ativo
+- **tb_edu_contratos** — contrato entre empresa e a operação
+  - empresa_id, numero, data_inicio, data_fim, valor_mensal_por_estagiario, status ('ativo','encerrado','suspenso'), observacoes
+- **tb_edu_estagios** — vínculo aluno × empresa × contrato
+  - aluno_id (→ tb_alunos), empresa_id, contrato_id, data_inicio, data_fim, valor_mensal, status ('ativo','encerrado','suspenso')
+- **tb_edu_faturas** — faturamento mensal
+  - empresa_id, contrato_id, competencia (YYYY-MM-01), valor_total, qtd_estagiarios, status ('aberta','paga','vencida'), data_vencimento, data_pagamento
 
-### 1. Novo tipo de integração no Hub
+RLS: somente quem tem `has_role(auth.uid(),'admin')` OU `has_role(auth.uid(),'admin_educacao')` pode acessar.
 
-Em `IntegrationHubTab.tsx`:
+## Dashboard (KPIs)
 
-- Adicionar `enviar_produtos` em `TIPOS_INTEGRACAO` (icon Package, label "Enviar Produtos para Site")
-- Adicionar card em `INTEGRACOES_PRONTAS`: "Catálogo do Site" — descricao "Envie e mantenha seu catálogo de produtos sincronizado com seu site"
-- No diálogo de criar/editar, quando `tipo === "enviar_produtos"`:
-  - Campo **URL do endpoint** (`config.endpoint_url`) — ex: `https://qkwypgohprykzhuhqmwr.supabase.co/functions/v1/sync-products`
-  - Campo **API Key** (`config.apikey`) — armazenado em `tb_integracoes.config`
-- Botão **"Carga Inicial"** para integrações deste tipo: lê todos os produtos do domínio/unidade e envia em lote via nova edge function `sync-products-out`
+- Total de alunos cadastrados
+- Estágios ativos no momento
+- Empresas contratantes ativas
+- MRR de estágios (soma de `valor_mensal` dos estágios ativos)
+- Faturado no mês corrente / em aberto
 
-### 2. Nova Edge Function `sync-products-out`
+## Faturamento
 
-`supabase/functions/sync-products-out/index.ts` (verify_jwt = false, registrada em `config.toml`)
+- Botão "Gerar faturas do mês" na página `/admin/educacao/faturamento`.
+- Para cada empresa com estagiários ativos na competência, cria uma `tb_edu_faturas` agregando valor × quantidade.
+- Idempotente por (empresa_id, competencia).
 
-Entrada:
-```json
-{
-  "dominio": "...",
-  "unidade_id": 1,
-  "produtos": [{ id, codigo, nome, ... }],   // opcional - se omitido, busca todos
-  "action": "upsert" | "delete",
-  "integracao_id": "..."  // opcional - se omitido, busca todas ativas tipo enviar_produtos
-}
-```
+## Detalhes técnicos
 
-Lógica:
-1. Busca integrações ativas tipo `enviar_produtos` para o domínio (filtrando por `integracao_id` se passado)
-2. Para cada integração, monta payload no formato ERP:
-   ```json
-   { "produtos": [
-     { "codigo", "nome", "preco", "preco_compra", "estoque",
-       "categoria", "imagem", "codigo_barras" }
-   ] }
-   ```
-   Para `action: "delete"`: `{ "codigo": "...", "action": "delete" }`
-3. Faz `POST` para `config.endpoint_url` com headers `apikey` e `Content-Type`
-4. Loga em `tb_integracoes_logs` (status sucesso/erro + resposta)
-5. Suporta produtos em lote (envia tudo num único POST por integração)
-
-Para obter o estoque, faz join com `tb_estq_unidades` pela `unidade_id` da integração; categoria via `tb_categorias`.
-
-### 3. Disparo automático nos hooks de produtos
-
-Adicionar chamadas fire-and-forget para `sync-products-out`:
-
-- **`src/components/ProductForm.tsx`** — após criar produto (upsert)
-- **`src/components/EditProductSheet.tsx`** — após salvar edição (upsert)
-- **`src/components/ProductsTable.tsx`** — após excluir produto (delete, envia só o `codigo`)
-- **`src/components/ImportProdutosDialog.tsx`** — após importação XLSX (upsert em lote)
-
-Helper utilitário `src/lib/syncProductsToSite.ts` para evitar duplicação:
-```ts
-export async function syncProductsToSite(dominio, unidadeId, produtos, action = "upsert") {
-  // chama sync-products-out fire-and-forget
-}
-```
-
-### 4. Botão "Carga Inicial" no Hub
-
-No `IntegrationHubTab.tsx`, função `handleCargaInicialProdutos(integracao)`:
-- Busca todos os produtos ativos do domínio/unidade
-- Chama `sync-products-out` com a lista completa, `action: "upsert"`, `integracao_id` específico
-- Mostra toast com total enviado
-
-### 5. Arquivos
-
-**Criar:**
-- `supabase/functions/sync-products-out/index.ts`
-- `src/lib/syncProductsToSite.ts`
-
-**Modificar:**
-- `supabase/config.toml` — registrar `[functions.sync-products-out] verify_jwt = false`
-- `src/components/IntegrationHubTab.tsx` — novo tipo, campos endpoint/apikey, botão carga inicial
-- `src/components/ProductForm.tsx` — chamar sync após criar
-- `src/components/EditProductSheet.tsx` — chamar sync após editar
-- `src/components/ProductsTable.tsx` — chamar sync após excluir
-- `src/components/ImportProdutosDialog.tsx` — chamar sync após importar
-
-**Sem alterações no banco** — usa `tb_integracoes.config` (jsonb) para guardar `endpoint_url` e `apikey`.
-
-### Observações de segurança
-
-- `apikey` fica em `tb_integracoes.config` protegido por RLS (apenas usuários do domínio veem)
-- Envios são fire-and-forget no client, com logging server-side em `tb_integracoes_logs` para auditoria/debug
+- Reusa componentes UI shadcn existentes (Card, Table, Dialog, Badge).
+- Cores: paleta dourada (#D4AF37 / #E0C158) para destacar área educacional, alinhado ao botão "Quero estagiar" já criado.
+- `EducacaoAdminLayout` com sidebar simples (sem dependência de unidade/dominio — é dado global da operação).
+- Migration única criando enum value, tabelas, policies e índices.
+- Botão na sidebar de `/admin` (existente) com link para `/admin/educacao` aparece apenas para admins gerais (atalho cross-painel).
