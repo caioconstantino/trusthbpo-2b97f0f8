@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { AvaliacaoDocenteForm, type AvaliacaoDocente } from "@/components/educacao/AvaliacaoDocenteForm";
+import { Separator } from "@/components/ui/separator";
 
 interface Contrato {
   id: string;
@@ -22,10 +24,11 @@ interface Contrato {
   valor_mensal_por_estagiario: number;
   status: string;
   observacoes: string | null;
+  dados_avaliacao?: AvaliacaoDocente | null;
 }
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const empty: Partial<Contrato> = { numero: "", data_inicio: new Date().toISOString().slice(0, 10), data_fim: null, valor_mensal_por_estagiario: 0, status: "ativo", observacoes: "" };
+const empty: Partial<Contrato> = { numero: "", data_inicio: new Date().toISOString().slice(0, 10), data_fim: null, valor_mensal_por_estagiario: 0, status: "ativo", observacoes: "", dados_avaliacao: {} };
 
 const EducacaoContratos = () => {
   const { toast } = useToast();
@@ -56,6 +59,7 @@ const EducacaoContratos = () => {
     }
     const payload: any = { ...form, valor_mensal_por_estagiario: Number(form.valor_mensal_por_estagiario || 0) };
     if (!payload.data_fim) payload.data_fim = null;
+    if (!payload.dados_avaliacao) payload.dados_avaliacao = {};
     const res = form.id
       ? await supabase.from("tb_edu_contratos").update(payload).eq("id", form.id)
       : await supabase.from("tb_edu_contratos").insert(payload);
@@ -125,7 +129,7 @@ const EducacaoContratos = () => {
         </Card>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{form.id ? "Editar contrato" : "Novo contrato"}</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-4 py-2">
               <div className="col-span-2">
@@ -151,6 +155,14 @@ const EducacaoContratos = () => {
               <div><Label>Data fim</Label><Input type="date" value={form.data_fim || ""} onChange={(e) => setForm({ ...form, data_fim: e.target.value || null })} /></div>
               <div className="col-span-2"><Label>Valor mensal por estagiário (R$)</Label><Input type="number" step="0.01" value={form.valor_mensal_por_estagiario ?? 0} onChange={(e) => setForm({ ...form, valor_mensal_por_estagiario: Number(e.target.value) })} /></div>
               <div className="col-span-2"><Label>Observações</Label><Textarea value={form.observacoes || ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></div>
+            </div>
+            <Separator className="my-4" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Avaliação do Docente</h3>
+              <AvaliacaoDocenteForm
+                value={(form.dados_avaliacao as AvaliacaoDocente) || {}}
+                onChange={(av) => setForm({ ...form, dados_avaliacao: av })}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
