@@ -1,0 +1,1 @@
+ALTER TABLE public.tb_edu_contratos ADD COLUMN IF NOT EXISTS dados_avaliacao jsonb NOT NULL DEFAULT '{}'::jsonb;
