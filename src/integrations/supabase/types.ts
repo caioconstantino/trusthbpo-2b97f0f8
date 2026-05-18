@@ -2336,6 +2336,54 @@ export type Database = {
           },
         ]
       }
+      tb_totens: {
+        Row: {
+          ativo: boolean
+          cartao_confianca: boolean
+          categorias_visiveis: Json
+          cor_primaria: string | null
+          created_at: string
+          dominio: string
+          id: string
+          logo_url: string | null
+          nome: string
+          pix_ativo: boolean
+          slug: string
+          unidade_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cartao_confianca?: boolean
+          categorias_visiveis?: Json
+          cor_primaria?: string | null
+          created_at?: string
+          dominio: string
+          id?: string
+          logo_url?: string | null
+          nome?: string
+          pix_ativo?: boolean
+          slug: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cartao_confianca?: boolean
+          categorias_visiveis?: Json
+          cor_primaria?: string | null
+          created_at?: string
+          dominio?: string
+          id?: string
+          logo_url?: string | null
+          nome?: string
+          pix_ativo?: boolean
+          slug?: string
+          unidade_id?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tb_unidades: {
         Row: {
           ativo: boolean | null
@@ -2432,39 +2480,48 @@ export type Database = {
         Row: {
           acrescimo_percentual: number
           cliente_nome: string | null
+          cpf_cliente: string | null
           created_at: string
           desconto_percentual: number
           dominio: string
           id: string
+          origem: string
           sessao_id: string | null
           subtotal: number
           total: number
+          totem_id: string | null
           troco: number
           unidade_id: number | null
         }
         Insert: {
           acrescimo_percentual?: number
           cliente_nome?: string | null
+          cpf_cliente?: string | null
           created_at?: string
           desconto_percentual?: number
           dominio: string
           id?: string
+          origem?: string
           sessao_id?: string | null
           subtotal?: number
           total?: number
+          totem_id?: string | null
           troco?: number
           unidade_id?: number | null
         }
         Update: {
           acrescimo_percentual?: number
           cliente_nome?: string | null
+          cpf_cliente?: string | null
           created_at?: string
           desconto_percentual?: number
           dominio?: string
           id?: string
+          origem?: string
           sessao_id?: string | null
           subtotal?: number
           total?: number
+          totem_id?: string | null
           troco?: number
           unidade_id?: number | null
         }
@@ -2474,6 +2531,13 @@ export type Database = {
             columns: ["sessao_id"]
             isOneToOne: false
             referencedRelation: "tb_sessoes_caixa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tb_vendas_totem_id_fkey"
+            columns: ["totem_id"]
+            isOneToOne: false
+            referencedRelation: "tb_totens"
             referencedColumns: ["id"]
           },
           {
@@ -2531,6 +2595,10 @@ export type Database = {
           created_at: string
           forma_pagamento: string
           id: string
+          qr_code: string | null
+          qr_code_url: string | null
+          status: string
+          transaction_id_externo: string | null
           valor: number
           venda_id: string
         }
@@ -2538,6 +2606,10 @@ export type Database = {
           created_at?: string
           forma_pagamento: string
           id?: string
+          qr_code?: string | null
+          qr_code_url?: string | null
+          status?: string
+          transaction_id_externo?: string | null
           valor?: number
           venda_id: string
         }
@@ -2545,6 +2617,10 @@ export type Database = {
           created_at?: string
           forma_pagamento?: string
           id?: string
+          qr_code?: string | null
+          qr_code_url?: string | null
+          status?: string
+          transaction_id_externo?: string | null
           valor?: number
           venda_id?: string
         }
