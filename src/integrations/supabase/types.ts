@@ -1039,6 +1039,86 @@ export type Database = {
           },
         ]
       }
+      tb_edu_processos: {
+        Row: {
+          coluna: string
+          contrato_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          data_solicitacao: string
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          ordem: number
+          qtd_vagas: number
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          coluna?: string
+          contrato_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_solicitacao?: string
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          qtd_vagas?: number
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          coluna?: string
+          contrato_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_solicitacao?: string
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          ordem?: number
+          qtd_vagas?: number
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      tb_edu_processos_candidatos: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          observacoes: string | null
+          processo_id: string
+          status: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          processo_id: string
+          status?: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          processo_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tb_edu_processos_candidatos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "tb_edu_processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tb_escolas: {
         Row: {
           auth_user_id: string | null

@@ -8,6 +8,7 @@ import {
   Building2,
   FileText,
   Briefcase,
+  KanbanSquare,
   Receipt,
   LogOut,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const items = [
   { path: "/admin/educacao/alunos", label: "Alunos", icon: GraduationCap },
   { path: "/admin/educacao/empresas", label: "Empresas", icon: Building2 },
   { path: "/admin/educacao/contratos", label: "Contratos", icon: FileText },
+  { path: "/admin/educacao/processos", label: "Processos (Kanban)", icon: KanbanSquare },
   { path: "/admin/educacao/estagios", label: "Estágios ativos", icon: Briefcase },
   { path: "/admin/educacao/faturamento", label: "Faturamento", icon: Receipt },
 ];
